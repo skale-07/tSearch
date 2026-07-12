@@ -1,5 +1,7 @@
+import { SUBSTACK_CACHE_TTL_MS } from "../config.js";
 import type { SubstackProfile } from "../types.js";
 import { substackSlugFromUrl } from "../linkedin/linkedinExtract.js";
+import { readCache, writeCache } from "../storage/jsonStore.js";
 import { fetchSubstackFeed } from "./substackFeed.js";
 
 const USER_AGENT =
@@ -32,11 +34,21 @@ export async function expandSubstackFromSlug(
   slug: string,
   url?: string
 ): Promise<SubstackProfile> {
+  const cached = readCache<SubstackProfile>(
+    "substack",
+    slug,
+    SUBSTACK_CACHE_TTL_MS
+  );
+  if (cached?.data) {
+    console.log(`  [substack] cache hit: ${slug}`);
+    return { ...cached.data, url: url ?? cached.data.url };
+  }
+
   const feed = await fetchSubstackFeed(slug);
   const html = await fetchHomeHtml(slug);
   const recommenders = parseRecommenders(html);
 
-  return {
+  const profile: SubstackProfile = {
     url: url ?? `https://${slug}.substack.com`,
     slug,
     posts: feed?.posts ?? null,
@@ -44,6 +56,8 @@ export async function expandSubstackFromSlug(
     recommenders,
     active: (feed?.posts ?? 0) > 0,
   };
+  writeCache("substack", slug, profile);
+  return profile;
 }
 
 export interface SubstackExpansion {

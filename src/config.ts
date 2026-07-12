@@ -53,6 +53,31 @@ export const COOKIES_PATH = path.resolve(
   process.env.COOKIES_PATH ?? "cookies.json"
 );
 
+export const CACHE_DIR = path.resolve(
+  process.cwd(),
+  process.env.CACHE_DIR ?? "cache"
+);
+
+export const PEOPLE_DIR = path.resolve(
+  process.cwd(),
+  process.env.PEOPLE_DIR ?? "data/people"
+);
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const GITHUB_CACHE_TTL_MS = Number(
+  process.env.GITHUB_CACHE_TTL_MS ?? 7 * DAY_MS
+);
+export const LINKEDIN_CACHE_TTL_MS = Number(
+  process.env.LINKEDIN_CACHE_TTL_MS ?? 30 * DAY_MS
+);
+export const LINKEDIN_SEARCH_CACHE_TTL_MS = Number(
+  process.env.LINKEDIN_SEARCH_CACHE_TTL_MS ?? 7 * DAY_MS
+);
+export const SUBSTACK_CACHE_TTL_MS = Number(
+  process.env.SUBSTACK_CACHE_TTL_MS ?? 7 * DAY_MS
+);
+export const FORCE_REFRESH = process.env.FORCE_REFRESH === "1";
+
 export const MAX_LINKEDIN_RESULTS = Number(process.env.MAX_LINKEDIN_RESULTS ?? 5);
 export const MAX_GITHUB_STARGAZERS_PER_REPO = Number(
   process.env.MAX_STARGAZERS_PER_REPO ?? 15

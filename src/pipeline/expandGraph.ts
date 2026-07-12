@@ -10,15 +10,30 @@ function log(msg: string): void {
   console.log(`[expand] ${msg}`);
 }
 
+export interface IdentityNeighbors {
+  github: string[];
+  substack: string[];
+}
+
+export interface ExpandResult {
+  pool: Map<string, RawCandidate>;
+  /** 1-hop neighbors per identity, keyed by normalized query name. */
+  neighbors: Map<string, IdentityNeighbors>;
+}
+
 export async function expandGraph(
   identities: ResolvedIdentity[],
   olympiadIndex: Map<string, OlympiadProfile>
-): Promise<Map<string, RawCandidate>> {
+): Promise<ExpandResult> {
   const pool = new Map<string, RawCandidate>();
+  const neighbors = new Map<string, IdentityNeighbors>();
 
   for (const identity of identities) {
     const { query_name, linkedin, identity_confidence } = identity;
     const oly = lookupOlympiad(olympiadIndex, query_name);
+    const identityKey = query_name.trim().toLowerCase();
+    const hood: IdentityNeighbors = { github: [], substack: [] };
+    neighbors.set(identityKey, hood);
 
     log(`identity: ${query_name} (${linkedin.url})`);
 
@@ -46,6 +61,7 @@ export async function expandGraph(
         log(
           `  github ${identity.github_url} → ${gh.discovered_logins.length} neighbors`
         );
+        hood.github = gh.discovered_logins;
 
         for (const login of gh.discovered_logins.slice(0, 20)) {
           const profile = await fetchGithubProfile(login);
@@ -80,6 +96,7 @@ export async function expandGraph(
         log(
           `  substack ${identity.substack_url} → ${ss.discovered_slugs.length} neighbors`
         );
+        hood.substack = ss.discovered_slugs;
 
         for (const slug of ss.discovered_slugs.slice(0, 10)) {
           const neighbor = await expandSubstackFromSlug(slug);
@@ -101,5 +118,5 @@ export async function expandGraph(
     log(`pool ${pool.size} > cap ${MAX_CANDIDATES} (merge will trim)`);
   }
 
-  return pool;
+  return { pool, neighbors };
 }

@@ -11,6 +11,10 @@ cookies.json
 # Pipeline output
 output/
 
+# JSON storage (network-fetch cache + per-person records)
+cache/
+data/
+
 __pycache__/
 .history/
 *.pyc

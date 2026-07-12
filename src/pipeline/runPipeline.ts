@@ -2,22 +2,106 @@
 import fs from "fs";
 import path from "path";
 import {
+  CACHE_DIR,
   COOKIES_PATH,
   GITHUB_TOKEN_SOURCE,
   OLYMPIAD_CSV_PATH,
   OUTPUT_PATH,
+  PEOPLE_DIR,
   SEEDS_PATH,
   MAX_CANDIDATES,
 } from "../config.js";
-import { loadOlympiadCsv } from "../olympiad/parseOlympiad.js";
-import { parseSeeds } from "../seeds/parseSeeds.js";
-import { resolveIdentities } from "./resolveIdentities.js";
-import { expandGraph } from "./expandGraph.js";
+import type { Candidate, OlympiadProfile } from "../types.js";
+import { loadOlympiadCsv, lookupOlympiad } from "../olympiad/parseOlympiad.js";
+import { parseSeeds, type SeedQuery } from "../seeds/parseSeeds.js";
+import { upsertPerson } from "../storage/personStore.js";
+import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
+import { expandGraph, type IdentityNeighbors } from "./expandGraph.js";
 import { mergeCandidates } from "./mergeCandidates.js";
 
 function log(step: string, detail?: string): void {
   const ts = new Date().toLocaleTimeString();
   console.log(detail ? `[${ts}] ${step} — ${detail}` : `[${ts}] ${step}`);
+}
+
+function normKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function persistPeople(
+  ranked: Candidate[],
+  seeds: SeedQuery[],
+  failed: ResolveResults["failed"],
+  neighbors: Map<string, IdentityNeighbors>,
+  olympiadIndex: Map<string, OlympiadProfile>
+): number {
+  const now = new Date().toISOString();
+  const seedByKey = new Map(seeds.map((s) => [normKey(s.name), s]));
+  let written = 0;
+
+  // Every seed plus any discovered candidate with olympiad pedigree gets a
+  // per-person metadata file that accumulates across runs.
+  for (const c of ranked) {
+    const seed = seedByKey.get(c.key);
+    if (!seed && !c.olympiad) continue;
+
+    const confirmed = !!c.linkedin && c.identity_confidence >= 0.35;
+    const hood = neighbors.get(c.key);
+
+    upsertPerson({
+      name: c.name,
+      country:
+        seed?.country ??
+        c.olympiad?.countries[0] ??
+        c.linkedin?.country ??
+        undefined,
+      aliases: [seed?.name ?? "", c.linkedin?.name ?? ""].filter(Boolean),
+      olympiad: c.olympiad,
+      linkedin: confirmed ? c.linkedin : undefined,
+      github: c.github,
+      substack: c.substack,
+      links: {
+        linkedin_url: confirmed ? c.linkedin?.url : undefined,
+        github_url: c.github?.profile_url ?? c.linkedin?.github_url ?? undefined,
+        substack_url: c.substack?.url ?? c.linkedin?.substack_url ?? undefined,
+        twitter_url: c.linkedin?.twitter_url ?? undefined,
+        website_url: c.linkedin?.website_url ?? undefined,
+      },
+      identity: confirmed
+        ? {
+            status: "resolved",
+            confidence: c.identity_confidence,
+            resolved_at: now,
+          }
+        : { status: "not_attempted", confidence: c.identity_confidence },
+      graph: {
+        github_neighbors: hood?.github,
+        substack_neighbors: hood?.substack,
+        discovered_via: c.discovered_via,
+      },
+      scores: { ...c.score_breakdown, final_score: c.final_score },
+      freshness: {
+        linkedin_checked_at: confirmed ? now : undefined,
+        github_checked_at: c.github ? now : undefined,
+        substack_checked_at: c.substack ? now : undefined,
+      },
+    });
+    written++;
+  }
+
+  // Seeds that never resolved still get a record, so failures aren't
+  // silently forgotten and can be retried with better context later.
+  for (const { seed, reason } of failed) {
+    upsertPerson({
+      name: seed.name,
+      country: seed.country,
+      olympiad: lookupOlympiad(olympiadIndex, seed.name),
+      identity: { status: reason, confidence: 0 },
+    });
+    written++;
+  }
+
+  return written;
 }
 
 async function main(): Promise<void> {
@@ -34,10 +118,14 @@ async function main(): Promise<void> {
   log("start", `LinkedIn-first pipeline via Playwright (${seeds.length} seeds)`);
   log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
   log("start", `COOKIES_PATH=${COOKIES_PATH}`);
+  log("start", `CACHE_DIR=${CACHE_DIR}`);
 
   if (!fs.existsSync(COOKIES_PATH)) {
-    console.error(`Missing ${COOKIES_PATH}. Run: npm run login`);
-    process.exit(1);
+    // Not fatal anymore: a fully cached run never launches Chromium. Any
+    // LinkedIn cache miss will still fail with a clear "run npm run login".
+    console.warn(
+      `Missing ${COOKIES_PATH} — only cached LinkedIn data can be used. Run "npm run login" before a fresh scrape.`
+    );
   }
 
   log("olympiad", `loading ${OLYMPIAD_CSV_PATH}`);
@@ -45,7 +133,10 @@ async function main(): Promise<void> {
   log("olympiad", `indexed ${olympiadIndex.size} medalists`);
 
   log("resolve", "LinkedIn identity resolution...");
-  const identities = await resolveIdentities(seeds, olympiadIndex);
+  const { resolved: identities, failed } = await resolveIdentities(
+    seeds,
+    olympiadIndex
+  );
   log("resolve", `${identities.length}/${seeds.length} identities resolved`);
 
   if (!identities.length) {
@@ -54,7 +145,7 @@ async function main(): Promise<void> {
   }
 
   log("expand", "GitHub/Substack graph expansion from verified URLs...");
-  const pool = await expandGraph(identities, olympiadIndex);
+  const { pool, neighbors } = await expandGraph(identities, olympiadIndex);
 
   log("merge", `merging ${pool.size} raw candidates`);
   const ranked = mergeCandidates([...pool.values()]).slice(0, MAX_CANDIDATES);
@@ -63,6 +154,9 @@ async function main(): Promise<void> {
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(ranked, null, 2), "utf-8");
 
   log("done", `wrote ${ranked.length} candidates → ${OUTPUT_PATH}`);
+
+  const people = persistPeople(ranked, seeds, failed, neighbors, olympiadIndex);
+  log("people", `upserted ${people} person records → ${PEOPLE_DIR}`);
 
   console.log("\n=== TOP CANDIDATES ===\n");
   for (const c of ranked.slice(0, 15)) {

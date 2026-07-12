@@ -1,4 +1,9 @@
-import { GITHUB_DELAY_MS, GITHUB_TOKEN } from "../config.js";
+import {
+  GITHUB_CACHE_TTL_MS,
+  GITHUB_DELAY_MS,
+  GITHUB_TOKEN,
+} from "../config.js";
+import { readCache, writeCache } from "../storage/jsonStore.js";
 
 export interface GhSearchUser {
   login: string;
@@ -20,11 +25,23 @@ function headers(): Record<string, string> {
 }
 
 export async function ghFetch<T>(path: string): Promise<T | null> {
+  const cached = readCache<T | null>("github", path, GITHUB_CACHE_TTL_MS);
+  if (cached) return cached.data;
+
   await sleep(GITHUB_DELAY_MS);
   try {
     const res = await fetch(`https://api.github.com${path}`, { headers: headers() });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    if (!res.ok) {
+      // Cache hard misses so re-runs skip them; transient failures (rate
+      // limits, 5xx) stay uncached and get retried next run.
+      if (res.status === 404 || res.status === 410) {
+        writeCache("github", path, null);
+      }
+      return null;
+    }
+    const data = (await res.json()) as T;
+    writeCache("github", path, data);
+    return data;
   } catch {
     return null;
   }
