@@ -4,6 +4,7 @@ import type { LinkedInSearchHit } from "./linkedinSearch.js";
 import type { LinkedInSession } from "./linkedinBrowser.js";
 import { sleep } from "./linkedinBrowser.js";
 import { LINKEDIN_DELAY_MS } from "../config.js";
+import { countryFromLocation } from "./countryMatch.js";
 
 export function parseGithubUrl(text: string): string | null {
   const m = text.match(
@@ -118,14 +119,112 @@ function parseEducation(text: string): {
   return { school, degree, graduation_year };
 }
 
-function parseLocation(text: string): string | null {
-  const m = text.match(
-    /(?:Contact info|Location)\s*\n\s*([^\n]+)/i
-  );
-  if (m) return m[1].trim();
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  const idx = lines.findIndex((l) => /^.{2,40},\s*.{2,40}$/.test(l));
-  return idx >= 0 ? lines[idx] : null;
+function parseLocationFromLine(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed || !trimmed.includes(",")) return null;
+  if (/connection|follower|contact|message|premium/i.test(trimmed)) return null;
+  return trimmed;
+}
+
+async function extractTopCardLocation(page: Page): Promise<string | null> {
+  const topCard = page.locator(
+    "main .pv-text-details__left-panel, main .ph5.pb5"
+  ).first();
+
+  if ((await topCard.count()) > 0) {
+    const smalls = topCard.locator("span.text-body-small");
+    const count = await smalls.count();
+    for (let i = 0; i < count; i++) {
+      const text = (await smalls.nth(i).innerText().catch(() => "")).trim();
+      const loc = parseLocationFromLine(text);
+      if (loc) return loc;
+    }
+  }
+
+  const fallback = page.locator("main span.text-body-small.inline.t-black--light");
+  const count = await fallback.count();
+  for (let i = 0; i < count; i++) {
+    const text = (await fallback.nth(i).innerText().catch(() => "")).trim();
+    const loc = parseLocationFromLine(text);
+    if (loc) return loc;
+  }
+
+  return null;
+}
+
+async function extractTopCardHeadline(page: Page): Promise<string | null> {
+  const headline = page
+    .locator(
+      "main .pv-text-details__left-panel .text-body-medium, main .text-body-medium.break-words"
+    )
+    .first();
+  if ((await headline.count()) === 0) return null;
+  const text = (await headline.innerText().catch(() => "")).trim();
+  return text || null;
+}
+
+export function profileFromSearchHit(
+  hit: LinkedInSearchHit,
+  queryName: string
+): LinkedInProfile {
+  const location = hit.location || null;
+  return {
+    url: hit.url,
+    name: hit.title || queryName,
+    photo_url: null,
+    headline: hit.headline || null,
+    school: null,
+    degree: null,
+    country: countryFromLocation(location),
+    graduation_year: null,
+    keywords: hit.headline ? hit.headline.split(/\s+/).slice(0, 8) : [],
+    github_url: null,
+    substack_url: null,
+    twitter_url: null,
+    website_url: null,
+    experience: [],
+    skills: [],
+  };
+}
+
+export async function extractProfileLinksOnly(
+  session: LinkedInSession,
+  profileUrl: string
+): Promise<
+  Pick<
+    LinkedInProfile,
+    "github_url" | "substack_url" | "twitter_url" | "website_url"
+  >
+> {
+  const { page } = session;
+  await page.goto(profileUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+  await page.waitForSelector("main", { timeout: 15000 }).catch(() => null);
+  await sleep(600);
+
+  const hrefs = await collectHrefs(page.locator("main"));
+  let aboutText = "";
+  const aboutSection = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: /^About$/i }) })
+    .first();
+  if ((await aboutSection.count()) > 0) {
+    aboutText = await aboutSection.innerText().catch(() => "");
+    hrefs.push(...(await collectHrefs(aboutSection)));
+  }
+
+  const contact = page.getByRole("link", { name: /contact info/i }).first();
+  if ((await contact.count()) > 0) {
+    await contact.click().catch(() => null);
+    await sleep(600);
+    const modal = page.locator('[role="dialog"], .artdeco-modal').first();
+    if ((await modal.count()) > 0) {
+      aboutText += "\n" + (await modal.innerText().catch(() => ""));
+      hrefs.push(...(await collectHrefs(modal)));
+      await page.keyboard.press("Escape").catch(() => null);
+    }
+  }
+
+  return parseAllLinks(aboutText, hrefs);
 }
 
 export async function extractLinkedInProfile(
@@ -148,11 +247,10 @@ export async function extractLinkedInProfile(
     name = (await h1.innerText()).trim() || name;
   }
 
-  const headline = await page
-    .locator("main .text-body-medium, main [data-generated-suggestion-target]")
-    .first()
-    .innerText()
-    .catch(() => hit.snippet || null);
+  const headline =
+    (await extractTopCardHeadline(page)) || hit.headline || null;
+  let location =
+    (await extractTopCardLocation(page)) || hit.location || null;
 
   const about = await sectionText(page, /^About$/i);
   const education = await sectionText(page, /^Education$/i);
@@ -179,8 +277,13 @@ export async function extractLinkedInProfile(
   );
   const links = parseAllLinks(blob, hrefs);
   const edu = parseEducation(education.text);
-  const location = parseLocation(contactText || mainText);
-  const country = location?.split(",").pop()?.trim() ?? null;
+
+  if (!location && contactText) {
+    const m = contactText.match(/(?:Location)\s*\n\s*([^\n]+)/i);
+    if (m) location = m[1].trim();
+  }
+
+  const country = countryFromLocation(location);
 
   const photo = await page
     .locator('main img[src*="profile-displayphoto"]')
@@ -209,7 +312,7 @@ export async function extractLinkedInProfile(
     url: hit.url,
     name,
     photo_url: photo,
-    headline: headline || hit.snippet || null,
+    headline,
     school: edu.school,
     degree: edu.degree,
     country,

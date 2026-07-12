@@ -3,12 +3,14 @@ import fs from "fs";
 import path from "path";
 import {
   COOKIES_PATH,
+  GITHUB_TOKEN_SOURCE,
   OLYMPIAD_CSV_PATH,
   OUTPUT_PATH,
   SEEDS_PATH,
   MAX_CANDIDATES,
 } from "../config.js";
 import { loadOlympiadCsv } from "../olympiad/parseOlympiad.js";
+import { parseSeeds } from "../seeds/parseSeeds.js";
 import { resolveIdentities } from "./resolveIdentities.js";
 import { expandGraph } from "./expandGraph.js";
 import { mergeCandidates } from "./mergeCandidates.js";
@@ -28,9 +30,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const seeds = JSON.parse(fs.readFileSync(SEEDS_PATH, "utf-8")) as string[];
+  const seeds = parseSeeds(JSON.parse(fs.readFileSync(SEEDS_PATH, "utf-8")));
   log("start", `LinkedIn-first pipeline via Playwright (${seeds.length} seeds)`);
-  log("start", `GITHUB_TOKEN=${process.env.GITHUB_TOKEN ? "set" : "not set"}`);
+  log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
   log("start", `COOKIES_PATH=${COOKIES_PATH}`);
 
   if (!fs.existsSync(COOKIES_PATH)) {

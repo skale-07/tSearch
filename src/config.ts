@@ -1,6 +1,34 @@
+import { execSync } from "child_process";
 import path from "path";
+import dotenv from "dotenv";
 
-export const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim() ?? "";
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+function tokenFromGhCli(): string {
+  try {
+    return execSync("gh auth token", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+function resolveGithubToken(): { token: string; source: string } {
+  const fromEnv = process.env.GITHUB_TOKEN?.trim();
+  if (fromEnv) return { token: fromEnv, source: "GITHUB_TOKEN env" };
+
+  const fromGh = tokenFromGhCli();
+  if (fromGh) return { token: fromGh, source: "gh auth token" };
+
+  return { token: "", source: "not set" };
+}
+
+const githubAuth = resolveGithubToken();
+
+export const GITHUB_TOKEN = githubAuth.token;
+export const GITHUB_TOKEN_SOURCE = githubAuth.source;
 export const GITHUB_DELAY_MS = Number(process.env.GITHUB_DELAY_MS ?? 800);
 export const SUBSTACK_DELAY_MS = Number(process.env.SUBSTACK_DELAY_MS ?? 600);
 export const LINKEDIN_DELAY_MS = Number(process.env.LINKEDIN_DELAY_MS ?? 1200);

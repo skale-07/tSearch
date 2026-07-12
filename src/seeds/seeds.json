@@ -1,8 +1,10 @@
 [
-  "Ryan Bai",
-  "Damjan Davkov",
-  "Warren Bei",
-  "Scott Wu",
-  "Gavin Uberti",
-  "Vitalik Buterin"
+  { "name": "Phoebe Zhang", "country": "New Zealand" },
+  { "name": "Kangyang Zhou", "country": "China" },
+  { "name": "Adam Gąsienica-Samek", "country": "Poland" },
+  { "name": "Brian Xue", "country": "United States of America" },
+  { "name": "Daniel Weber", "country": "Israel" },
+  { "name": "Agastya Goel", "country": "United States of America" },
+  { "name": "Rain Jiang", "country": "United States of America" },
+  { "name": "Mihai-Valeriu Voicu", "country": "Romania" }
 ]

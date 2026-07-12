@@ -13,6 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "playwright": "^1.52.0",
     "xml2js": "^0.6.2"
   },

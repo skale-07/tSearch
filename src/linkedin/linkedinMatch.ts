@@ -1,15 +1,13 @@
 import type { LinkedInSearchHit } from "./linkedinSearch.js";
 import type { OlympiadProfile } from "../types.js";
+import { countryMatchesText } from "./countryMatch.js";
 
 export interface MatchContext {
   query_name: string;
+  expected_country?: string;
   olympiad?: OlympiadProfile;
   github_username?: string;
   substack_slug?: string;
-}
-
-function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function nameInText(name: string, text: string): boolean {
@@ -18,23 +16,49 @@ function nameInText(name: string, text: string): boolean {
   return parts.length >= 2 && parts.every((p) => t.includes(p));
 }
 
+function countriesToCheck(ctx: MatchContext): string[] {
+  const out = new Set<string>();
+  if (ctx.expected_country) out.add(ctx.expected_country);
+  for (const c of ctx.olympiad?.countries ?? []) {
+    if (c) out.add(c);
+  }
+  return [...out];
+}
+
 export function scoreLinkedInHit(
   hit: LinkedInSearchHit,
   ctx: MatchContext
 ): number {
   let score = 0;
-  const blob = `${hit.title} ${hit.snippet}`.toLowerCase();
+  const nameBlob = `${hit.title}`;
+  const locationBlob = hit.location || "";
+  const headlineBlob = hit.headline || "";
 
-  if (nameInText(ctx.query_name, hit.title) || nameInText(ctx.query_name, blob)) {
+  if (
+    nameInText(ctx.query_name, hit.title) ||
+    nameInText(ctx.query_name, nameBlob)
+  ) {
     score += 40;
   }
 
-  if (ctx.olympiad) {
-    for (const country of ctx.olympiad.countries) {
-      if (country && blob.includes(country.toLowerCase())) score += 15;
+  for (const country of countriesToCheck(ctx)) {
+    if (countryMatchesText(country, locationBlob)) {
+      score += 35;
+      break;
     }
+    if (
+      locationBlob &&
+      countryMatchesText(country, headlineBlob) &&
+      !countryMatchesText(country, locationBlob)
+    ) {
+      score += 5;
+    }
+  }
+
+  if (ctx.olympiad) {
     for (const prize of ctx.olympiad.prizes) {
       const tokens = ["imo", "ioi", "ipho", "icho", "olympiad", "gold", "silver"];
+      const blob = `${headlineBlob} ${locationBlob}`.toLowerCase();
       if (tokens.some((t) => prize.toLowerCase().includes(t) && blob.includes(t))) {
         score += 10;
       }
@@ -43,12 +67,14 @@ export function scoreLinkedInHit(
 
   if (ctx.github_username) {
     const gh = ctx.github_username.toLowerCase();
-    if (blob.includes(gh) || blob.includes(`github.com/${gh}`)) score += 25;
+    const lower = `${headlineBlob} ${locationBlob}`.toLowerCase();
+    if (lower.includes(gh) || lower.includes(`github.com/${gh}`)) score += 25;
   }
 
   if (ctx.substack_slug) {
     const slug = ctx.substack_slug.toLowerCase();
-    if (blob.includes(slug) || blob.includes(`${slug}.substack.com`)) score += 20;
+    const lower = `${headlineBlob} ${locationBlob}`.toLowerCase();
+    if (lower.includes(slug) || lower.includes(`${slug}.substack.com`)) score += 20;
   }
 
   const headlineKeywords = [
@@ -60,7 +86,9 @@ export function scoreLinkedInHit(
     "phd",
     "undergraduate",
   ];
-  if (headlineKeywords.some((k) => blob.includes(k))) score += 5;
+  if (headlineKeywords.some((k) => headlineBlob.toLowerCase().includes(k))) {
+    score += 5;
+  }
 
   return Math.min(score, 100) / 100;
 }
@@ -83,4 +111,21 @@ export function pickBestLinkedInHit(
   }
 
   return { hit: best, confidence: bestScore };
+}
+
+export const SEARCH_CONFIRM_THRESHOLD = 0.65;
+
+export function isSearchConfirmed(
+  hit: LinkedInSearchHit,
+  ctx: MatchContext,
+  confidence: number
+): boolean {
+  if (confidence < SEARCH_CONFIRM_THRESHOLD) return false;
+  if (!nameInText(ctx.query_name, hit.title)) return false;
+
+  const countries = countriesToCheck(ctx);
+  if (countries.length === 0) return true;
+  if (!hit.location) return false;
+
+  return countries.some((c) => countryMatchesText(c, hit.location));
 }
