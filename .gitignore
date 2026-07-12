@@ -1,0 +1,18 @@
+
+# Playwright (legacy LinkedIn MVP — not used by pipeline)
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+cookies.json
+
+# Pipeline output
+output/
+
+__pycache__/
+.history/
+*.pyc
+*.txt
+.env

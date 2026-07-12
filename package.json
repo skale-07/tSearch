@@ -1,0 +1,25 @@
+{
+  "name": "tsearch",
+  "version": "2.0.0",
+  "description": "Unseen talent discovery — GitHub + Substack graph expansion + Olympiad enrichment",
+  "main": "index.js",
+  "scripts": {
+    "pipeline": "tsx src/pipeline/runPipeline.ts",
+    "login": "tsx src/linkedin/saveSession.ts",
+    "seeds": "python olympiad_seeds.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.52.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/xml2js": "^0.4.14",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

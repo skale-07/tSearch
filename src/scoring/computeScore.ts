@@ -1,0 +1,76 @@
+import { WEIRD_TOPICS } from "../config.js";
+import type {
+  Candidate,
+  GitHubProfile,
+  OlympiadProfile,
+  ScoreBreakdown,
+  SubstackProfile,
+} from "../types.js";
+
+function hasWeirdTopics(github?: GitHubProfile): boolean {
+  if (!github) return false;
+  const topics = github.repos.flatMap((r) => r.topics).map((t) => t.toLowerCase());
+  return topics.some((t) =>
+    WEIRD_TOPICS.some((w) => t.includes(w) || w.includes(t))
+  );
+}
+
+export function computeScore(
+  github?: GitHubProfile,
+  substack?: SubstackProfile,
+  olympiad?: OlympiadProfile,
+  identityConfidence = 0
+): { final_score: number; breakdown: ScoreBreakdown } {
+  const repos = github?.repos.length ?? 0;
+  const recent = github?.recent_commits ?? 0;
+  const posts = substack?.posts ?? 0;
+
+  const builder =
+    (github?.active ? 0.3 : 0) +
+    (repos > 3 ? 0.2 : 0) +
+    (recent > 5 ? 0.2 : 0);
+
+  const thinker =
+    (substack?.active ? 0.3 : 0) + (posts > 5 ? 0.2 : 0);
+
+  const olympiadScore = olympiad
+    ? olympiad.olympiadScore * 0.3 +
+      olympiad.medalScore * 0.2 +
+      olympiad.recencyScore * 0.1
+    : 0;
+
+  const weirdness = hasWeirdTopics(github) ? 0.3 : 0;
+  const identity = identityConfidence * 0.2;
+
+  const breakdown: ScoreBreakdown = {
+    builder: Math.round(builder * 100) / 100,
+    thinker: Math.round(thinker * 100) / 100,
+    olympiad: Math.round(olympiadScore * 100) / 100,
+    weirdness: Math.round(weirdness * 100) / 100,
+    identity: Math.round(identity * 100) / 100,
+  };
+
+  const final_score =
+    Math.round(
+      (breakdown.builder +
+        breakdown.thinker +
+        breakdown.olympiad +
+        breakdown.weirdness +
+        breakdown.identity) *
+        100
+    ) / 100;
+
+  return { final_score, breakdown };
+}
+
+export function scoreCandidate(
+  candidate: Omit<Candidate, "final_score" | "score_breakdown">
+): Candidate {
+  const { final_score, breakdown } = computeScore(
+    candidate.github,
+    candidate.substack,
+    candidate.olympiad,
+    candidate.identity_confidence
+  );
+  return { ...candidate, final_score, score_breakdown: breakdown };
+}
