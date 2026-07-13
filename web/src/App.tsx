@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   fetchProfile,
   fetchSeeds,
   fetchTree,
+  parseNodeId,
+  startBranchRun,
   startRun,
   subscribeRunEvents,
   type ProfileRecord,
@@ -25,12 +27,16 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
+  const [logsHeight, setLogsHeight] = useState(200);
+  const logDrag = useRef<{ startY: number; startH: number } | null>(null);
   const [tree, setTree] = useState<TreeResponse | null>(null);
   const [seedSlug, setSeedSlug] = useState<string | null>(null);
   const [panelProfile, setPanelProfile] = useState<ProfileRecord | null>(null);
+  const [panelNode, setPanelNode] = useState<TreeNodeSummary | null>(null);
   const [panelLoading, setPanelLoading] = useState(false);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [expanding, setExpanding] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +90,24 @@ export default function App() {
     (s) => `${s.name}||${s.country}` === selectedSeed
   );
 
+  const watchRun = (runId: string): Promise<string | null> =>
+    new Promise((resolve) => {
+      const unsub = subscribeRunEvents(runId, (ev) => {
+        if (ev.type === "log") {
+          setLogs((prev) => [...prev, ev.line]);
+        } else if (ev.type === "done") {
+          setStatus("done");
+          unsub();
+          resolve(ev.seedSlug);
+        } else if (ev.type === "error") {
+          setStatus("failed");
+          setError(ev.message);
+          unsub();
+          resolve(null);
+        }
+      });
+    });
+
   const onRun = async () => {
     if (!current) return;
     setError(null);
@@ -91,6 +115,7 @@ export default function App() {
     setLogs([]);
     setLogsOpen(true);
     setPanelProfile(null);
+    setPanelNode(null);
     setSelectedNodeId(null);
 
     try {
@@ -98,34 +123,14 @@ export default function App() {
         name: current.name,
         country: current.country,
       });
-
-      await new Promise<void>((resolve) => {
-        const unsub = subscribeRunEvents(runId, (ev) => {
-          if (ev.type === "log") {
-            setLogs((prev) => [...prev, ev.line]);
-          } else if (ev.type === "done") {
-            setStatus("done");
-            if (ev.seedSlug) {
-              setSeedSlug(ev.seedSlug);
-              loadTree(ev.seedSlug);
-              setProfileSeeds((prev) =>
-                prev.includes(ev.seedSlug!) ? prev : [...prev, ev.seedSlug!]
-              );
-            } else {
-              setError(
-                "Pipeline finished but no seedSlug was found in seed_tree.json"
-              );
-            }
-            unsub();
-            resolve();
-          } else if (ev.type === "error") {
-            setStatus("failed");
-            setError(ev.message);
-            unsub();
-            resolve();
-          }
-        });
-      });
+      const slug = await watchRun(runId);
+      if (slug) {
+        setSeedSlug(slug);
+        await loadTree(slug);
+        setProfileSeeds((prev) =>
+          prev.includes(slug) ? prev : [...prev, slug]
+        );
+      }
     } catch (err) {
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
@@ -135,14 +140,41 @@ export default function App() {
   const onSelectNode = async (node: TreeNodeSummary) => {
     if (!seedSlug) return;
     setSelectedNodeId(node.id);
+    setPanelNode(node);
     setPanelLoading(true);
     setPanelError(null);
     try {
       const relation: ProfileRelation = node.relation;
+      const { slug, parentSlug: parsedParent } = parseNodeId(node.id);
+      const parentSlug = node.parentId ?? parsedParent;
+
+      let parentRelation: "collaborator" | "follower" | undefined;
+      if (node.hop === 2 && parentSlug && tree) {
+        const parentNode = tree.nodes.find((n) => n.id === parentSlug);
+        if (
+          parentNode?.relation === "collaborator" ||
+          parentNode?.relation === "follower"
+        ) {
+          parentRelation = parentNode.relation;
+        } else {
+          const hop1Edge = tree.edges.find(
+            (e) => e.hop === 1 && e.to === parentSlug
+          );
+          if (hop1Edge?.via === "github-collaborator") {
+            parentRelation = "collaborator";
+          } else if (hop1Edge?.via === "github-follower") {
+            parentRelation = "follower";
+          }
+        }
+      }
+
       const profile = await fetchProfile(
         seedSlug,
         relation,
-        relation === "seed" ? undefined : node.id
+        relation === "seed" ? undefined : slug,
+        node.hop === 2 && parentSlug && parentRelation
+          ? { parentSlug, parentRelation }
+          : undefined
       );
       setPanelProfile(profile);
     } catch (err) {
@@ -152,6 +184,75 @@ export default function App() {
       setPanelLoading(false);
     }
   };
+
+  const onExpandBranch = async () => {
+    if (!seedSlug || !panelNode || panelNode.hop !== 1) return;
+    if (
+      panelNode.relation !== "collaborator" &&
+      panelNode.relation !== "follower"
+    ) {
+      return;
+    }
+
+    setError(null);
+    setExpanding(true);
+    setStatus("running");
+    setLogs([]);
+    setLogsOpen(true);
+
+    try {
+      const { slug } = parseNodeId(panelNode.id);
+      const { runId } = await startBranchRun({
+        rootSeedSlug: seedSlug,
+        parentSlug: slug,
+        relation: panelNode.relation,
+      });
+      const resultSlug = await watchRun(runId);
+      if (resultSlug) {
+        await loadTree(resultSlug);
+      }
+    } catch (err) {
+      setStatus("failed");
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExpanding(false);
+    }
+  };
+
+  const onLogResizePointerDown = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      logDrag.current = { startY: e.clientY, startH: logsHeight };
+      if (!logsOpen) setLogsOpen(true);
+    },
+    [logsHeight, logsOpen]
+  );
+
+  const onLogResizePointerMove = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (!logDrag.current) return;
+      const dy = logDrag.current.startY - e.clientY;
+      const max = Math.floor(window.innerHeight * 0.7);
+      setLogsHeight(
+        Math.min(max, Math.max(120, logDrag.current.startH + dy))
+      );
+    },
+    []
+  );
+
+  const onLogResizePointerUp = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (!logDrag.current) return;
+      logDrag.current = null;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
+    },
+    []
+  );
 
   return (
     <div className="app">
@@ -172,7 +273,10 @@ export default function App() {
             disabled={status === "running"}
           >
             {seeds.map((s) => (
-              <option key={`${s.name}-${s.country}`} value={`${s.name}||${s.country}`}>
+              <option
+                key={`${s.name}-${s.country}`}
+                value={`${s.name}||${s.country}`}
+              >
                 {s.name}
               </option>
             ))}
@@ -234,17 +338,36 @@ export default function App() {
 
         <ProfilePanel
           profile={panelProfile}
+          node={panelNode}
           loading={panelLoading}
           error={panelError}
+          expanding={expanding}
+          onExpandBranch={onExpandBranch}
           onClose={() => {
             setPanelProfile(null);
+            setPanelNode(null);
             setSelectedNodeId(null);
             setPanelError(null);
           }}
         />
       </main>
 
-      <div className={`log-drawer ${logsOpen ? "open" : ""}`}>
+      <div
+        className={`log-drawer ${logsOpen ? "open" : ""}`}
+        style={logsOpen ? { height: logsHeight } : undefined}
+      >
+        <div
+          className="log-resize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize logs panel"
+          aria-valuenow={logsHeight}
+          onPointerDown={onLogResizePointerDown}
+          onPointerMove={onLogResizePointerMove}
+          onPointerUp={onLogResizePointerUp}
+          onPointerCancel={onLogResizePointerUp}
+          onDoubleClick={() => setLogsHeight(200)}
+        />
         <button
           type="button"
           className="log-toggle"

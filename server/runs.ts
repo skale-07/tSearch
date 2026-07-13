@@ -3,7 +3,12 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { COOKIES_PATH } from "../src/config.js";
-import { resolveSeedSlugFromTree } from "./tree.js";
+import { slugify } from "../src/storage/jsonStore.js";
+import {
+  linkedInUrlFromProfile,
+  loadProfile,
+  resolveSeedSlugFromTree,
+} from "./tree.js";
 
 export type RunStatus = "running" | "done" | "failed";
 
@@ -19,6 +24,7 @@ export interface RunRecord {
   logs: string[];
   listeners: Set<(line: string) => void>;
   child?: ChildProcessWithoutNullStreams;
+  kind?: "seed" | "branch";
 }
 
 const MAX_LOG_LINES = 2000;
@@ -47,6 +53,33 @@ function pushLog(run: RunRecord, line: string): void {
 function notifyDone(run: RunRecord, payload: object): void {
   const line = `__EVENT__${JSON.stringify(payload)}`;
   for (const listener of run.listeners) listener(line);
+}
+
+function attachChild(
+  run: RunRecord,
+  child: ChildProcessWithoutNullStreams,
+  onDone: (code: number | null) => void
+): void {
+  run.child = child;
+  child.stdout.setEncoding("utf-8");
+  child.stderr.setEncoding("utf-8");
+  child.stdout.on("data", (chunk: string) => pushLog(run, chunk));
+  child.stderr.on("data", (chunk: string) => pushLog(run, chunk));
+
+  child.on("error", (err) => {
+    run.status = "failed";
+    run.error = err.message;
+    run.finishedAt = new Date().toISOString();
+    activeRunId = null;
+    pushLog(run, `[ui] spawn error: ${err.message}`);
+    notifyDone(run, { type: "error", message: err.message });
+  });
+
+  child.on("close", (code) => {
+    run.finishedAt = new Date().toISOString();
+    activeRunId = null;
+    onDone(code);
+  });
 }
 
 export function startRun(input: {
@@ -85,6 +118,7 @@ export function startRun(input: {
     startedAt: new Date().toISOString(),
     logs: [],
     listeners: new Set(),
+    kind: "seed",
   };
   runs.set(id, run);
   activeRunId = id;
@@ -98,28 +132,9 @@ export function startRun(input: {
     },
     shell: true,
   });
-  run.child = child;
 
   pushLog(run, `[ui] started run ${id} for ${input.name}`);
-
-  child.stdout.setEncoding("utf-8");
-  child.stderr.setEncoding("utf-8");
-  child.stdout.on("data", (chunk: string) => pushLog(run, chunk));
-  child.stderr.on("data", (chunk: string) => pushLog(run, chunk));
-
-  child.on("error", (err) => {
-    run.status = "failed";
-    run.error = err.message;
-    run.finishedAt = new Date().toISOString();
-    activeRunId = null;
-    pushLog(run, `[ui] spawn error: ${err.message}`);
-    notifyDone(run, { type: "error", message: err.message });
-  });
-
-  child.on("close", (code) => {
-    run.finishedAt = new Date().toISOString();
-    activeRunId = null;
-
+  attachChild(run, child, (code) => {
     if (code === 0) {
       const seedSlug = resolveSeedSlugFromTree(input.name);
       run.status = "done";
@@ -143,11 +158,100 @@ export function startRun(input: {
         exitCode: code,
       });
     }
-
     try {
       fs.unlinkSync(seedFile);
     } catch {
       /* ignore */
+    }
+  });
+
+  return { runId: id };
+}
+
+export function startBranchRun(input: {
+  rootSeedSlug: string;
+  parentSlug: string;
+  relation: "collaborator" | "follower";
+}): { runId: string } | { error: string; status: number } {
+  if (activeRunId) {
+    return {
+      error: `A run is already in progress (${activeRunId}). Wait for it to finish.`,
+      status: 409,
+    };
+  }
+
+  const root = slugify(input.rootSeedSlug);
+  const parent = slugify(input.parentSlug);
+  const profile = loadProfile(root, input.relation, parent, { hop: 1 });
+  if (!profile) {
+    return {
+      error: `No hop-1 profile at profiles/${root}/${input.relation}s/${parent}/profile.json`,
+      status: 404,
+    };
+  }
+
+  const linkedinUrl = linkedInUrlFromProfile(profile);
+  if (!linkedinUrl) {
+    return {
+      error: `Profile ${parent} has no LinkedIn URL on GitHub/social links — cannot expand branch.`,
+      status: 400,
+    };
+  }
+
+  const githubUrl =
+    profile.github?.profile_url ??
+    profile.links?.github_url ??
+    `https://github.com/${parent}`;
+
+  const id = crypto.randomBytes(6).toString("hex");
+  const run: RunRecord = {
+    id,
+    name: profile.name,
+    country: profile.linkedin?.country ?? "Unknown",
+    status: "running",
+    startedAt: new Date().toISOString(),
+    logs: [],
+    listeners: new Set(),
+    kind: "branch",
+    seedSlug: root,
+  };
+  runs.set(id, run);
+  activeRunId = id;
+
+  const child = spawn("npx", ["tsx", "src/pipeline/runPipeline.ts"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      BRANCH_EXPAND: "1",
+      BRANCH_ROOT: root,
+      BRANCH_PARENT: parent,
+      BRANCH_RELATION: input.relation,
+      BRANCH_LINKEDIN: linkedinUrl,
+      BRANCH_GITHUB: githubUrl,
+      BRANCH_NAME: profile.name,
+    },
+    shell: true,
+  });
+
+  pushLog(
+    run,
+    `[ui] branch expand ${parent} under ${root} via ${linkedinUrl}`
+  );
+  attachChild(run, child, (code) => {
+    if (code === 0) {
+      run.status = "done";
+      run.seedSlug = root;
+      pushLog(run, `[ui] branch expand finished ok seedSlug=${root}`);
+      notifyDone(run, { type: "done", seedSlug: root, exitCode: code });
+    } else {
+      run.status = "failed";
+      run.error = `Branch expand exited with code ${code}`;
+      pushLog(run, `[ui] failed with exit code ${code}`);
+      notifyDone(run, {
+        type: "error",
+        message: run.error,
+        exitCode: code,
+      });
     }
   });
 

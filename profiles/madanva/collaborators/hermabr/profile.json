@@ -5,8 +5,7 @@
   "relation": "collaborator",
   "seed": "madanva",
   "discovered_via": [
-    "github-collaborator:madanva",
-    "github-1hop:madanva"
+    "github-collaborator:madanva"
   ],
   "parents": [
     "madanva"
@@ -197,7 +196,7 @@
   },
   "website": {
     "url": "https://brunborg.com/",
-    "scraped_at": "2026-07-13T19:37:26.404Z",
+    "scraped_at": "2026-07-13T20:31:58.071Z",
     "github_url": null,
     "substack_url": null,
     "twitter_url": null,
@@ -233,5 +232,5 @@
     "blog",
     "repos"
   ],
-  "last_updated": "2026-07-13T19:41:31.051Z"
+  "last_updated": "2026-07-13T20:32:25.840Z"
 }

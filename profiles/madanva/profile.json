@@ -59,8 +59,8 @@
     "github_url": "https://github.com/madanva",
     "substack_url": null,
     "twitter_url": "https://x.com/varunrmadan",
-    "personal_website": "https://varunrmadan.com",
-    "website_url": "https://varunrmadan.com",
+    "personal_website": "https://www.varunrmadan.com/",
+    "website_url": "https://www.varunrmadan.com/",
     "contact_links": [
       "https://varunrmadan.com"
     ],
@@ -142,7 +142,7 @@
       }
     ],
     "skills": [],
-    "scrape_version": 7
+    "scrape_version": 9
   },
   "github": {
     "username": "madanva",
@@ -367,7 +367,7 @@
   },
   "website": {
     "url": "https://www.varunrmadan.com/",
-    "scraped_at": "2026-07-13T19:19:26.019Z",
+    "scraped_at": "2026-07-13T20:30:41.384Z",
     "github_url": "https://github.com/madanva",
     "substack_url": null,
     "twitter_url": "https://x.com/varunrmadan",
@@ -425,7 +425,7 @@
   "links": {
     "github_url": "https://github.com/madanva",
     "linkedin_url": "https://www.linkedin.com/in/varunrmadan/",
-    "personal_website": "https://varunrmadan.com",
+    "personal_website": "https://www.varunrmadan.com/",
     "blog": "varunrmadan.com",
     "twitter_url": "https://x.com/varunrmadan",
     "email": "vmadan@stanford.edu",
@@ -448,5 +448,5 @@
     "linkedin",
     "repos"
   ],
-  "last_updated": "2026-07-13T19:41:31.037Z"
+  "last_updated": "2026-07-13T20:32:25.830Z"
 }

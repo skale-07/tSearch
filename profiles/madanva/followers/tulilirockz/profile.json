@@ -5,8 +5,7 @@
   "relation": "follower",
   "seed": "madanva",
   "discovered_via": [
-    "github-follower:madanva",
-    "github-1hop:madanva"
+    "github-follower:madanva"
   ],
   "parents": [
     "madanva"
@@ -262,5 +261,5 @@
     "location",
     "repos"
   ],
-  "last_updated": "2026-07-13T19:41:31.064Z"
+  "last_updated": "2026-07-13T20:32:25.850Z"
 }

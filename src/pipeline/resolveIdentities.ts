@@ -182,6 +182,7 @@ async function enrichIdentityFromWebsite(
 ): Promise<void> {
   if (identity.website?.github_url || identity.website?.email) return;
 
+  // Contact-info personal website is the certain path to the source of truth.
   const siteUrl =
     identity.linkedin.personal_website ?? identity.linkedin.website_url;
   if (!siteUrl) return;
@@ -201,11 +202,19 @@ async function enrichIdentityFromWebsite(
     github_url: merged.github_url,
     substack_url: merged.substack_url,
     twitter_url: merged.twitter_url,
+    // Keep contact personal site; prefer final resolved URL from the fetch.
+    personal_website: website.url || identity.linkedin.personal_website,
+    website_url: website.url || identity.linkedin.website_url,
   };
   identity.github_url = merged.github_url;
   identity.substack_url = merged.substack_url;
   identity.website = website;
 
+  if (merged.overrides.length) {
+    console.log(
+      `  [website] overrides LinkedIn → ${merged.overrides.join("; ")}`
+    );
+  }
   console.log(
     `  [website] ${identity.query_name}: gh=${website.github_url ?? "—"} x=${website.twitter_url ?? "—"} email=${website.email ?? "—"} substack=${website.substack_url ?? "—"}`
   );

@@ -81,6 +81,14 @@ function extractHrefs(html: string): string[] {
   return out;
 }
 
+/** Strip API tokens from scraped URLs so they never land in profiles/git. */
+function scrubSecretsInUrl(url: string): string {
+  return url.replace(
+    /([?&](?:amp;)?access_token=)[^&"'\s]+/gi,
+    "$1REDACTED"
+  );
+}
+
 function firstOf(kind: SocialKind, links: { kind: SocialKind; url: string }[]) {
   return links.find((l) => l.kind === kind)?.url ?? null;
 }
@@ -124,7 +132,9 @@ export async function scrapeWebsite(
     const seen = new Set<string>();
 
     for (const raw of extractHrefs(html)) {
-      const url = normalizeUrl(raw, finalUrl);
+      const normalized = normalizeUrl(raw, finalUrl);
+      if (!normalized) continue;
+      const url = scrubSecretsInUrl(normalized);
       if (!url || seen.has(url)) continue;
       seen.add(url);
       classified.push({ kind: classifyLink(url), url });
@@ -175,6 +185,11 @@ export async function scrapeWebsite(
   }
 }
 
+/**
+ * Personal website (discovered via LinkedIn Contact info) is source of truth
+ * for identity links. Any field present on the site overrides LinkedIn.
+ * LinkedIn contact/featured values only fill gaps the site didn't provide.
+ */
 export function applyWebsiteToLinkedInUrls(
   githubUrl: string | null,
   substackUrl: string | null,
@@ -184,10 +199,31 @@ export function applyWebsiteToLinkedInUrls(
   github_url: string | null;
   substack_url: string | null;
   twitter_url: string | null;
+  overrides: string[];
 } {
+  const overrides: string[] = [];
+  const pick = (
+    field: string,
+    fromSite: string | null | undefined,
+    fromLinkedIn: string | null
+  ): string | null => {
+    if (fromSite) {
+      if (
+        fromLinkedIn &&
+        fromSite.replace(/\/$/, "").toLowerCase() !==
+          fromLinkedIn.replace(/\/$/, "").toLowerCase()
+      ) {
+        overrides.push(`${field}:${fromLinkedIn}→${fromSite}`);
+      }
+      return fromSite;
+    }
+    return fromLinkedIn;
+  };
+
   return {
-    github_url: githubUrl ?? website?.github_url ?? null,
-    substack_url: substackUrl ?? website?.substack_url ?? null,
-    twitter_url: twitterUrl ?? website?.twitter_url ?? null,
+    github_url: pick("github", website?.github_url, githubUrl),
+    substack_url: pick("substack", website?.substack_url, substackUrl),
+    twitter_url: pick("twitter", website?.twitter_url, twitterUrl),
+    overrides,
   };
 }

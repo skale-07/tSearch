@@ -10,9 +10,13 @@ export interface TreeNodeSummary {
   id: string;
   name: string;
   relation: ProfileRelation;
+  hop: 0 | 1 | 2;
+  parentId?: string;
   context_score: number;
   context_signals: string[];
   photo_url?: string;
+  linkedin_url?: string;
+  can_expand: boolean;
 }
 
 export interface TreeEdge {
@@ -20,6 +24,7 @@ export interface TreeEdge {
   to: string;
   via: "github-collaborator" | "github-follower";
   context_score: number;
+  hop: 1 | 2;
 }
 
 export interface ProfileRecord {
@@ -27,6 +32,7 @@ export interface ProfileRecord {
   name: string;
   kind: "seed" | "neighbor";
   relation: ProfileRelation;
+  hop?: 0 | 1 | 2;
   seed: string;
   discovered_via: string[];
   parents: string[];
@@ -57,6 +63,7 @@ export interface ProfileRecord {
     blog?: string | null;
     company?: string | null;
     location?: string | null;
+    social_accounts?: { provider: string; url: string }[];
     repos?: { name: string; stars: number; language: string | null }[];
   };
   website?: {
@@ -79,6 +86,31 @@ export interface TreeResponse {
   edges: TreeEdge[];
 }
 
+/** Same rule as server: hop ≥ 1 needs score ≥ 4 (hide ≤ 3). Applies to hop-2 too. */
+export const MIN_TREE_DISPLAY_SCORE = 4;
+
+function isBotishNode(id: string, name: string): boolean {
+  const slug = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
+  const s = `${slug} ${name}`.toLowerCase();
+  return (
+    /\[bot\]/.test(s) ||
+    /(^|[\s_-])bot($|[\s_-])/.test(s) ||
+    /dependabot|renovate|github-actions|actions-user|opencode-agent/.test(s)
+  );
+}
+
+/** Strip low-score / bot nodes (incl. Arihant hop-2) before the UI renders them. */
+export function sanitizeTree(tree: TreeResponse): TreeResponse {
+  const nodes = tree.nodes.filter((n) => {
+    if (n.relation === "seed" || n.hop === 0) return true;
+    if (isBotishNode(n.id, n.name)) return false;
+    return Number(n.context_score ?? 0) >= MIN_TREE_DISPLAY_SCORE;
+  });
+  const ids = new Set(nodes.map((n) => n.id));
+  const edges = tree.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
+  return { ...tree, nodes, edges };
+}
+
 export async function fetchSeeds(): Promise<{
   seeds: SeedOption[];
   profileSeeds: string[];
@@ -86,6 +118,23 @@ export async function fetchSeeds(): Promise<{
   const res = await fetch("/api/seeds");
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+async function readApiJson<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (trimmed.startsWith("<!") || trimmed.startsWith("<html")) {
+    throw new Error(
+      `API returned HTML instead of JSON (${res.status}). Is the API running on :8787? Start with "npm run dev" (or "npm run dev:api").`
+    );
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      `Invalid JSON from API (${res.status}): ${trimmed.slice(0, 160)}`
+    );
+  }
 }
 
 export async function startRun(body: {
@@ -97,29 +146,54 @@ export async function startRun(body: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await readApiJson<{ runId?: string; error?: string }>(res);
   if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
+  if (!data.runId) throw new Error("API response missing runId");
+  return { runId: data.runId };
+}
+
+export async function startBranchRun(body: {
+  rootSeedSlug: string;
+  parentSlug: string;
+  relation: "collaborator" | "follower";
+}): Promise<{ runId: string }> {
+  const res = await fetch("/api/runs/branch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{ runId?: string; error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!data.runId) throw new Error("API response missing runId");
+  return { runId: data.runId };
 }
 
 export async function fetchTree(seedSlug: string): Promise<TreeResponse> {
   const res = await fetch(`/api/tree/${encodeURIComponent(seedSlug)}`);
-  const data = await res.json();
+  const data = await readApiJson<TreeResponse & { error?: string }>(res);
   if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
+  return sanitizeTree(data);
 }
 
 export async function fetchProfile(
   seedSlug: string,
   relation: ProfileRelation,
-  slug?: string
+  slug?: string,
+  opts?: {
+    parentSlug?: string;
+    parentRelation?: "collaborator" | "follower";
+  }
 ): Promise<ProfileRecord> {
-  const path =
-    relation === "seed"
-      ? `/api/profile/${encodeURIComponent(seedSlug)}/seed`
-      : `/api/profile/${encodeURIComponent(seedSlug)}/${relation}/${encodeURIComponent(slug!)}`;
+  let path: string;
+  if (relation === "seed") {
+    path = `/api/profile/${encodeURIComponent(seedSlug)}/seed`;
+  } else if (opts?.parentSlug && opts.parentRelation) {
+    path = `/api/profile/${encodeURIComponent(seedSlug)}/${opts.parentRelation}/${encodeURIComponent(opts.parentSlug)}/${relation}/${encodeURIComponent(slug!)}`;
+  } else {
+    path = `/api/profile/${encodeURIComponent(seedSlug)}/${relation}/${encodeURIComponent(slug!)}`;
+  }
   const res = await fetch(path);
-  const data = await res.json();
+  const data = await readApiJson<ProfileRecord & { error?: string }>(res);
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
 }
@@ -142,7 +216,14 @@ export function subscribeRunEvents(
     }
   };
   es.onerror = () => {
-    // Browser will retry; ignore transient errors while running
+    /* browser retries */
   };
   return () => es.close();
+}
+
+/** Resolve github slug from composite hop-2 id `parent:child`. */
+export function parseNodeId(id: string): { slug: string; parentSlug?: string } {
+  const idx = id.indexOf(":");
+  if (idx === -1) return { slug: id };
+  return { parentSlug: id.slice(0, idx), slug: id.slice(idx + 1) };
 }

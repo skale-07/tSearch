@@ -72,8 +72,13 @@ export const PROFILES_DIR = path.resolve(
 export const MAX_FOLLOWER_PROFILES = Number(
   process.env.MAX_FOLLOWER_PROFILES ?? 20
 );
+/** Minimum context_score to profile a follower during pipeline expand. */
 export const MIN_CONTEXT_SCORE_TO_EXPAND = Number(
   process.env.MIN_CONTEXT_SCORE_TO_EXPAND ?? 2
+);
+/** Minimum context_score for a node to appear on the UI tree (hop ≥ 1). */
+export const MIN_TREE_CONTEXT_SCORE = Number(
+  process.env.MIN_TREE_CONTEXT_SCORE ?? 4
 );
 
 const DAY_MS = 24 * 60 * 60 * 1000;

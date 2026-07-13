@@ -1,0 +1,283 @@
+{
+  "slug": "kokevidaurre",
+  "name": "Jorge Vidaurre",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "kokevidaurre",
+    "display_name": "Jorge Vidaurre",
+    "profile_url": "https://github.com/kokevidaurre",
+    "bio": null,
+    "blog": null,
+    "twitter_username": "JorgeVidaurre",
+    "company": null,
+    "location": null,
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://linkedin.com/in/jorgevidaurre"
+      },
+      {
+        "provider": "twitter",
+        "url": "https://x.com/JorgeVidaurre"
+      }
+    ],
+    "context_score": 5,
+    "context_signals": [
+      "twitter",
+      "linkedin",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "gemini-first-run",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-13T14:04:52Z"
+      },
+      {
+        "name": "awesome-generative-ai",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-08T17:51:18Z"
+      },
+      {
+        "name": "awesome-ai-agents-1",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-08T17:49:36Z"
+      },
+      {
+        "name": "awesome-claude-code",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-29T18:48:31Z"
+      },
+      {
+        "name": "awesome-claude-skills-1",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-29T18:47:15Z"
+      },
+      {
+        "name": "awesome-ai-agents",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-29T18:47:14Z"
+      },
+      {
+        "name": "awesome-claude-code-subagents",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-13T04:18:07Z"
+      },
+      {
+        "name": "awesome-llm-agents",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-01-04T19:02:07Z"
+      },
+      {
+        "name": "awesome-ai-tools",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-01-04T18:54:39Z"
+      },
+      {
+        "name": "awesome-llm-apps",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-04T18:05:20Z"
+      },
+      {
+        "name": "awesome-claude-skills",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-27T23:43:33Z"
+      },
+      {
+        "name": "looker-admin-mcp",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-12-12T00:28:48Z"
+      },
+      {
+        "name": "kokevidaurre",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-11T22:09:20Z"
+      },
+      {
+        "name": "claude-code-security-mastery",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-12-11T14:35:13Z"
+      },
+      {
+        "name": "claude-agent-sdk-mastery",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2025-12-10T13:37:34Z"
+      },
+      {
+        "name": "claude-skills",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-10T02:40:51Z"
+      },
+      {
+        "name": "claude-code-bigquery-modeling",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-10T00:52:28Z"
+      },
+      {
+        "name": "claude-code-mcp-toolbox",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-09T21:33:49Z"
+      },
+      {
+        "name": "claude-code-bigquery-optimization",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-12-09T21:33:46Z"
+      },
+      {
+        "name": "claude-code-bigquery-demo",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-09T21:21:07Z"
+      },
+      {
+        "name": "awesome-claude-agents",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-10-30T00:06:52Z"
+      },
+      {
+        "name": "dbt-core",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-10-02T09:10:19Z"
+      },
+      {
+        "name": "look-at-me-sideways",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2022-01-10T18:05:58Z"
+      },
+      {
+        "name": "spectacles",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2020-06-18T03:10:50Z"
+      },
+      {
+        "name": "actions",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2020-03-30T16:14:05Z"
+      },
+      {
+        "name": "lookerbot",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2019-12-10T17:05:48Z"
+      },
+      {
+        "name": "bqml_ga_demo",
+        "topics": [],
+        "language": "LookML",
+        "stars": 1,
+        "pushed_at": "2019-08-15T14:58:09Z"
+      },
+      {
+        "name": "bq_transfers_dfp",
+        "topics": [],
+        "language": "LookML",
+        "stars": 1,
+        "pushed_at": "2019-08-05T04:54:49Z"
+      },
+      {
+        "name": "google_adwords",
+        "topics": [],
+        "language": "LookML",
+        "stars": 1,
+        "pushed_at": "2019-08-05T04:54:20Z"
+      },
+      {
+        "name": "looker-gcp-control",
+        "topics": [],
+        "language": "LookML",
+        "stars": 1,
+        "pushed_at": "2019-06-05T21:30:18Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/kokevidaurre",
+    "linkedin_url": "https://linkedin.com/in/jorgevidaurre",
+    "twitter_url": "https://x.com/JorgeVidaurre",
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://linkedin.com/in/jorgevidaurre"
+      },
+      {
+        "provider": "twitter",
+        "url": "https://x.com/JorgeVidaurre"
+      }
+    ]
+  },
+  "context_score": 5,
+  "context_signals": [
+    "twitter",
+    "linkedin",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T20:56:49.679Z"
+}

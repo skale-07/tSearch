@@ -49,6 +49,14 @@ export interface SeedTreeEdge {
   via: "github-collaborator" | "github-follower";
   context_score?: number;
   context_signals?: string[];
+  /** 1 = off seed, 2 = off a branch neighbor */
+  hop?: 1 | 2;
+  /** For hop 2: the branch parent's github login */
+  via_node?: string;
+  /** Root seed github when hop=2 (from_github may be the branch parent) */
+  root_github?: string;
+  /** Hop-1 folder relation of the branch parent */
+  parent_relation?: "collaborator" | "follower";
 }
 
 const MAX_COLLABORATOR_PROFILES = Number(
@@ -93,7 +101,11 @@ export async function expandGraph(
       );
     }
 
-    const githubUrl = identity.github_url ?? identity.website?.github_url;
+    // Personal website github always beats LinkedIn-derived github_url.
+    const githubUrl =
+      identity.website?.github_url ??
+      identity.github_url ??
+      null;
     if (githubUrl) {
       log(`  github: expanding collaborators + followers from ${githubUrl}`);
       const gh = await expandGithubFromUrl(githubUrl);
@@ -129,6 +141,7 @@ export async function expandGraph(
             from_github: gh.profile.username,
             to_github: login,
             via: "github-collaborator",
+            hop: 1,
           });
 
           const profile = await fetchGithubProfile(login, {
@@ -189,6 +202,7 @@ export async function expandGraph(
             from_github: gh.profile.username,
             to_github: login,
             via: "github-follower",
+            hop: 1,
             context_score: profile.context_score,
             context_signals: profile.context_signals,
           });

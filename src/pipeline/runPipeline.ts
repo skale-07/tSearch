@@ -20,6 +20,7 @@ import { writeSeedTreeProfiles } from "../storage/profileStore.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
 import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
+import { readBranchExpandEnv, runBranchExpand } from "./runBranchExpand.js";
 
 function log(step: string, detail?: string): void {
   const ts = new Date().toLocaleTimeString();
@@ -149,6 +150,14 @@ function persistPeople(
 }
 
 async function main(): Promise<void> {
+  const branchEnv = readBranchExpandEnv();
+  if (branchEnv) {
+    log("start", "BRANCH_EXPAND mode — known LinkedIn URL, forced GitHub");
+    log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
+    await runBranchExpand(branchEnv);
+    return;
+  }
+
   if (!fs.existsSync(SEEDS_PATH)) {
     console.error(`Missing seeds file: ${SEEDS_PATH}`);
     process.exit(1);

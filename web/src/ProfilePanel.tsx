@@ -1,10 +1,13 @@
-import type { ProfileRecord } from "./api";
+import type { ProfileRecord, TreeNodeSummary } from "./api";
 
 interface Props {
   profile: ProfileRecord | null;
+  node: TreeNodeSummary | null;
   loading: boolean;
   error: string | null;
+  expanding: boolean;
   onClose: () => void;
+  onExpandBranch?: () => void;
 }
 
 function LinkRow({ href, label }: { href?: string; label: string }) {
@@ -16,8 +19,35 @@ function LinkRow({ href, label }: { href?: string; label: string }) {
   );
 }
 
-export function ProfilePanel({ profile, loading, error, onClose }: Props) {
+export function ProfilePanel({
+  profile,
+  node,
+  loading,
+  error,
+  expanding,
+  onClose,
+  onExpandBranch,
+}: Props) {
   if (!profile && !loading && !error) return null;
+
+  const hasLinkedIn = !!(
+    node?.linkedin_url ||
+    node?.can_expand ||
+    profile?.links?.linkedin_url ||
+    profile?.linkedin?.url ||
+    profile?.github?.social_accounts?.some(
+      (s) => s.provider.toLowerCase() === "linkedin" && s.url
+    ) ||
+    profile?.links?.social_accounts?.some(
+      (s) => s.provider.toLowerCase() === "linkedin" && s.url
+    )
+  );
+  const hop = node?.hop ?? profile?.hop ?? (node?.relation === "seed" ? 0 : 1);
+  const canExpand =
+    !!onExpandBranch &&
+    hop === 1 &&
+    node?.relation !== "seed" &&
+    hasLinkedIn;
 
   return (
     <aside className={`panel ${profile || loading || error ? "open" : ""}`}>
@@ -34,10 +64,30 @@ export function ProfilePanel({ profile, loading, error, onClose }: Props) {
         <div className="panel-body">
           <p className="eyebrow">
             {profile.relation}
+            {typeof profile.hop === "number" && profile.hop > 0
+              ? ` · hop ${profile.hop}`
+              : ""}
             {profile.relation !== "seed" &&
               ` · context ${profile.context_score}`}
           </p>
           <h2>{profile.name}</h2>
+
+          {canExpand && (
+            <button
+              type="button"
+              className="expand-btn"
+              disabled={expanding}
+              onClick={onExpandBranch}
+            >
+              {expanding ? "Expanding…" : "Expand branch"}
+            </button>
+          )}
+
+          {!canExpand && hop === 1 && node?.relation !== "seed" && (
+            <p className="muted" style={{ marginTop: "0.5rem" }}>
+              No LinkedIn on this GitHub profile — branch expand unavailable.
+            </p>
+          )}
 
           {profile.linkedin?.headline && (
             <p className="headline">{profile.linkedin.headline}</p>

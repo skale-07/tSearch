@@ -112,6 +112,25 @@ select {
   cursor: not-allowed;
 }
 
+.expand-btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(61, 186, 156, 0.45);
+  background: rgba(61, 186, 156, 0.15);
+  color: var(--collab);
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  margin: 0.65rem 0 0.85rem;
+  width: 100%;
+}
+
+.expand-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .status {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -148,9 +167,22 @@ select {
   overflow: hidden;
 }
 
+.graph-shell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 .graph-stage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.graph-stage:active {
+  cursor: grabbing;
 }
 
 .graph-legend {
@@ -163,6 +195,12 @@ select {
   font-size: 0.75rem;
   color: var(--muted);
   pointer-events: none;
+  z-index: 2;
+  max-width: calc(100% - 2.5rem);
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(18, 21, 26, 0.72);
+  backdrop-filter: blur(6px);
 }
 
 .graph-legend i {
@@ -309,8 +347,41 @@ code {
 }
 
 .log-drawer {
+  position: relative;
   border-top: 1px solid var(--line);
   background: #0e1115;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.log-resize {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 6;
+  touch-action: none;
+}
+
+.log-resize::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 36px;
+  height: 3px;
+  margin-left: -18px;
+  border-radius: 2px;
+  background: rgba(250, 246, 237, 0.22);
+}
+
+.log-resize:hover::after,
+.log-drawer.open .log-resize:active::after {
+  background: rgba(232, 197, 106, 0.7);
 }
 
 .log-toggle {
@@ -321,11 +392,13 @@ code {
   border-bottom: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
+  flex-shrink: 0;
 }
 
 .log-body {
   margin: 0;
-  max-height: 180px;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 0.75rem 1rem;
   font-size: 0.72rem;

@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { COOKIES_PATH, PROFILES_DIR } from "../src/config.js";
-import { getActiveRunId, getRun, startRun } from "./runs.js";
+import { getActiveRunId, getRun, startBranchRun, startRun } from "./runs.js";
 import {
   buildTree,
   cookiesExist,
@@ -34,7 +34,6 @@ app.get("/api/seeds", (_req, res) => {
     res.json({
       seeds: seeds.map((s) => ({
         ...s,
-        // Best-effort: slug may differ from display name until first run
         hasTree: available.has(
           s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
         ),
@@ -58,6 +57,34 @@ app.post("/api/runs", (req, res) => {
   }
 
   const result = startRun({ name, country });
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.status(202).json({ runId: result.runId });
+});
+
+app.post("/api/runs/branch", (req, res) => {
+  const rootSeedSlug =
+    typeof req.body?.rootSeedSlug === "string"
+      ? req.body.rootSeedSlug.trim()
+      : "";
+  const parentSlug =
+    typeof req.body?.parentSlug === "string" ? req.body.parentSlug.trim() : "";
+  const relation = req.body?.relation as "collaborator" | "follower" | undefined;
+  if (
+    !rootSeedSlug ||
+    !parentSlug ||
+    (relation !== "collaborator" && relation !== "follower")
+  ) {
+    res.status(400).json({
+      error:
+        "Body requires { rootSeedSlug, parentSlug, relation: collaborator|follower }",
+    });
+    return;
+  }
+
+  const result = startBranchRun({ rootSeedSlug, parentSlug, relation });
   if ("error" in result) {
     res.status(result.status).json({ error: result.error });
     return;
@@ -165,13 +192,45 @@ app.get("/api/profile/:seedSlug/seed", (req, res) => {
   res.json(profile);
 });
 
+app.get(
+  "/api/profile/:seedSlug/:parentRelation/:parentSlug/:relation/:slug",
+  (req, res) => {
+    const parentRelation = req.params.parentRelation as ProfileRelation;
+    const relation = req.params.relation as ProfileRelation;
+    if (
+      (parentRelation !== "collaborator" && parentRelation !== "follower") ||
+      (relation !== "collaborator" && relation !== "follower")
+    ) {
+      res.status(400).json({ error: "invalid relation" });
+      return;
+    }
+    const profile = loadProfile(
+      req.params.seedSlug,
+      relation,
+      req.params.slug,
+      {
+        hop: 2,
+        parentSlug: req.params.parentSlug,
+        parentRelation,
+      }
+    );
+    if (!profile) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
+    }
+    res.json(profile);
+  }
+);
+
 app.get("/api/profile/:seedSlug/:relation/:slug", (req, res) => {
   const relation = req.params.relation as ProfileRelation;
   if (relation !== "collaborator" && relation !== "follower") {
     res.status(400).json({ error: "relation must be collaborator|follower" });
     return;
   }
-  const profile = loadProfile(req.params.seedSlug, relation, req.params.slug);
+  const profile = loadProfile(req.params.seedSlug, relation, req.params.slug, {
+    hop: 1,
+  });
   if (!profile) {
     res.status(404).json({ error: "Profile not found" });
     return;

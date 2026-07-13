@@ -12,7 +12,7 @@ import { LINKEDIN_DELAY_MS } from "../config.js";
 import { countryFromLocation } from "./countryMatch.js";
 import { cleanSearchTitle } from "./linkedinMatch.js";
 
-export const PROFILE_SCRAPE_VERSION = 7;
+export const PROFILE_SCRAPE_VERSION = 9;
 
 export function parseGithubUrl(text: string): string | null {
   const m = text.match(
@@ -875,6 +875,12 @@ export async function extractLinkedInProfile(
 
   const about = await sectionText(page, /^About$/i);
   const skills = await sectionText(page, /^Skills$/i);
+  // Featured/links are intentional profile pins — not the main feed noise.
+  const featured = await sectionTextByHeadings(page, [
+    /^Featured$/i,
+    /^Featured links$/i,
+    /^Links$/i,
+  ]);
 
   hrefs.push(...about.hrefs.map(unwrapRedirectUrl));
 
@@ -886,6 +892,9 @@ export async function extractLinkedInProfile(
   const classified = classifyContactInfo(contactText, contactHrefs, name);
   const contactLinks = contact
     ? parseAllLinks(contactText, contactHrefs)
+    : null;
+  const featuredLinks = featured.text.trim()
+    ? parseAllLinks(featured.text, featured.hrefs.map(unwrapRedirectUrl))
     : null;
 
   const educationText = await fetchDetailSectionText(
@@ -900,6 +909,9 @@ export async function extractLinkedInProfile(
   );
   const honorsText = await fetchDetailSectionText(page, hit.url, "honors");
 
+  // Social URLs (esp. GitHub) must NOT be taken from the whole page blob —
+  // LinkedIn activity/recommendations often link other people's GitHubs.
+  // Only Contact info + Featured (then personal website in resolveIdentities).
   const blob = [mainText, about.text, educationText, experienceText, honorsText, contactText, ...hrefs].join(
     "\n"
   );
@@ -909,6 +921,14 @@ export async function extractLinkedInProfile(
     contactLinks?.website_url ??
     links.website_url ??
     null;
+  // Personal site (from Contact info) is scraped separately and overrides these.
+  // LinkedIn socials: Contact info → Featured only — never the whole profile blob.
+  const linkedInGithub =
+    contactLinks?.github_url ?? featuredLinks?.github_url ?? null;
+  const linkedInSubstack =
+    contactLinks?.substack_url ?? featuredLinks?.substack_url ?? null;
+  const linkedInTwitter =
+    contactLinks?.twitter_url ?? featuredLinks?.twitter_url ?? null;
 
   const education = parseEducationDetail(educationText);
   const experience = parseExperienceDetail(experienceText);
@@ -951,9 +971,9 @@ export async function extractLinkedInProfile(
     graduation_year: eduSummary.graduation_year,
     education,
     keywords,
-    github_url: contactLinks?.github_url ?? links.github_url ?? null,
-    substack_url: contactLinks?.substack_url ?? links.substack_url ?? null,
-    twitter_url: contactLinks?.twitter_url ?? links.twitter_url ?? null,
+    github_url: linkedInGithub,
+    substack_url: linkedInSubstack,
+    twitter_url: linkedInTwitter,
     personal_website: website,
     website_url: website,
     contact_links: classified.contact_links,

@@ -5,8 +5,7 @@
   "relation": "follower",
   "seed": "madanva",
   "discovered_via": [
-    "github-follower:madanva",
-    "github-1hop:madanva"
+    "github-follower:madanva"
   ],
   "parents": [
     "madanva"
@@ -265,7 +264,7 @@
   },
   "website": {
     "url": "https://aliceheiman.xyz/",
-    "scraped_at": "2026-07-13T19:37:58.601Z",
+    "scraped_at": "2026-07-13T20:32:25.824Z",
     "github_url": "https://github.com/aliceheiman",
     "substack_url": "https://aliceinnerdland.substack.com/embed",
     "twitter_url": null,
@@ -320,5 +319,5 @@
     "blog",
     "repos"
   ],
-  "last_updated": "2026-07-13T19:41:31.068Z"
+  "last_updated": "2026-07-13T20:32:25.851Z"
 }

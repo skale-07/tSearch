@@ -2,21 +2,30 @@ import fs from "fs";
 import path from "path";
 import {
   COOKIES_PATH,
+  MIN_TREE_CONTEXT_SCORE,
   OUTPUT_PATH,
   PROFILES_DIR,
   SEEDS_PATH,
 } from "../src/config.js";
 import type { ProfileRecord, ProfileRelation } from "../src/storage/profileStore.js";
-import { profileFilePath } from "../src/storage/profileStore.js";
+import {
+  linkedInUrlFromProfile,
+  profileFilePath,
+  relationDir,
+} from "../src/storage/profileStore.js";
 import { slugify } from "../src/storage/jsonStore.js";
 
 export interface TreeNodeSummary {
   id: string;
   name: string;
   relation: ProfileRelation;
+  hop: 0 | 1 | 2;
+  parentId?: string;
   context_score: number;
   context_signals: string[];
   photo_url?: string;
+  linkedin_url?: string;
+  can_expand: boolean;
 }
 
 export interface TreeEdge {
@@ -24,6 +33,7 @@ export interface TreeEdge {
   to: string;
   via: "github-collaborator" | "github-follower";
   context_score: number;
+  hop: 1 | 2;
 }
 
 export interface TreeResponse {
@@ -41,27 +51,28 @@ function readJson<T>(file: string): T | null {
   }
 }
 
-function listNeighborDirs(
-  seedSlug: string,
-  relation: "collaborator" | "follower"
-): string[] {
-  const folder = relation === "collaborator" ? "collaborators" : "followers";
-  const dir = path.join(PROFILES_DIR, slugify(seedSlug), folder);
-  if (!fs.existsSync(dir)) return [];
+function listNeighborDirs(baseDir: string): string[] {
+  if (!fs.existsSync(baseDir)) return [];
   return fs
-    .readdirSync(dir, { withFileTypes: true })
+    .readdirSync(baseDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
 }
 
 function toSummary(p: ProfileRecord): TreeNodeSummary {
+  const linkedin_url = linkedInUrlFromProfile(p) ?? undefined;
+  const hop = p.hop ?? (p.relation === "seed" ? 0 : 1);
   return {
-    id: p.slug,
+    id: hop === 2 && p.parents.length > 1 ? `${p.parents[1]}:${p.slug}` : p.slug,
     name: p.name,
     relation: p.relation,
+    hop: hop as 0 | 1 | 2,
+    parentId: hop === 2 ? p.parents[p.parents.length - 1] : hop === 1 ? p.seed : undefined,
     context_score: p.context_score ?? 0,
     context_signals: p.context_signals ?? [],
-    photo_url: p.linkedin?.photo_url,
+    photo_url: p.linkedin?.photo_url ?? undefined,
+    linkedin_url,
+    can_expand: hop === 1 && !!linkedin_url,
   };
 }
 
@@ -71,7 +82,6 @@ function githubLoginFromUrl(url: string | null | undefined): string | null {
   return m?.[1] ? m[1].toLowerCase() : null;
 }
 
-/** Resolve seed GitHub slug from latest seed_tree.json by display name. */
 export function resolveSeedSlugFromTree(seedName: string): string | null {
   const treePath = path.resolve(path.dirname(OUTPUT_PATH), "seed_tree.json");
   const tree = readJson<{
@@ -84,7 +94,6 @@ export function resolveSeedSlugFromTree(seedName: string): string | null {
     const login = githubLoginFromUrl(hit.github);
     if (login) return login;
   }
-  // Fallback: single-seed run wrote exactly one seed
   if (tree.seeds.length === 1) {
     return githubLoginFromUrl(tree.seeds[0].github);
   }
@@ -94,12 +103,43 @@ export function resolveSeedSlugFromTree(seedName: string): string | null {
 export function loadProfile(
   seedSlug: string,
   relation: ProfileRelation,
-  nodeSlug?: string
+  nodeSlug?: string,
+  opts?: {
+    hop?: 0 | 1 | 2;
+    parentSlug?: string;
+    parentRelation?: "collaborator" | "follower";
+  }
 ): ProfileRecord | null {
   const seed = slugify(seedSlug);
-  const node = slugify(nodeSlug ?? seedSlug);
-  const file = profileFilePath(seed, node, relation);
+  const file = profileFilePath({
+    seed,
+    relation,
+    slug: nodeSlug,
+    hop: opts?.hop ?? (relation === "seed" ? 0 : opts?.parentSlug ? 2 : 1),
+    parentSlug: opts?.parentSlug,
+    parentRelation: opts?.parentRelation,
+  });
   return readJson<ProfileRecord>(file);
+}
+
+function isBotLogin(slug: string, name: string): boolean {
+  const s = `${slug} ${name}`.toLowerCase();
+  return (
+    /\[bot\]/.test(s) ||
+    /(^|[\s_-])bot($|[\s_-])/.test(s) ||
+    /dependabot|renovate|github-actions|actions-user|opencode-agent/.test(s)
+  );
+}
+
+function includeOnTree(p: ProfileRecord, hop: 0 | 1 | 2): boolean {
+  if (hop === 0) return true;
+  if (isBotLogin(p.slug, p.name)) return false;
+  // Prefer root score; fall back to github.context_score if root missing
+  const score = Number(
+    p.context_score ?? p.github?.context_score ?? 0
+  );
+  // Hop-1 and hop-2 (incl. under Arihant): hide scores ≤ 3
+  return score >= MIN_TREE_CONTEXT_SCORE;
 }
 
 export function buildTree(seedSlug: string): TreeResponse | null {
@@ -107,56 +147,62 @@ export function buildTree(seedSlug: string): TreeResponse | null {
   const seedProfile = loadProfile(seed, "seed");
   if (!seedProfile) return null;
 
-  const nodes: TreeNodeSummary[] = [toSummary(seedProfile)];
+  const nodes: TreeNodeSummary[] = [toSummary({ ...seedProfile, hop: 0 })];
   const edges: TreeEdge[] = [];
+  const seenNode = new Set<string>([seed]);
 
-  for (const login of listNeighborDirs(seed, "collaborator")) {
-    const p = loadProfile(seed, "collaborator", login);
-    if (!p) continue;
-    nodes.push(toSummary(p));
-    edges.push({
-      from: seed,
-      to: p.slug,
-      via: "github-collaborator",
-      context_score: p.context_score ?? 0,
-    });
-  }
+  for (const parentRel of ["collaborator", "follower"] as const) {
+    const folder = relationDir(parentRel)!;
+    const hop1Dir = path.join(PROFILES_DIR, seed, folder);
+    for (const login of listNeighborDirs(hop1Dir)) {
+      const p = loadProfile(seed, parentRel, login, { hop: 1 });
+      if (!p || !includeOnTree(p, 1)) continue;
+      const summary = toSummary({ ...p, hop: 1, parents: [seed] });
+      if (!seenNode.has(summary.id)) {
+        nodes.push(summary);
+        seenNode.add(summary.id);
+      }
+      edges.push({
+        from: seed,
+        to: summary.id,
+        via:
+          parentRel === "collaborator"
+            ? "github-collaborator"
+            : "github-follower",
+        context_score: p.context_score ?? 0,
+        hop: 1,
+      });
 
-  for (const login of listNeighborDirs(seed, "follower")) {
-    const p = loadProfile(seed, "follower", login);
-    if (!p) continue;
-    nodes.push(toSummary(p));
-    edges.push({
-      from: seed,
-      to: p.slug,
-      via: "github-follower",
-      context_score: p.context_score ?? 0,
-    });
-  }
-
-  // Prefer edge metadata from seed_tree.json when present
-  const treePath = path.resolve(path.dirname(OUTPUT_PATH), "seed_tree.json");
-  const doc = readJson<{
-    edges: {
-      from_github: string;
-      to_github: string;
-      via: TreeEdge["via"];
-      context_score?: number;
-    }[];
-  }>(treePath);
-  if (doc?.edges?.length) {
-    const filtered = doc.edges.filter(
-      (e) => e.from_github.toLowerCase() === seed
-    );
-    if (filtered.length) {
-      edges.length = 0;
-      for (const e of filtered) {
-        edges.push({
-          from: seed,
-          to: slugify(e.to_github),
-          via: e.via,
-          context_score: e.context_score ?? 0,
-        });
+      for (const childRel of ["collaborator", "follower"] as const) {
+        const childFolder = relationDir(childRel)!;
+        const hop2Dir = path.join(hop1Dir, login, childFolder);
+        for (const childLogin of listNeighborDirs(hop2Dir)) {
+          const child = loadProfile(seed, childRel, childLogin, {
+            hop: 2,
+            parentSlug: login,
+            parentRelation: parentRel,
+          });
+          if (!child || !includeOnTree(child, 2)) continue;
+          const childSummary = toSummary({
+            ...child,
+            hop: 2,
+            parents: [seed, login],
+          });
+          if (!seenNode.has(childSummary.id)) {
+            nodes.push(childSummary);
+            seenNode.add(childSummary.id);
+          }
+          edges.push({
+            from: login,
+            to: childSummary.id,
+            via:
+              childRel === "collaborator"
+                ? "github-collaborator"
+                : "github-follower",
+            context_score: child.context_score ?? 0,
+            hop: 2,
+          });
+        }
       }
     }
   }
@@ -189,3 +235,5 @@ export function loadSeedsFile(): { name: string; country: string }[] {
 export function cookiesExist(): boolean {
   return fs.existsSync(COOKIES_PATH);
 }
+
+export { linkedInUrlFromProfile };
