@@ -1,4 +1,8 @@
-import { MAX_CANDIDATES } from "../config.js";
+import {
+  MAX_CANDIDATES,
+  MAX_FOLLOWER_PROFILES,
+  MIN_CONTEXT_SCORE_TO_EXPAND,
+} from "../config.js";
 import type { OlympiadProfile, ResolvedIdentity } from "../types.js";
 import { expandGithubFromUrl } from "../github/githubExpand.js";
 import { fetchGithubProfile } from "../github/githubUser.js";
@@ -7,7 +11,19 @@ import {
   expandSubstackFromUrl,
 } from "../substack/substackExpand.js";
 import { lookupOlympiad } from "../olympiad/parseOlympiad.js";
+import type { GitHubProfile, WebsiteProfile } from "../types.js";
+import { scrapeWebsite } from "../website/scrapeWebsite.js";
 import { addRaw, type RawCandidate } from "./mergeCandidates.js";
+
+async function websiteFromGithubBlog(
+  profile: GitHubProfile
+): Promise<WebsiteProfile | undefined> {
+  const raw = profile.blog?.trim();
+  if (!raw) return undefined;
+  const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  const site = await scrapeWebsite(url);
+  return site ?? undefined;
+}
 
 function log(msg: string): void {
   console.log(`[expand] ${msg}`);
@@ -15,15 +31,14 @@ function log(msg: string): void {
 
 export interface IdentityNeighbors {
   github: string[];
-  /** Explicit project co-authors (stronger than followers/stargazers). */
   collaborators: string[];
+  followers: string[];
   substack: string[];
 }
 
 export interface ExpandResult {
   pool: Map<string, RawCandidate>;
   neighbors: Map<string, IdentityNeighbors>;
-  /** Seed → collaborator edges for tree visualization / demo. */
   seedTree: SeedTreeEdge[];
 }
 
@@ -31,11 +46,11 @@ export interface SeedTreeEdge {
   from: string;
   from_github: string;
   to_github: string;
-  via: "github-collaborator";
-  repos_hint?: string;
+  via: "github-collaborator" | "github-follower";
+  context_score?: number;
+  context_signals?: string[];
 }
 
-/** How many collaborator profiles to hydrate as 1-hop candidates. */
 const MAX_COLLABORATOR_PROFILES = Number(
   process.env.MAX_COLLABORATOR_PROFILES ?? 15
 );
@@ -55,6 +70,7 @@ export async function expandGraph(
     const hood: IdentityNeighbors = {
       github: [],
       collaborators: [],
+      followers: [],
       substack: [],
     };
     neighbors.set(identityKey, hood);
@@ -79,7 +95,7 @@ export async function expandGraph(
 
     const githubUrl = identity.github_url ?? identity.website?.github_url;
     if (githubUrl) {
-      log(`  github: expanding collaborators from ${githubUrl}`);
+      log(`  github: expanding collaborators + followers from ${githubUrl}`);
       const gh = await expandGithubFromUrl(githubUrl);
       if (gh.profile) {
         addRaw(pool, {
@@ -94,37 +110,97 @@ export async function expandGraph(
         });
 
         hood.collaborators = gh.collaborators;
+        hood.followers = gh.profile.followers;
         hood.github = gh.discovered_logins;
+
         log(
           `  collaborators (${gh.collaborators.length}): ${gh.collaborators.slice(0, 12).join(", ") || "—"}`
         );
-        if (gh.peripheral.length) {
-          log(
-            `  peripheral (followers/stars/forks, not expanded): ${gh.peripheral.length}`
-          );
-        }
+        log(
+          `  followers (${gh.profile.followers.length}): ${gh.profile.followers.slice(0, 12).join(", ") || "—"}`
+        );
 
-        for (const login of gh.collaborators) {
+        for (const login of gh.collaborators.slice(
+          0,
+          MAX_COLLABORATOR_PROFILES
+        )) {
           seedTree.push({
             from: query_name,
             from_github: gh.profile.username,
             to_github: login,
             via: "github-collaborator",
           });
-        }
 
-        for (const login of gh.collaborators.slice(
-          0,
-          MAX_COLLABORATOR_PROFILES
-        )) {
-          const profile = await fetchGithubProfile(login);
+          const profile = await fetchGithubProfile(login, {
+            includeRecentCommits: false,
+          });
           if (!profile) continue;
+
+          seedTree[seedTree.length - 1].context_score = profile.context_score;
+          seedTree[seedTree.length - 1].context_signals =
+            profile.context_signals;
+
+          const website = await websiteFromGithubBlog(profile);
           const display = profile.display_name || login;
           addRaw(pool, {
             key: login.toLowerCase(),
             name: display,
             discovered_via: [`github-collaborator:${gh.profile.username}`],
             github: profile,
+            website,
+            identity_confidence: 0,
+            olympiad: lookupOlympiad(olympiadIndex, display),
+          });
+        }
+
+        // Hydrate followers, then keep only those with enough public context
+        // to seed another enrichment hop (blog/socials/email/etc.).
+        const followerProfiles: {
+          login: string;
+          profile: NonNullable<Awaited<ReturnType<typeof fetchGithubProfile>>>;
+        }[] = [];
+
+        for (const login of gh.profile.followers.slice(0, MAX_FOLLOWER_PROFILES)) {
+          const profile = await fetchGithubProfile(login, {
+            includeRecentCommits: false,
+          });
+          if (!profile) continue;
+          followerProfiles.push({ login, profile });
+        }
+
+        followerProfiles.sort(
+          (a, b) => b.profile.context_score - a.profile.context_score
+        );
+
+        const richFollowers = followerProfiles.filter(
+          (f) => f.profile.context_score >= MIN_CONTEXT_SCORE_TO_EXPAND
+        );
+
+        log(
+          `  rich followers (context>=${MIN_CONTEXT_SCORE_TO_EXPAND}): ${richFollowers
+            .slice(0, 10)
+            .map((f) => `${f.login}(${f.profile.context_score})`)
+            .join(", ") || "—"}`
+        );
+
+        for (const { login, profile } of richFollowers) {
+          seedTree.push({
+            from: query_name,
+            from_github: gh.profile.username,
+            to_github: login,
+            via: "github-follower",
+            context_score: profile.context_score,
+            context_signals: profile.context_signals,
+          });
+
+          const website = await websiteFromGithubBlog(profile);
+          const display = profile.display_name || login;
+          addRaw(pool, {
+            key: login.toLowerCase(),
+            name: display,
+            discovered_via: [`github-follower:${gh.profile.username}`],
+            github: profile,
+            website,
             identity_confidence: 0,
             olympiad: lookupOlympiad(olympiadIndex, display),
           });

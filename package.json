@@ -6,18 +6,24 @@
   "scripts": {
     "pipeline": "tsx src/pipeline/runPipeline.ts",
     "login": "tsx src/linkedin/saveSession.ts",
-    "seeds": "python olympiad_seeds.py"
+    "seeds": "python olympiad_seeds.py",
+    "dev:api": "tsx server/index.ts",
+    "dev:web": "npm run dev --prefix web",
+    "dev": "concurrently -n api,web -c teal,amber \"npm run dev:api\" \"npm run dev:web\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "concurrently": "^10.0.3",
     "dotenv": "^16.4.7",
+    "express": "^5.2.1",
     "playwright": "^1.52.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
     "@types/xml2js": "^0.4.14",
     "tsx": "^4.21.0",

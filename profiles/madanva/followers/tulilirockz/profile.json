@@ -1,0 +1,266 @@
+{
+  "slug": "tulilirockz",
+  "name": "Tulip Blossom",
+  "kind": "neighbor",
+  "relation": "follower",
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:madanva",
+    "github-1hop:madanva"
+  ],
+  "parents": [
+    "madanva"
+  ],
+  "github": {
+    "username": "tulilirockz",
+    "display_name": "Tulip Blossom",
+    "profile_url": "https://github.com/tulilirockz",
+    "bio": "Big Linux fan :)",
+    "blog": null,
+    "twitter_username": null,
+    "company": "Chainguard",
+    "location": "Brazil",
+    "email": "tulilirockz@outlook.com",
+    "social_accounts": [],
+    "context_score": 5,
+    "context_signals": [
+      "email",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "mkosi",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-07-13T08:30:26Z"
+      },
+      {
+        "name": "zirconium",
+        "topics": [],
+        "language": "Shell",
+        "stars": 0,
+        "pushed_at": "2026-07-13T03:38:20Z"
+      },
+      {
+        "name": "cerasus",
+        "topics": [],
+        "language": "Dockerfile",
+        "stars": 1,
+        "pushed_at": "2026-07-12T11:13:04Z"
+      },
+      {
+        "name": "oras-proxy",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-11T02:49:09Z"
+      },
+      {
+        "name": "vmbuddy",
+        "topics": [],
+        "language": "Shell",
+        "stars": 19,
+        "pushed_at": "2026-07-10T23:38:23Z"
+      },
+      {
+        "name": "flathub",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-07-08T15:41:59Z"
+      },
+      {
+        "name": "packages-1",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-07-08T01:48:08Z"
+      },
+      {
+        "name": "sysextbuddy",
+        "topics": [],
+        "language": "Shell",
+        "stars": 9,
+        "pushed_at": "2026-07-07T22:43:11Z"
+      },
+      {
+        "name": ".github-3",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-07-07T14:17:39Z"
+      },
+      {
+        "name": "taxifolia",
+        "topics": [
+          "bootc"
+        ],
+        "language": "Shell",
+        "stars": 3,
+        "pushed_at": "2026-07-06T12:04:51Z"
+      },
+      {
+        "name": "carinata",
+        "topics": [],
+        "language": "Shell",
+        "stars": 8,
+        "pushed_at": "2026-07-06T09:44:22Z"
+      },
+      {
+        "name": "pompona",
+        "topics": [],
+        "language": "Shell",
+        "stars": 13,
+        "pushed_at": "2026-07-06T07:37:30Z"
+      },
+      {
+        "name": "homebrew-bcvk",
+        "topics": [],
+        "language": "Ruby",
+        "stars": 1,
+        "pushed_at": "2026-07-03T04:02:24Z"
+      },
+      {
+        "name": "tulilog",
+        "topics": [],
+        "language": "HTML",
+        "stars": 0,
+        "pushed_at": "2026-06-26T23:42:39Z"
+      },
+      {
+        "name": "brew",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-23T19:08:28Z"
+      },
+      {
+        "name": "com.mattjakeman.ExtensionManager",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-23T18:05:24Z"
+      },
+      {
+        "name": "marmorata",
+        "topics": [],
+        "language": "Just",
+        "stars": 11,
+        "pushed_at": "2026-06-22T01:30:03Z"
+      },
+      {
+        "name": "Arch-Bootc-1",
+        "topics": [],
+        "language": "Dockerfile",
+        "stars": 0,
+        "pushed_at": "2026-06-20T20:03:00Z"
+      },
+      {
+        "name": "zirconium-multiarch",
+        "topics": [],
+        "language": "Shell",
+        "stars": 1,
+        "pushed_at": "2026-06-20T12:11:20Z"
+      },
+      {
+        "name": "org.virtualbox.VirtualBox",
+        "topics": [],
+        "language": "Shell",
+        "stars": 4,
+        "pushed_at": "2026-06-08T04:09:32Z"
+      },
+      {
+        "name": "bootstrap",
+        "topics": [],
+        "language": "Just",
+        "stars": 0,
+        "pushed_at": "2026-06-06T17:31:05Z"
+      },
+      {
+        "name": "com.broadcom.VMWareWorkstation",
+        "topics": [],
+        "language": "Shell",
+        "stars": 2,
+        "pushed_at": "2026-06-04T19:56:52Z"
+      },
+      {
+        "name": "io.github.doukutsu_rs.doukutsu-rs",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-03T21:14:03Z"
+      },
+      {
+        "name": "dev.ares.ares",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-02T21:18:23Z"
+      },
+      {
+        "name": "flatbuddy",
+        "topics": [],
+        "language": "Shell",
+        "stars": 8,
+        "pushed_at": "2026-05-16T22:39:11Z"
+      },
+      {
+        "name": "org.virt_manager.virt_manager.Extension.Qemu",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-15T00:58:45Z"
+      },
+      {
+        "name": "bazzite",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-10T07:28:54Z"
+      },
+      {
+        "name": "zdots",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-09T19:36:42Z"
+      },
+      {
+        "name": "lonicera",
+        "topics": [],
+        "language": "Shell",
+        "stars": 5,
+        "pushed_at": "2026-05-09T19:06:11Z"
+      },
+      {
+        "name": "treats",
+        "topics": [],
+        "language": "Shell",
+        "stars": 0,
+        "pushed_at": "2026-05-07T19:06:13Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/tulilirockz",
+    "email": "tulilirockz@outlook.com"
+  },
+  "context_score": 5,
+  "context_signals": [
+    "email",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T19:41:31.064Z"
+}

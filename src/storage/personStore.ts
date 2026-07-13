@@ -52,6 +52,7 @@ export interface PersonRecord {
   graph: {
     github_neighbors: string[];
     github_collaborators: string[];
+    github_followers: string[];
     substack_neighbors: string[];
     discovered_via: string[];
   };
@@ -109,6 +110,7 @@ function emptyRecord(name: string, now: string): PersonRecord {
     graph: {
       github_neighbors: [],
       github_collaborators: [],
+      github_followers: [],
       substack_neighbors: [],
       discovered_via: [],
     },
@@ -158,6 +160,10 @@ export function upsertPerson(update: PersonUpdate): PersonRecord {
       github_collaborators: union(
         record.graph.github_collaborators,
         update.graph.github_collaborators
+      ),
+      github_followers: union(
+        record.graph.github_followers ?? [],
+        update.graph.github_followers
       ),
       substack_neighbors: union(
         record.graph.substack_neighbors,

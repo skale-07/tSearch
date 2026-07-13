@@ -8,6 +8,7 @@ import {
   OLYMPIAD_CSV_PATH,
   OUTPUT_PATH,
   PEOPLE_DIR,
+  PROFILES_DIR,
   SEEDS_PATH,
   MAX_CANDIDATES,
 } from "../config.js";
@@ -15,6 +16,7 @@ import type { Candidate, OlympiadProfile } from "../types.js";
 import { loadOlympiadCsv, lookupOlympiad } from "../olympiad/parseOlympiad.js";
 import { parseSeeds, type SeedQuery } from "../seeds/parseSeeds.js";
 import { upsertPerson } from "../storage/personStore.js";
+import { writeSeedTreeProfiles } from "../storage/profileStore.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
 import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
@@ -116,6 +118,7 @@ function persistPeople(
       graph: {
         github_neighbors: hood?.github,
         github_collaborators: hood?.collaborators,
+        github_followers: hood?.followers,
         substack_neighbors: hood?.substack,
         discovered_via: c.discovered_via,
       },
@@ -196,7 +199,7 @@ async function main(): Promise<void> {
   let seedTree: SeedTreeEdge[] = [];
 
   if (identities.length) {
-    log("expand", "GitHub collaborator tree + Substack expansion...");
+    log("expand", "GitHub collaborator + rich follower tree + Substack...");
     const expanded = await expandGraph(identities, olympiadIndex);
     pool = expanded.pool;
     neighbors = expanded.neighbors;
@@ -235,12 +238,29 @@ async function main(): Promise<void> {
     ),
     "utf-8"
   );
+  const collabEdges = seedTree.filter((e) => e.via === "github-collaborator")
+    .length;
+  const followerEdges = seedTree.filter((e) => e.via === "github-follower")
+    .length;
   log(
     "tree",
-    `${seedTree.length} collaborator edges → ${treePath}`
+    `${seedTree.length} edges (${collabEdges} collaborators, ${followerEdges} rich followers) → ${treePath}`
   );
 
   log("done", `wrote ${ranked.length} candidates → ${OUTPUT_PATH}`);
+
+  const profilesWritten = writeSeedTreeProfiles(ranked, {
+    seeds: identities.map((i) => ({
+      name: i.query_name,
+      github: i.github_url,
+      website: i.website?.url ?? null,
+    })),
+    edges: seedTree,
+  });
+  log(
+    "profiles",
+    `upserted ${profilesWritten} → ${PROFILES_DIR}/<seed>/{profile.json,collaborators|followers/<login>/}`
+  );
 
   const people = persistPeople(ranked, seeds, failed, neighbors, olympiadIndex);
   log("people", `upserted ${people} person records → ${PEOPLE_DIR}`);

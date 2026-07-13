@@ -63,6 +63,19 @@ export const PEOPLE_DIR = path.resolve(
   process.env.PEOPLE_DIR ?? "data/people"
 );
 
+/** Flat per-person profile folders: profiles/<slug>/profile.json */
+export const PROFILES_DIR = path.resolve(
+  process.cwd(),
+  process.env.PROFILES_DIR ?? "profiles"
+);
+
+export const MAX_FOLLOWER_PROFILES = Number(
+  process.env.MAX_FOLLOWER_PROFILES ?? 20
+);
+export const MIN_CONTEXT_SCORE_TO_EXPAND = Number(
+  process.env.MIN_CONTEXT_SCORE_TO_EXPAND ?? 2
+);
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const GITHUB_CACHE_TTL_MS = Number(
   process.env.GITHUB_CACHE_TTL_MS ?? 7 * DAY_MS

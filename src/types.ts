@@ -6,10 +6,25 @@ export interface Repo {
   pushed_at: string | null;
 }
 
+export interface GitHubSocialLink {
+  provider: string;
+  url: string;
+}
+
 export interface GitHubProfile {
   username: string;
   display_name: string | null;
   profile_url: string;
+  bio: string | null;
+  blog: string | null;
+  twitter_username: string | null;
+  company: string | null;
+  location: string | null;
+  email: string | null;
+  social_accounts: GitHubSocialLink[];
+  /** How much external identity signal this GitHub profile exposes. */
+  context_score: number;
+  context_signals: string[];
   repos: Repo[];
   contributors: string[];
   stars: string[];

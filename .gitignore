@@ -10,6 +10,11 @@ cookies.json
 
 # Pipeline output
 output/
+tmp/
+
+# Frontend
+web/dist/
+web/node_modules/
 
 # JSON storage (network-fetch cache + per-person records)
 cache/
