@@ -1,0 +1,248 @@
+{
+  "slug": "nband",
+  "name": "Neil Band",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 1,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:madanva"
+  ],
+  "parents": [
+    "madanva"
+  ],
+  "github": {
+    "username": "nband",
+    "display_name": "Neil Band",
+    "profile_url": "https://github.com/nband",
+    "bio": "CS PhD student at Stanford",
+    "blog": "nband.github.io",
+    "twitter_username": "neilbband",
+    "company": null,
+    "location": null,
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/neilbband"
+      }
+    ],
+    "context_score": 7,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "bio",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "nano-vllm",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-06-12T16:41:43Z"
+      },
+      {
+        "name": "GRPO-Zero",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-04-18T14:13:35Z"
+      },
+      {
+        "name": "alpaca_eval",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-12-27T21:47:41Z"
+      },
+      {
+        "name": "linguistic_calibration",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-06-04T20:55:41Z"
+      },
+      {
+        "name": "rebiber",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-04-03T17:01:10Z"
+      },
+      {
+        "name": "transformers",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2022-11-05T21:34:58Z"
+      },
+      {
+        "name": "uncertainty-baselines",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2022-01-06T00:23:10Z"
+      },
+      {
+        "name": "xmanager",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2021-12-10T13:13:17Z"
+      },
+      {
+        "name": "shifts",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-07-19T11:17:46Z"
+      },
+      {
+        "name": "non-parametric-transformers",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-06-06T16:36:43Z"
+      },
+      {
+        "name": "bdl-benchmarks",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-06-04T10:24:49Z"
+      },
+      {
+        "name": "neural-processes",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-01-16T07:40:29Z"
+      },
+      {
+        "name": "HHDash",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2017-10-21T21:30:47Z"
+      },
+      {
+        "name": "random-name",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2017-09-11T05:14:42Z"
+      },
+      {
+        "name": "HarvardTwilioService",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2017-08-13T22:05:44Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://nband.github.io/",
+    "scraped_at": "2026-07-13T21:29:40.907Z",
+    "github_url": "https://nband.github.io/stylesheet.css",
+    "substack_url": null,
+    "twitter_url": "https://twitter.com/neilbband",
+    "linkedin_url": "https://www.linkedin.com/in/german-chesnokov-aa5344176",
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": "https://youtu.be/6ekOVosCQN8",
+    "other_links": [
+      "https://ai.stanford.edu/~tengyuma",
+      "https://oatml.cs.ox.ac.uk",
+      "https://www.cs.ox.ac.uk/people/yarin.gal/website",
+      "https://stratos.seas.harvard.edu",
+      "http://daslab.seas.harvard.edu",
+      "https://web.mit.edu/manoli",
+      "http://compbio.mit.edu",
+      "https://scholar.google.com/citations?hl=en&user=2Dab2vkAAAAJ",
+      "https://arxiv.org/abs/2409.07431",
+      "https://candes.su.domains",
+      "https://arxiv.org/abs/2404.00474",
+      "https://www.lxuechen.com",
+      "https://openreview.net/forum?id=jyd4Lyjr2iB",
+      "https://timrudner.com",
+      "http://zna.do/about",
+      "https://mikedusenberry.com/about",
+      "http://jerfel.com",
+      "http://dustintran.com",
+      "https://arxiv.org/abs/2107.07455",
+      "https://malinin.io"
+    ],
+    "all_links": [
+      "https://nband.github.io/stylesheet.css",
+      "https://nband.github.io/images/stanford_seal.png",
+      "https://thashim.github.io",
+      "https://ai.stanford.edu/~tengyuma",
+      "https://oatml.cs.ox.ac.uk",
+      "https://www.cs.ox.ac.uk/people/yarin.gal/website",
+      "https://stratos.seas.harvard.edu",
+      "http://daslab.seas.harvard.edu",
+      "https://web.mit.edu/manoli",
+      "http://compbio.mit.edu",
+      "https://scholar.google.com/citations?hl=en&user=2Dab2vkAAAAJ",
+      "https://twitter.com/neilbband",
+      "https://github.com/nband",
+      "https://nband.github.io/images/NeilBand.jpg",
+      "https://arxiv.org/abs/2409.07431",
+      "https://zitongyang.github.io",
+      "https://fifalsp.github.io",
+      "https://candes.su.domains",
+      "https://github.com/zitongyang/synthetic_continued_pretraining",
+      "https://arxiv.org/abs/2404.00474",
+      "https://www.lxuechen.com",
+      "https://github.com/tatsu-lab/linguistic_calibration",
+      "https://openreview.net/forum?id=jyd4Lyjr2iB",
+      "https://timrudner.com",
+      "https://filangelos.github.io/website",
+      "http://zna.do/about",
+      "https://mikedusenberry.com/about",
+      "http://jerfel.com",
+      "http://dustintran.com",
+      "https://nband.github.io/posters/retina.pdf",
+      "https://github.com/google/uncertainty-baselines/tree/main/baselines/diabetic_retinopathy_detection",
+      "https://nband.github.io/data/retina.bib",
+      "https://arxiv.org/abs/2107.07455",
+      "https://malinin.io",
+      "https://www.linkedin.com/in/german-chesnokov-aa5344176",
+      "http://mi.eng.cam.ac.uk/~mjfg",
+      "https://ru.linkedin.com/in/alexeynoskov",
+      "https://www.linkedin.cn/in/andrey-ploskonosov-a06537213",
+      "https://research.yandex.com/people/6984",
+      "https://ru.linkedin.com/in/ivan-provilkov-7b6455175"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/nband",
+    "linkedin_url": "https://www.linkedin.com/in/german-chesnokov-aa5344176",
+    "personal_website": "https://nband.github.io/",
+    "blog": "nband.github.io",
+    "twitter_url": "https://twitter.com/neilbband",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/neilbband"
+      }
+    ]
+  },
+  "context_score": 7,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "bio",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T21:30:20.058Z"
+}

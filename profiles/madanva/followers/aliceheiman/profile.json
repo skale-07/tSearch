@@ -3,6 +3,7 @@
   "name": "Alice Heiman",
   "kind": "neighbor",
   "relation": "follower",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-follower:madanva"
@@ -264,7 +265,7 @@
   },
   "website": {
     "url": "https://aliceheiman.xyz/",
-    "scraped_at": "2026-07-13T20:32:25.824Z",
+    "scraped_at": "2026-07-13T21:52:00.918Z",
     "github_url": "https://github.com/aliceheiman",
     "substack_url": "https://aliceinnerdland.substack.com/embed",
     "twitter_url": null,
@@ -319,5 +320,5 @@
     "blog",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.851Z"
+  "last_updated": "2026-07-13T21:52:01.117Z"
 }

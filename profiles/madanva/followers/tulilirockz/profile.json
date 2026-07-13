@@ -3,6 +3,7 @@
   "name": "Tulip Blossom",
   "kind": "neighbor",
   "relation": "follower",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-follower:madanva"
@@ -261,5 +262,5 @@
     "location",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.850Z"
+  "last_updated": "2026-07-13T21:52:01.081Z"
 }

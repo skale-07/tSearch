@@ -1,0 +1,83 @@
+{
+  "slug": "youjonathan",
+  "name": "jonathan",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:madanva"
+  ],
+  "parents": [
+    "madanva"
+  ],
+  "github": {
+    "username": "youjonathan",
+    "display_name": "jonathan",
+    "profile_url": "https://github.com/youjonathan",
+    "bio": "i like building stuff",
+    "blog": null,
+    "twitter_username": null,
+    "company": null,
+    "location": null,
+    "email": null,
+    "social_accounts": [],
+    "context_score": 2,
+    "context_signals": [
+      "bio",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "youjonathan",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-07-13T16:05:56Z"
+      },
+      {
+        "name": "my-desk",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2026-07-06T21:47:46Z"
+      },
+      {
+        "name": "claudes",
+        "topics": [],
+        "language": "Shell",
+        "stars": 2,
+        "pushed_at": "2026-07-05T20:36:50Z"
+      },
+      {
+        "name": "FederalRegisterStudy",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-07-05T03:04:07Z"
+      },
+      {
+        "name": "claude-buildathon",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-04-25T00:45:55Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/youjonathan"
+  },
+  "context_score": 2,
+  "context_signals": [
+    "bio",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T20:32:25.838Z"
+}

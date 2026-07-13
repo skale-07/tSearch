@@ -3,6 +3,7 @@
   "name": "Herman Brunborg",
   "kind": "neighbor",
   "relation": "collaborator",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-collaborator:madanva"
@@ -196,7 +197,7 @@
   },
   "website": {
     "url": "https://brunborg.com/",
-    "scraped_at": "2026-07-13T20:31:58.071Z",
+    "scraped_at": "2026-07-13T21:51:34.857Z",
     "github_url": null,
     "substack_url": null,
     "twitter_url": null,
@@ -232,5 +233,5 @@
     "blog",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.840Z"
+  "last_updated": "2026-07-13T21:52:01.012Z"
 }

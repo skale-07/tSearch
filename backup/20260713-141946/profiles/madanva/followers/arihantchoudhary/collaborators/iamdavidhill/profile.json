@@ -1,0 +1,131 @@
+{
+  "slug": "iamdavidhill",
+  "name": "David Hill",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "iamdavidhill",
+    "display_name": "David Hill",
+    "profile_url": "https://github.com/iamdavidhill",
+    "bio": "Designing opencode and @terminaldotshop • Formerly Head of Design @laravel ",
+    "blog": "https://iamdavidhill.com",
+    "twitter_username": "iamdavidhill",
+    "company": null,
+    "location": "London",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/iamdavidhill"
+      }
+    ],
+    "context_score": 8,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "bio",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "swipple",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-08-25T15:46:14Z"
+      },
+      {
+        "name": "latterly",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-08-25T15:46:03Z"
+      },
+      {
+        "name": "beeptoday",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-08-25T15:45:45Z"
+      },
+      {
+        "name": "figma-plugin-code-syntax-highlighting",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-09-23T10:41:47Z"
+      },
+      {
+        "name": "site",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-11-20T11:56:53Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://iamdavidhill.com/",
+    "scraped_at": "2026-07-13T20:55:08.360Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": null,
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "http://gmpg.org/xfn/11",
+      "https://fonts.bunny.net/css?family=Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans"
+    ],
+    "all_links": [
+      "http://gmpg.org/xfn/11",
+      "https://iamdavidhill.com/xmlrpc.php",
+      "https://fonts.bunny.net/css?family=Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans:300,300italic,regular,italic,600,600italic,700,700italic,800,800italic|Open%20Sans",
+      "https://iamdavidhill.com/wp-includes/css/dashicons.min.css",
+      "https://iamdavidhill.com/wp-content/plugins/maintenance/frontend/css/style.css?ver=1782867550",
+      "https://iamdavidhill.com/wp-login.php?action=lostpassword",
+      "https://iamdavidhill.com",
+      "https://iamdavidhill.com/wp-includes/js/jquery/jquery.js",
+      "https://iamdavidhill.com/wp-content/plugins/maintenance/frontend/js/frontend.js?ver=4.31"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/iamdavidhill",
+    "personal_website": "https://iamdavidhill.com/",
+    "blog": "https://iamdavidhill.com",
+    "twitter_url": "https://x.com/iamdavidhill",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/iamdavidhill"
+      }
+    ]
+  },
+  "context_score": 8,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "bio",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T20:56:49.650Z"
+}

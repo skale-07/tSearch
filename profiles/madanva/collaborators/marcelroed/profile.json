@@ -3,6 +3,7 @@
   "name": "Marcel Rød",
   "kind": "neighbor",
   "relation": "collaborator",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-collaborator:madanva"
@@ -258,5 +259,5 @@
     "location",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.835Z"
+  "last_updated": "2026-07-13T21:52:00.967Z"
 }

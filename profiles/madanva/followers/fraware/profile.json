@@ -3,6 +3,7 @@
   "name": "Matéo H. Petel",
   "kind": "neighbor",
   "relation": "follower",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-follower:madanva"
@@ -404,7 +405,7 @@
   },
   "website": {
     "url": "https://mateopetel.xyz/",
-    "scraped_at": "2026-07-13T20:32:25.485Z",
+    "scraped_at": "2026-07-13T21:52:00.434Z",
     "github_url": "https://github.com/SentinelOps-CI",
     "substack_url": null,
     "twitter_url": null,
@@ -492,5 +493,5 @@
     "linkedin",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.846Z"
+  "last_updated": "2026-07-13T21:52:01.049Z"
 }

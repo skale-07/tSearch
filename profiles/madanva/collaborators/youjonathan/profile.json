@@ -3,6 +3,7 @@
   "name": "jonathan",
   "kind": "neighbor",
   "relation": "collaborator",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-collaborator:madanva"
@@ -79,5 +80,5 @@
     "bio",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.838Z"
+  "last_updated": "2026-07-13T21:52:00.986Z"
 }

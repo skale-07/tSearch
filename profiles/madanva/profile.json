@@ -3,6 +3,7 @@
   "name": "Varun Madan",
   "kind": "seed",
   "relation": "seed",
+  "hop": 0,
   "seed": "madanva",
   "discovered_via": [
     "linkedin:Varun Madan",
@@ -367,7 +368,7 @@
   },
   "website": {
     "url": "https://www.varunrmadan.com/",
-    "scraped_at": "2026-07-13T20:30:41.384Z",
+    "scraped_at": "2026-07-13T21:50:50.254Z",
     "github_url": "https://github.com/madanva",
     "substack_url": null,
     "twitter_url": "https://x.com/varunrmadan",
@@ -448,5 +449,5 @@
     "linkedin",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.830Z"
+  "last_updated": "2026-07-13T21:52:00.939Z"
 }

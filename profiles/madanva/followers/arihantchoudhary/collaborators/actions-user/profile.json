@@ -39,7 +39,7 @@
   },
   "website": {
     "url": "https://github.com/actions",
-    "scraped_at": "2026-07-13T20:55:02.077Z",
+    "scraped_at": "2026-07-13T21:53:47.357Z",
     "github_url": "https://github.com/opensearch.xml",
     "substack_url": null,
     "twitter_url": null,
@@ -104,11 +104,11 @@
       "https://github.githubassets.com/favicons/favicon.svg",
       "https://github.githubassets.com/favicons/favicon",
       "https://github.com/manifest.json",
-      "https://github.githubassets.com/assets/primer-react-css.45d284a306afca7f.module.css",
+      "https://github.githubassets.com/assets/primer-react-css.0f11cf287dcfea1b.module.css",
       "https://github.githubassets.com/assets/keyboard-shortcuts-dialog.54b9b76657c6c563.module.css",
       "https://github.com",
       "https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Factions",
-      "https://github.githubassets.com/assets/appearance-settings.119b0d7d90cb40be.module.css",
+      "https://github.githubassets.com/assets/appearance-settings.6cf325b7e2995e72.module.css",
       "https://github.githubassets.com/assets/marketing-navigation.cb431e9ee92f5591.module.css"
     ]
   },
@@ -122,5 +122,5 @@
     "blog",
     "company"
   ],
-  "last_updated": "2026-07-13T20:56:49.647Z"
+  "last_updated": "2026-07-13T21:55:38.997Z"
 }

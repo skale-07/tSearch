@@ -40,7 +40,7 @@
         ],
         "language": "JavaScript",
         "stars": 353,
-        "pushed_at": "2026-07-13T06:28:59Z"
+        "pushed_at": "2026-07-13T21:55:09Z"
       }
     ],
     "contributors": [],
@@ -53,7 +53,7 @@
   },
   "website": {
     "url": "https://www.webbrain.one/",
-    "scraped_at": "2026-07-13T20:56:49.642Z",
+    "scraped_at": "2026-07-13T21:55:38.981Z",
     "github_url": "https://github.com/webbrain-one/webbrain",
     "substack_url": null,
     "twitter_url": "https://x.com/intent/post?text=WebBrain%20%E2%80%94%20free%2C%20open-source%20AI%20browser%20agent%20for%20Chrome%20%26%20Firefox.%20Multilingual%20UI%2C%20token-conscious%20by%20default%2C%20MIT-licensed.&amp;url=https%3A%2F%2Fwebbrain.one%2F",
@@ -138,5 +138,5 @@
     "blog",
     "bio"
   ],
-  "last_updated": "2026-07-13T20:56:49.684Z"
+  "last_updated": "2026-07-13T21:55:39.175Z"
 }

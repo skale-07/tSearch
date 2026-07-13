@@ -3,6 +3,7 @@
   "name": "Rohith Kuditipudi",
   "kind": "neighbor",
   "relation": "collaborator",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-collaborator:madanva"
@@ -163,7 +164,7 @@
   },
   "website": {
     "url": "https://web.stanford.edu/~rohithk/",
-    "scraped_at": "2026-07-13T20:31:51.626Z",
+    "scraped_at": "2026-07-13T21:51:28.512Z",
     "github_url": "https://thashim.github.io",
     "substack_url": null,
     "twitter_url": "https://twitter.com/rckpudi",
@@ -252,5 +253,5 @@
     "twitter",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.837Z"
+  "last_updated": "2026-07-13T21:52:00.974Z"
 }

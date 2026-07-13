@@ -3,6 +3,7 @@
   "name": "Diego Almanza",
   "kind": "neighbor",
   "relation": "follower",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-follower:madanva"
@@ -77,5 +78,5 @@
     "company",
     "location"
   ],
-  "last_updated": "2026-07-13T20:32:25.848Z"
+  "last_updated": "2026-07-13T21:52:01.060Z"
 }

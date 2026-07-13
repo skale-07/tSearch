@@ -3,6 +3,7 @@
   "name": "Neil Band",
   "kind": "neighbor",
   "relation": "collaborator",
+  "hop": 1,
   "seed": "madanva",
   "discovered_via": [
     "github-collaborator:madanva"
@@ -150,7 +151,7 @@
   },
   "website": {
     "url": "https://nband.github.io/",
-    "scraped_at": "2026-07-13T20:31:45.062Z",
+    "scraped_at": "2026-07-13T21:51:22.107Z",
     "github_url": "https://nband.github.io/stylesheet.css",
     "substack_url": null,
     "twitter_url": "https://twitter.com/neilbband",
@@ -243,5 +244,5 @@
     "bio",
     "repos"
   ],
-  "last_updated": "2026-07-13T20:32:25.833Z"
+  "last_updated": "2026-07-13T21:52:00.949Z"
 }

@@ -1,0 +1,146 @@
+{
+  "slug": "nai64",
+  "name": "Nai64",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "Nai64",
+    "display_name": null,
+    "profile_url": "https://github.com/Nai64",
+    "bio": null,
+    "blog": null,
+    "twitter_username": null,
+    "company": null,
+    "location": "Kazakhstan",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "generic",
+        "url": "https://nai64.neocities.org"
+      }
+    ],
+    "context_score": 4,
+    "context_signals": [
+      "location",
+      "generic",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "BandcampAutoUploader",
+        "topics": [
+          "audio",
+          "auto",
+          "automation",
+          "bandcamp",
+          "bandcamp-api",
+          "bandcamp-tools",
+          "bandcamp-upload",
+          "management",
+          "music",
+          "python",
+          "software",
+          "tkinter",
+          "tool",
+          "track",
+          "upload",
+          "utility",
+          "windows"
+        ],
+        "language": "Python",
+        "stars": 73,
+        "pushed_at": "2026-07-06T12:54:50Z"
+      },
+      {
+        "name": "Nai64Patches",
+        "topics": [
+          "adblocker",
+          "ads",
+          "android",
+          "android-game",
+          "cheat",
+          "cheating",
+          "mod",
+          "modding",
+          "morphe",
+          "morphe-cli",
+          "morphe-patches",
+          "patch",
+          "patches",
+          "patching",
+          "source",
+          "tools"
+        ],
+        "language": "Kotlin",
+        "stars": 142,
+        "pushed_at": "2026-07-06T10:32:01Z"
+      },
+      {
+        "name": "TaskbarMusicLounge",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2026-07-02T06:45:48Z"
+      },
+      {
+        "name": "BandcampDownloaderFixed",
+        "topics": [
+          "album",
+          "audio-downloader",
+          "bandcamp",
+          "bandcamp-api",
+          "bandcamp-downloader",
+          "bandcamp-ripper",
+          "desktop",
+          "downloader",
+          "music",
+          "music-downloader",
+          "track",
+          "windows"
+        ],
+        "language": "C#",
+        "stars": 10,
+        "pushed_at": "2026-05-11T21:29:14Z"
+      },
+      {
+        "name": "J2MELoaderPlus",
+        "topics": [],
+        "language": null,
+        "stars": 3,
+        "pushed_at": "2026-02-06T07:42:08Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/Nai64",
+    "social_accounts": [
+      {
+        "provider": "generic",
+        "url": "https://nai64.neocities.org"
+      }
+    ]
+  },
+  "context_score": 4,
+  "context_signals": [
+    "location",
+    "generic",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T21:33:41.103Z"
+}

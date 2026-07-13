@@ -1,0 +1,496 @@
+{
+  "slug": "fraware",
+  "name": "Matéo H. Petel",
+  "kind": "neighbor",
+  "relation": "follower",
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:madanva"
+  ],
+  "parents": [
+    "madanva"
+  ],
+  "github": {
+    "username": "fraware",
+    "display_name": "Matéo H. Petel",
+    "profile_url": "https://github.com/fraware",
+    "bio": "Curiosity. \r\n________________________________________________________________________________________\r\nStanford | NASA JPL | Oxford | ENS",
+    "blog": "https://mateopetel.xyz/",
+    "twitter_username": null,
+    "company": "Stanford",
+    "location": null,
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/mateo-petel/"
+      }
+    ],
+    "context_score": 8,
+    "context_signals": [
+      "blog",
+      "bio",
+      "company",
+      "linkedin",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "QSpecBench",
+        "topics": [
+          "benchmark-suite",
+          "formal-methods",
+          "lean4",
+          "quantum-circuits",
+          "quantum-verification"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-02T15:37:00Z"
+      },
+      {
+        "name": "OpenJarvis",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-01T13:26:13Z"
+      },
+      {
+        "name": "lean-endkan",
+        "topics": [
+          "category-theory",
+          "coends",
+          "ends",
+          "kan-extensions",
+          "lean4"
+        ],
+        "language": "Lean",
+        "stars": 1,
+        "pushed_at": "2026-07-01T07:27:31Z"
+      },
+      {
+        "name": "reversible-execution-lab",
+        "topics": [
+          "debugging",
+          "developer-tools",
+          "program-analysis",
+          "reversible-computing",
+          "time-travel-debugging"
+        ],
+        "language": "TypeScript",
+        "stars": 4,
+        "pushed_at": "2026-07-01T05:45:23Z"
+      },
+      {
+        "name": "AKTA",
+        "topics": [
+          "action-gating",
+          "admissibility",
+          "ai-for-science",
+          "autonomous-science",
+          "lab-automation",
+          "policy-engine",
+          "runtime-enforcement",
+          "tool-gating"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-29T22:53:01Z"
+      },
+      {
+        "name": "SCOPE",
+        "topics": [
+          "ai-for-science",
+          "audit-ledger",
+          "human-in-the-loop",
+          "pf-core",
+          "policy-enforcement",
+          "proof-obligations",
+          "rbac",
+          "runtime-enforcement",
+          "scientific-review"
+        ],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-06-29T22:06:37Z"
+      },
+      {
+        "name": "chaoslabs",
+        "topics": [
+          "chaos-engineering",
+          "distributed-systems",
+          "fault-injection",
+          "resilience-testing",
+          "sre"
+        ],
+        "language": "Go",
+        "stars": 6,
+        "pushed_at": "2026-06-26T04:10:10Z"
+      },
+      {
+        "name": "EdgePlug",
+        "topics": [
+          "edge-ai",
+          "grid-operations",
+          "industrial-automation",
+          "industrial-control-systems",
+          "plc"
+        ],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2026-06-25T15:43:59Z"
+      },
+      {
+        "name": "LeanEdge-RL",
+        "topics": [
+          "formal-verification",
+          "latency",
+          "llm",
+          "reinforcement-learning",
+          "runtime",
+          "rust"
+        ],
+        "language": "Rust",
+        "stars": 1,
+        "pushed_at": "2026-06-25T09:34:06Z"
+      },
+      {
+        "name": "deeptime",
+        "topics": [
+          "analytics",
+          "forecasting",
+          "foundation-models",
+          "interactive-dashboard",
+          "time-series"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-25T04:53:22Z"
+      },
+      {
+        "name": "solarsim",
+        "topics": [
+          "3d-visualization",
+          "astrodynamics",
+          "physics",
+          "simulation",
+          "solar-system"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-25T00:13:27Z"
+      },
+      {
+        "name": "mpetel.github.io",
+        "topics": [],
+        "language": "HTML",
+        "stars": 1,
+        "pushed_at": "2026-06-21T09:58:37Z"
+      },
+      {
+        "name": "omnigent",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-06-20T14:37:57Z"
+      },
+      {
+        "name": "fpcastle.github.io",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-06-19T18:09:53Z"
+      },
+      {
+        "name": "CertifyEdge",
+        "topics": [
+          "certificate",
+          "lean4",
+          "smt-solver",
+          "stl"
+        ],
+        "language": "Rust",
+        "stars": 1,
+        "pushed_at": "2026-06-19T14:56:48Z"
+      },
+      {
+        "name": "universal-recycle",
+        "topics": [
+          "build-automation",
+          "code-modernization",
+          "developer-tools",
+          "interoperability",
+          "polyglot"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-19T06:53:00Z"
+      },
+      {
+        "name": "cloudpilot",
+        "topics": [
+          "capacity-planning",
+          "cloud-optimization",
+          "cost-optimization",
+          "finops",
+          "infrastructure-automation"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-18T23:53:20Z"
+      },
+      {
+        "name": "creusot",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-18T08:12:40Z"
+      },
+      {
+        "name": "lean-uprove",
+        "topics": [
+          "category-theory",
+          "lean4",
+          "tactics",
+          "theorem-proving",
+          "universal-properties"
+        ],
+        "language": "Lean",
+        "stars": 1,
+        "pushed_at": "2026-06-17T12:12:27Z"
+      },
+      {
+        "name": "mathlib4",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-17T12:11:39Z"
+      },
+      {
+        "name": "cslib",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-17T12:00:30Z"
+      },
+      {
+        "name": "lean-optics",
+        "topics": [
+          "category-theory",
+          "functional-programming",
+          "lean4",
+          "optics",
+          "proof-automation"
+        ],
+        "language": "Lean",
+        "stars": 3,
+        "pushed_at": "2026-06-17T11:51:40Z"
+      },
+      {
+        "name": "lean-yo",
+        "topics": [
+          "category-theory",
+          "lean4",
+          "proof-automation",
+          "tactics",
+          "yoneda"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-17T11:48:09Z"
+      },
+      {
+        "name": "lean-effects",
+        "topics": [
+          "algebraic-effects",
+          "category-theory",
+          "code-generation",
+          "lawvere-theories",
+          "lean4"
+        ],
+        "language": "Lean",
+        "stars": 1,
+        "pushed_at": "2026-06-17T10:06:52Z"
+      },
+      {
+        "name": "lean-containers",
+        "topics": [
+          "category-theory",
+          "lean4",
+          "polynomial-functors",
+          "type-theory",
+          "w-types"
+        ],
+        "language": "Lean",
+        "stars": 2,
+        "pushed_at": "2026-06-17T07:31:22Z"
+      },
+      {
+        "name": "formalization-readiness-engine",
+        "topics": [
+          "benchmarks",
+          "formal-methods",
+          "lean4",
+          "mathematical-reasoning",
+          "mathlib",
+          "proof-formalization",
+          "theorem-proving"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-15T07:09:40Z"
+      },
+      {
+        "name": "open-verification-kernel",
+        "topics": [
+          "ai-agents",
+          "dafny",
+          "formal-methods",
+          "kani",
+          "lean4",
+          "open-policy-agent",
+          "program-verification",
+          "runtime-assurance",
+          "software-verification",
+          "tla-plus",
+          "z3-solver"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-06-11T09:39:43Z"
+      },
+      {
+        "name": "lean-cat-nf",
+        "topics": [
+          "category-theory",
+          "formalization",
+          "lean4",
+          "proof-automation",
+          "theorem-proving"
+        ],
+        "language": "Lean",
+        "stars": 1,
+        "pushed_at": "2026-06-09T10:08:57Z"
+      },
+      {
+        "name": "lathe",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-07T10:36:23Z"
+      },
+      {
+        "name": "Socratic-Trident",
+        "topics": [
+          "ai-safety",
+          "llm",
+          "provenance",
+          "traceability",
+          "transparency",
+          "verifiable-ai"
+        ],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2026-06-02T21:28:39Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://mateopetel.xyz/",
+    "scraped_at": "2026-07-13T20:32:25.485Z",
+    "github_url": "https://github.com/SentinelOps-CI",
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": "https://www.linkedin.com/in/mateo-petel",
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://lmf.cnrs.fr",
+      "https://openai.com/index/red-teaming-network",
+      "https://med.stanford.edu/pediatrics/research.html",
+      "https://www.stanford.edu",
+      "https://www.ndm.ox.ac.uk",
+      "https://www.thelancet.com/journals/lanplh/article/PIIS2542-5196(25)00251-7/fulltext",
+      "https://www.economics.harvard.edu",
+      "https://www.vincentpons.org/electoral-turnovers",
+      "https://reason.com/2022/02/22/voting-out-incumbents-boosts-economic-growth-decreases-corruption",
+      "https://atlantico.fr/article/decryptage/les-vertus-de-l-alternance-une-etude-sur-les-elections-dans-le-monde-depuis-1945-montre-que-les-electeurs-gagnent-en-general-a-chasser-les-sortants-legislatives-presidentielles-benjamin-marx-vincent-pons-vincent-rollet",
+      "https://voxeu.org/article/surprising-benefits-voting-change",
+      "https://www.hec.edu/en/doctoral-program/research-areas",
+      "https://www.deepmind.com",
+      "https://www.unesco.org",
+      "https://csrc-tech.com",
+      "https://www.nextsense.io/about-us",
+      "https://www.jpl.nasa.gov",
+      "https://philab.esa.int",
+      "https://www.omdena.com",
+      "https://www.g4sriskmanagement.com/global-reach/iraq"
+    ],
+    "all_links": [
+      "https://mateopetel.xyz",
+      "https://mateopetel.xyz/favicon.ico",
+      "https://github.com/SentinelOps-CI",
+      "https://github.com/SentinelOps-CI/provability-fabric",
+      "https://lmf.cnrs.fr",
+      "https://openai.com/index/red-teaming-network",
+      "https://med.stanford.edu/pediatrics/research.html",
+      "https://www.stanford.edu",
+      "https://www.ndm.ox.ac.uk",
+      "https://www.thelancet.com/journals/lanplh/article/PIIS2542-5196(25)00251-7/fulltext",
+      "https://www.economics.harvard.edu",
+      "https://www.vincentpons.org/electoral-turnovers",
+      "https://reason.com/2022/02/22/voting-out-incumbents-boosts-economic-growth-decreases-corruption",
+      "https://atlantico.fr/article/decryptage/les-vertus-de-l-alternance-une-etude-sur-les-elections-dans-le-monde-depuis-1945-montre-que-les-electeurs-gagnent-en-general-a-chasser-les-sortants-legislatives-presidentielles-benjamin-marx-vincent-pons-vincent-rollet",
+      "https://voxeu.org/article/surprising-benefits-voting-change",
+      "https://www.hec.edu/en/doctoral-program/research-areas",
+      "https://www.deepmind.com",
+      "https://www.unesco.org",
+      "https://csrc-tech.com",
+      "https://www.nextsense.io/about-us",
+      "https://www.jpl.nasa.gov",
+      "https://philab.esa.int",
+      "https://www.omdena.com",
+      "https://www.g4sriskmanagement.com/global-reach/iraq",
+      "https://dauphine-junior-consulting.com",
+      "http://chu-mondor.aphp.fr",
+      "https://www.unwomen.org/en",
+      "https://dauphine.psl.eu/en/research/research-at-dauphine",
+      "https://ens-paris-saclay.fr/en",
+      "https://www.linkedin.com/in/mateo-petel",
+      "https://github.com/fraware",
+      "https://pages.github.com",
+      "https://romainlacombe.com",
+      "https://www.googletagmanager.com/gtm.js?id=",
+      "https://www.googletagmanager.com/ns.html?id=GTM-T786TPX7"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/fraware",
+    "linkedin_url": "https://www.linkedin.com/in/mateo-petel",
+    "personal_website": "https://mateopetel.xyz/",
+    "blog": "https://mateopetel.xyz/",
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/mateo-petel/"
+      }
+    ]
+  },
+  "context_score": 8,
+  "context_signals": [
+    "blog",
+    "bio",
+    "company",
+    "linkedin",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T20:32:25.846Z"
+}

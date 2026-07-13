@@ -1,0 +1,297 @@
+{
+  "slug": "rekram1-node",
+  "name": "Aiden Cline",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "rekram1-node",
+    "display_name": "Aiden Cline",
+    "profile_url": "https://github.com/rekram1-node",
+    "bio": "Building OpenCode",
+    "blog": null,
+    "twitter_username": "rekram11",
+    "company": "@Anomalyco",
+    "location": "Austin, TX ",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/aidencline/"
+      },
+      {
+        "provider": "twitter",
+        "url": "https://x.com/rekram11"
+      },
+      {
+        "provider": "generic",
+        "url": "https://discord.gg/TrqUjuCr"
+      }
+    ],
+    "context_score": 9,
+    "context_signals": [
+      "twitter",
+      "company",
+      "location",
+      "linkedin",
+      "generic",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "models.dev",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2026-07-13T16:28:38Z"
+      },
+      {
+        "name": "opencode-sst",
+        "topics": [],
+        "language": "Go",
+        "stars": 2,
+        "pushed_at": "2026-07-12T13:07:11Z"
+      },
+      {
+        "name": "bun",
+        "topics": [],
+        "language": "Zig",
+        "stars": 0,
+        "pushed_at": "2026-07-12T07:31:50Z"
+      },
+      {
+        "name": "Hex",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-07-09T20:22:51Z"
+      },
+      {
+        "name": "dotfiles",
+        "topics": [],
+        "language": "Shell",
+        "stars": 12,
+        "pushed_at": "2026-06-20T21:10:56Z"
+      },
+      {
+        "name": "harbor",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-04-29T04:27:44Z"
+      },
+      {
+        "name": "ai-sdk-provider",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-02-14T17:38:24Z"
+      },
+      {
+        "name": "chrome-devtools-mcp",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-01-05T08:40:51Z"
+      },
+      {
+        "name": "ai-fork",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2025-12-10T01:41:16Z"
+      },
+      {
+        "name": "homebrew-core",
+        "topics": [],
+        "language": "Ruby",
+        "stars": 0,
+        "pushed_at": "2025-12-09T04:28:36Z"
+      },
+      {
+        "name": "testing-ci",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-09T02:00:09Z"
+      },
+      {
+        "name": "aqua-registry",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-11-25T21:45:08Z"
+      },
+      {
+        "name": "devcontainer-features",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-11-25T20:34:04Z"
+      },
+      {
+        "name": "mise",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-11-25T18:32:49Z"
+      },
+      {
+        "name": "extensions",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2025-11-07T21:42:04Z"
+      },
+      {
+        "name": "next-evals-oss",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2025-10-27T05:29:18Z"
+      },
+      {
+        "name": "critique",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-10-10T15:01:56Z"
+      },
+      {
+        "name": "marked-extensions",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2025-08-04T14:24:24Z"
+      },
+      {
+        "name": "opentui",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-08-03T02:50:52Z"
+      },
+      {
+        "name": "dino",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-07-31T15:10:04Z"
+      },
+      {
+        "name": "sst",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2025-07-19T02:28:44Z"
+      },
+      {
+        "name": "glamour",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-07-07T12:03:32Z"
+      },
+      {
+        "name": "bubbles",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-06-29T00:03:27Z"
+      },
+      {
+        "name": "opencode",
+        "topics": [],
+        "language": "Go",
+        "stars": 1,
+        "pushed_at": "2025-06-24T22:50:01Z"
+      },
+      {
+        "name": "ai",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-05-08T21:16:02Z"
+      },
+      {
+        "name": "codex",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2025-04-21T03:45:39Z"
+      },
+      {
+        "name": "arbiter",
+        "topics": [],
+        "language": "Go",
+        "stars": 0,
+        "pushed_at": "2025-04-20T21:50:07Z"
+      },
+      {
+        "name": "hal",
+        "topics": [],
+        "language": "Go",
+        "stars": 0,
+        "pushed_at": "2025-04-20T21:46:17Z"
+      },
+      {
+        "name": "opencontrol",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-04-05T00:21:46Z"
+      },
+      {
+        "name": "rekram1-node",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-03-26T03:49:10Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/rekram1-node",
+    "linkedin_url": "https://www.linkedin.com/in/aidencline/",
+    "twitter_url": "https://x.com/rekram11",
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/aidencline/"
+      },
+      {
+        "provider": "twitter",
+        "url": "https://x.com/rekram11"
+      },
+      {
+        "provider": "generic",
+        "url": "https://discord.gg/TrqUjuCr"
+      }
+    ]
+  },
+  "context_score": 9,
+  "context_signals": [
+    "twitter",
+    "company",
+    "location",
+    "linkedin",
+    "generic",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T21:33:40.967Z"
+}

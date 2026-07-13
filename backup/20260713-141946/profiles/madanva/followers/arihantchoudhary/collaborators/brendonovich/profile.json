@@ -1,0 +1,297 @@
+{
+  "slug": "brendonovich",
+  "name": "Brendan Allan",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "Brendonovich",
+    "display_name": "Brendan Allan",
+    "profile_url": "https://github.com/Brendonovich",
+    "bio": "software developer",
+    "blog": null,
+    "twitter_username": "brendonovich",
+    "company": "@anomalyco",
+    "location": "Western Australia",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/brendonovich"
+      }
+    ],
+    "context_score": 5,
+    "context_signals": [
+      "twitter",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "sceneify",
+        "topics": [
+          "javascript",
+          "obs",
+          "obs-websocket",
+          "typescript"
+        ],
+        "language": "TypeScript",
+        "stars": 92,
+        "pushed_at": "2026-07-13T10:25:22Z"
+      },
+      {
+        "name": "cf-effect-experiment",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2026-06-28T10:20:44Z"
+      },
+      {
+        "name": "opencode",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2026-06-25T13:59:54Z"
+      },
+      {
+        "name": "MacroGraph",
+        "topics": [
+          "discord",
+          "midi",
+          "obs-studio",
+          "obs-websocket",
+          "rust",
+          "solid-start",
+          "solidjs",
+          "tauri",
+          "twitch",
+          "vtube-studio"
+        ],
+        "language": "TypeScript",
+        "stars": 308,
+        "pushed_at": "2026-06-13T04:19:01Z"
+      },
+      {
+        "name": "oh-my-openagent",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-05T11:35:06Z"
+      },
+      {
+        "name": "deno-webmidi",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2026-03-05T03:12:44Z"
+      },
+      {
+        "name": "hono-openapi",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-02T19:00:39Z"
+      },
+      {
+        "name": "solid-docs-next",
+        "topics": [],
+        "language": "MDX",
+        "stars": 0,
+        "pushed_at": "2026-02-28T12:38:23Z"
+      },
+      {
+        "name": "spacebot",
+        "topics": [],
+        "language": "Rust",
+        "stars": 0,
+        "pushed_at": "2026-02-19T03:30:03Z"
+      },
+      {
+        "name": "spacedrive",
+        "topics": [],
+        "language": "Rust",
+        "stars": 1,
+        "pushed_at": "2026-01-12T13:20:20Z"
+      },
+      {
+        "name": "tauri",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-07T12:27:00Z"
+      },
+      {
+        "name": "opentelemetry-collector-stack",
+        "topics": [],
+        "language": "Rust",
+        "stars": 0,
+        "pushed_at": "2025-12-30T10:52:18Z"
+      },
+      {
+        "name": "tauri-action",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-16T13:33:44Z"
+      },
+      {
+        "name": "remote-site-fetch-demo",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 1,
+        "pushed_at": "2025-11-23T08:51:20Z"
+      },
+      {
+        "name": "dom-expressions",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-11-18T12:44:58Z"
+      },
+      {
+        "name": "effect-query",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2025-10-27T15:55:49Z"
+      },
+      {
+        "name": "cidre-camera-segfault",
+        "topics": [],
+        "language": "Rust",
+        "stars": 0,
+        "pushed_at": "2025-08-06T17:03:57Z"
+      },
+      {
+        "name": "solid-start",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-07-02T17:33:45Z"
+      },
+      {
+        "name": "mediakit",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2025-05-30T07:54:47Z"
+      },
+      {
+        "name": "prisma-client-rust",
+        "topics": [
+          "prisma",
+          "prisma-client",
+          "prisma-client-rust",
+          "rust"
+        ],
+        "language": "Rust",
+        "stars": 1921,
+        "pushed_at": "2025-03-12T08:19:17Z"
+      },
+      {
+        "name": "wry",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-02-12T04:15:02Z"
+      },
+      {
+        "name": "avfoundation-decoding",
+        "topics": [],
+        "language": "Swift",
+        "stars": 1,
+        "pushed_at": "2025-01-21T06:49:13Z"
+      },
+      {
+        "name": "ffmpeg-encoding",
+        "topics": [],
+        "language": "Rust",
+        "stars": 4,
+        "pushed_at": "2025-01-20T17:37:40Z"
+      },
+      {
+        "name": "router",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-01-12T08:11:42Z"
+      },
+      {
+        "name": "kobalte",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-12-18T09:38:58Z"
+      },
+      {
+        "name": "swift-rs",
+        "topics": [],
+        "language": "Rust",
+        "stars": 335,
+        "pushed_at": "2024-12-13T02:26:15Z"
+      },
+      {
+        "name": "prisma-engines",
+        "topics": [],
+        "language": "Rust",
+        "stars": 14,
+        "pushed_at": "2024-11-10T15:37:19Z"
+      },
+      {
+        "name": "solidbase",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2024-11-05T05:24:59Z"
+      },
+      {
+        "name": "solid-router",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2024-11-04T15:05:33Z"
+      },
+      {
+        "name": "solid-router-parallel-modal-navigation",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2024-11-04T12:32:45Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/Brendonovich",
+    "twitter_url": "https://x.com/brendonovich",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/brendonovich"
+      }
+    ]
+  },
+  "context_score": 5,
+  "context_signals": [
+    "twitter",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T20:56:49.656Z"
+}

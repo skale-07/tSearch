@@ -1,0 +1,213 @@
+{
+  "slug": "vidyut-19",
+  "name": "Vidyut Baradwaj",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "vidyut-19",
+    "display_name": "Vidyut Baradwaj",
+    "profile_url": "https://github.com/vidyut-19",
+    "bio": "did some math, cs, and stats and other stutf @uchicago exploring interesting applications of ai at a wide range of abstractions\r\n\r\ncurrently @ Relling",
+    "blog": "vidyut-19.github.io",
+    "twitter_username": null,
+    "company": "University of Chicago",
+    "location": "SF",
+    "email": null,
+    "social_accounts": [],
+    "context_score": 7,
+    "context_signals": [
+      "blog",
+      "bio",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "gello_mechanical",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-01T21:06:16Z"
+      },
+      {
+        "name": "vidyut-19.github.io",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2026-03-22T04:43:19Z"
+      },
+      {
+        "name": "vidyut-19",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-12-02T06:04:45Z"
+      },
+      {
+        "name": "slopageddon",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2025-10-10T21:45:58Z"
+      },
+      {
+        "name": "pustac",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2025-09-27T19:21:21Z"
+      },
+      {
+        "name": "Bagels",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-07-06T01:56:26Z"
+      },
+      {
+        "name": "cta_app",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-12-13T05:51:35Z"
+      },
+      {
+        "name": "personal-website",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-08-09T05:25:05Z"
+      },
+      {
+        "name": "FastConv",
+        "topics": [],
+        "language": "Go",
+        "stars": 0,
+        "pushed_at": "2024-07-29T09:55:20Z"
+      },
+      {
+        "name": "imageprocessor",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-02-29T00:36:29Z"
+      },
+      {
+        "name": "aros-lib",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-02-25T22:50:40Z"
+      },
+      {
+        "name": "SinkyVIT",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2023-12-11T12:50:49Z"
+      },
+      {
+        "name": "xNLP-demo",
+        "topics": [],
+        "language": "HTML",
+        "stars": 0,
+        "pushed_at": "2023-09-04T10:02:37Z"
+      },
+      {
+        "name": "TwitterStereotype-SOSC",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2023-02-13T17:41:58Z"
+      },
+      {
+        "name": "Phil",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2022-03-25T22:33:27Z"
+      },
+      {
+        "name": "Phil__",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2022-02-22T06:09:15Z"
+      },
+      {
+        "name": "Diplomate",
+        "topics": [],
+        "language": "Java",
+        "stars": 0,
+        "pushed_at": "2022-02-20T07:40:31Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "http://vidyutbaradwaj.com/",
+    "scraped_at": "2026-07-13T21:33:38.692Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": null,
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": "https://www.youtube.com/watch?v=FhJwJ90ksXc",
+    "other_links": [
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "https://cdn.jsdelivr.net",
+      "https://cdn.jsdelivr.net/gh/bitmaks/cm-web-fonts@latest/fonts.css",
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap",
+      "https://trajektory.com"
+    ],
+    "all_links": [
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "https://cdn.jsdelivr.net",
+      "http://vidyutbaradwaj.com/css/styles.css",
+      "https://cdn.jsdelivr.net/gh/bitmaks/cm-web-fonts@latest/fonts.css",
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap",
+      "http://vidyutbaradwaj.com/assets/favicon.ico",
+      "http://vidyutbaradwaj.com/index.html",
+      "http://vidyutbaradwaj.com/projects.html",
+      "http://vidyutbaradwaj.com/essays.html",
+      "http://vidyutbaradwaj.com/hobbies.html",
+      "http://vidyutbaradwaj.com/contact.html",
+      "http://vidyutbaradwaj.com/now.html",
+      "https://trajektory.com",
+      "https://www.youtube.com/watch?v=FhJwJ90ksXc"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/vidyut-19",
+    "personal_website": "http://vidyutbaradwaj.com/",
+    "blog": "vidyut-19.github.io"
+  },
+  "context_score": 7,
+  "context_signals": [
+    "blog",
+    "bio",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T21:33:41.078Z"
+}

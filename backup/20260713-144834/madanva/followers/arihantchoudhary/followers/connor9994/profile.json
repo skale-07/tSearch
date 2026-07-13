@@ -1,0 +1,223 @@
+{
+  "slug": "connor9994",
+  "name": "Connor",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:arihantchoudhary"
+  ],
+  "parents": [
+    "madanva",
+    "arihantchoudhary"
+  ],
+  "github": {
+    "username": "Connor9994",
+    "display_name": "Connor",
+    "profile_url": "https://github.com/Connor9994",
+    "bio": null,
+    "blog": null,
+    "twitter_username": null,
+    "company": null,
+    "location": null,
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/connor-kaiser-6a335a316/"
+      }
+    ],
+    "context_score": 3,
+    "context_signals": [
+      "linkedin",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "GitHub-Language-Stats",
+        "topics": [],
+        "language": "Python",
+        "stars": 70,
+        "pushed_at": "2026-07-13T03:22:27Z"
+      },
+      {
+        "name": "Game-Bots",
+        "topics": [],
+        "language": "Python",
+        "stars": 53,
+        "pushed_at": "2026-06-04T05:16:19Z"
+      },
+      {
+        "name": "Connor9994",
+        "topics": [],
+        "language": null,
+        "stars": 36,
+        "pushed_at": "2026-05-15T22:29:44Z"
+      },
+      {
+        "name": "LinkedIn-Follower-Bot",
+        "topics": [],
+        "language": "Python",
+        "stars": 130,
+        "pushed_at": "2026-01-16T08:11:44Z"
+      },
+      {
+        "name": "JackboxLauncher",
+        "topics": [],
+        "language": "C#",
+        "stars": 8,
+        "pushed_at": "2025-11-13T23:56:24Z"
+      },
+      {
+        "name": "World-of-Warcraft",
+        "topics": [],
+        "language": "Lua",
+        "stars": 20,
+        "pushed_at": "2025-11-04T20:42:24Z"
+      },
+      {
+        "name": "Twitter-Filter",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 22,
+        "pushed_at": "2025-11-04T20:39:58Z"
+      },
+      {
+        "name": "Filter-Data-W-Edit-Button",
+        "topics": [],
+        "language": "PowerShell",
+        "stars": 13,
+        "pushed_at": "2025-10-24T00:37:47Z"
+      },
+      {
+        "name": "Bitcoin-Browser-Bot",
+        "topics": [],
+        "language": "PowerShell",
+        "stars": 18,
+        "pushed_at": "2025-10-24T00:34:34Z"
+      },
+      {
+        "name": "Straddle-Master-Stocks",
+        "topics": [],
+        "language": "Python",
+        "stars": 14,
+        "pushed_at": "2025-10-24T00:29:20Z"
+      },
+      {
+        "name": "PDF-Generator",
+        "topics": [],
+        "language": "PowerShell",
+        "stars": 8,
+        "pushed_at": "2025-10-24T00:26:23Z"
+      },
+      {
+        "name": "VMK-Auto-Rider-2016",
+        "topics": [],
+        "language": "AutoHotkey",
+        "stars": 6,
+        "pushed_at": "2025-10-24T00:22:22Z"
+      },
+      {
+        "name": "Admin-Commands",
+        "topics": [],
+        "language": "PowerShell",
+        "stars": 14,
+        "pushed_at": "2025-10-24T00:18:53Z"
+      },
+      {
+        "name": "Lost-Ark",
+        "topics": [],
+        "language": "Python",
+        "stars": 6,
+        "pushed_at": "2025-10-24T00:15:23Z"
+      },
+      {
+        "name": "GTA-V",
+        "topics": [],
+        "language": "AutoHotkey",
+        "stars": 10,
+        "pushed_at": "2025-10-23T21:31:56Z"
+      },
+      {
+        "name": "Spotify-Account-Creator",
+        "topics": [],
+        "language": "Python",
+        "stars": 11,
+        "pushed_at": "2025-10-23T21:27:38Z"
+      },
+      {
+        "name": "BetterDiscordAddons",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 7,
+        "pushed_at": "2025-10-23T21:26:02Z"
+      },
+      {
+        "name": "Tampermonkey-JS-Browser-Edits",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 12,
+        "pushed_at": "2025-10-23T21:24:43Z"
+      },
+      {
+        "name": "Overpass-API",
+        "topics": [],
+        "language": "Python",
+        "stars": 30,
+        "pushed_at": "2025-10-23T21:16:50Z"
+      },
+      {
+        "name": "Dale_and_Dawson_Task_Generator",
+        "topics": [],
+        "language": "Tcl",
+        "stars": 6,
+        "pushed_at": "2025-10-23T21:14:53Z"
+      },
+      {
+        "name": "Discord-Name-Bot",
+        "topics": [],
+        "language": "Python",
+        "stars": 27,
+        "pushed_at": "2025-10-23T21:12:59Z"
+      },
+      {
+        "name": "nodriver",
+        "topics": [],
+        "language": "Python",
+        "stars": 22,
+        "pushed_at": "2024-08-04T00:38:06Z"
+      },
+      {
+        "name": "gnome-screenshot",
+        "topics": [],
+        "language": "C",
+        "stars": 10,
+        "pushed_at": "2023-11-02T15:26:47Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/Connor9994",
+    "linkedin_url": "https://www.linkedin.com/in/connor-kaiser-6a335a316/",
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/connor-kaiser-6a335a316/"
+      }
+    ]
+  },
+  "context_score": 3,
+  "context_signals": [
+    "linkedin",
+    "repos"
+  ],
+  "last_updated": "2026-07-13T21:33:41.112Z"
+}
