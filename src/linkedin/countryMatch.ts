@@ -1,10 +1,10 @@
 const COUNTRY_ALIASES: Record<string, string[]> = {
+  usa: ["usa", "united states", "united states of america", "u.s.", "america"],
   "united states of america": [
+    "usa",
     "united states",
     "united states of america",
-    "usa",
     "u.s.",
-    "u.s.a.",
     "america",
   ],
   china: ["china", "chinese", "people's republic of china", "prc"],
@@ -42,6 +42,16 @@ export function countrySearchTerms(country: string): string[] {
 
 /** Single term for LinkedIn keyword search — no duplicate aliases. */
 export function primaryCountrySearchTerm(country: string): string {
+  const key = norm(country);
+  if (
+    key === "usa" ||
+    key === "united states of america" ||
+    key === "united states" ||
+    key === "u s a" ||
+    key === "america"
+  ) {
+    return "United States";
+  }
   return country.trim();
 }
 
@@ -58,4 +68,15 @@ export function countryMatchesText(country: string, text: string): boolean {
   const blob = norm(text);
   if (!blob) return false;
   return countrySearchTerms(country).some((term) => blob.includes(norm(term)));
+}
+
+export function countriesMatch(a: string, b: string): boolean {
+  const termsA = new Set(countrySearchTerms(a).map(norm));
+  const termsB = new Set(countrySearchTerms(b).map(norm));
+  for (const ta of termsA) {
+    for (const tb of termsB) {
+      if (ta === tb || ta.includes(tb) || tb.includes(ta)) return true;
+    }
+  }
+  return false;
 }

@@ -1,8 +1,14 @@
 import fs from "fs";
 import type { OlympiadProfile } from "../types.js";
 
-const OLY_SOURCES = new Set(["IMO", "IOI", "IPHO", "ICHO"]);
-const OLY_SCORE: Record<string, number> = { IMO: 3, IOI: 3, IPHO: 2, ICHO: 1 };
+const OLY_SOURCES = new Set(["IMO", "IOI", "IPHO", "ICHO", "ISEF"]);
+const OLY_SCORE: Record<string, number> = {
+  IMO: 3,
+  IOI: 3,
+  IPHO: 2,
+  ICHO: 1,
+  ISEF: 2,
+};
 const MEDAL_SCORE: Record<string, number> = { gold: 3, silver: 2, bronze: 1 };
 
 const HIGH_SIGNAL = new Set([
@@ -42,6 +48,9 @@ function parseMedal(award: string, rank: string): { label: string; score: number
   for (const [medal, score] of Object.entries(MEDAL_SCORE)) {
     if (text.includes(medal)) return { label: medal, score };
   }
+  if (text.includes("first award")) return { label: "gold", score: 3 };
+  if (text.includes("second award")) return { label: "silver", score: 2 };
+  if (text.includes("third award")) return { label: "bronze", score: 1 };
   return { label: "unknown", score: 0 };
 }
 

@@ -4,6 +4,7 @@ import type {
   LinkedInProfile,
   OlympiadProfile,
   SubstackProfile,
+  WebsiteProfile,
 } from "../types.js";
 import { scoreCandidate } from "../scoring/computeScore.js";
 
@@ -15,6 +16,7 @@ export interface RawCandidate {
   identity_confidence: number;
   github?: GitHubProfile;
   substack?: SubstackProfile;
+  website?: WebsiteProfile;
   olympiad?: OlympiadProfile;
 }
 
@@ -46,6 +48,7 @@ export function mergeCandidates(raw: RawCandidate[]): Candidate[] {
     }
     if (item.github && !existing.github) existing.github = item.github;
     if (item.substack && !existing.substack) existing.substack = item.substack;
+    if (item.website && !existing.website) existing.website = item.website;
     if (item.olympiad && !existing.olympiad) existing.olympiad = item.olympiad;
     if (!existing.name && item.name) existing.name = item.name;
   }
@@ -60,6 +63,7 @@ export function mergeCandidates(raw: RawCandidate[]): Candidate[] {
         identity_confidence: c.identity_confidence,
         github: c.github,
         substack: c.substack,
+        website: c.website,
         olympiad: c.olympiad,
       })
     )
@@ -84,6 +88,7 @@ export function addRaw(
       identity_confidence: entry.identity_confidence ?? 0,
       github: entry.github,
       substack: entry.substack,
+      website: entry.website,
       olympiad: entry.olympiad,
     });
     return;
@@ -97,5 +102,6 @@ export function addRaw(
   }
   if (entry.github) existing.github = entry.github;
   if (entry.substack) existing.substack = entry.substack;
+  if (entry.website) existing.website = entry.website;
   if (entry.olympiad) existing.olympiad = entry.olympiad;
 }

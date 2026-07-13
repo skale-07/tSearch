@@ -12,23 +12,44 @@ import {
   fetchStargazers,
 } from "./githubUser.js";
 
+export interface GithubExpandResult {
+  profile: GitHubProfile | null;
+  /** Co-authors / project collaborators — primary seed-tree edges. */
+  collaborators: string[];
+  /** Followers / following / stargazers / forkers — weaker signal. */
+  peripheral: string[];
+  discovered_logins: string[];
+}
+
 export async function expandGithubFromUrl(
   githubUrl: string
-): Promise<{ profile: GitHubProfile | null; discovered_logins: string[] }> {
+): Promise<GithubExpandResult> {
   const username = githubUsernameFromUrl(githubUrl);
-  if (!username) return { profile: null, discovered_logins: [] };
+  if (!username) {
+    return {
+      profile: null,
+      collaborators: [],
+      peripheral: [],
+      discovered_logins: [],
+    };
+  }
   return expandGithubFromUsername(username);
 }
 
 export async function expandGithubFromUsername(
   username: string
-): Promise<{ profile: GitHubProfile | null; discovered_logins: string[] }> {
+): Promise<GithubExpandResult> {
   const profile = await fetchGithubProfile(username);
-  if (!profile) return { profile: null, discovered_logins: [] };
+  if (!profile) {
+    return {
+      profile: null,
+      collaborators: [],
+      peripheral: [],
+      discovered_logins: [],
+    };
+  }
 
-  const discovered = new Set<string>();
   const { followers, following } = await fetchFollowersFollowing(username);
-  for (const l of [...followers, ...following]) discovered.add(l);
 
   const topRepos = profile.repos
     .sort((a, b) => b.stars - a.stars)
@@ -53,18 +74,30 @@ export async function expandGithubFromUsername(
     contributorSet.push(...contributors);
     starSet.push(...stargazers);
     forkSet.push(...forkers);
-    for (const l of [...contributors, ...stargazers, ...forkers]) {
-      discovered.add(l);
-    }
   }
 
-  discovered.delete(username);
-  profile.contributors = [...new Set(contributorSet)];
+  const collaborators = [...new Set(contributorSet)].filter(
+    (l) => l.toLowerCase() !== username.toLowerCase()
+  );
+  const peripheral = [
+    ...new Set([...followers, ...following, ...starSet, ...forkSet]),
+  ].filter(
+    (l) =>
+      l.toLowerCase() !== username.toLowerCase() &&
+      !collaborators.some((c) => c.toLowerCase() === l.toLowerCase())
+  );
+
+  profile.contributors = collaborators;
   profile.stars = [...new Set(starSet)];
   profile.forks = [...new Set(forkSet)];
   profile.followers = followers;
   profile.following = following;
   profile.profile_url = `https://github.com/${username}`;
 
-  return { profile, discovered_logins: [...discovered] };
+  return {
+    profile,
+    collaborators,
+    peripheral,
+    discovered_logins: [...collaborators, ...peripheral],
+  };
 }

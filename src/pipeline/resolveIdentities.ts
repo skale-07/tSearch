@@ -1,13 +1,12 @@
 import {
   LINKEDIN_CACHE_TTL_MS,
-  LINKEDIN_DELAY_MS,
   LINKEDIN_SEARCH_CACHE_TTL_MS,
   MAX_IDENTITY_RESOLVES,
 } from "../config.js";
-import type { LinkedInProfile, OlympiadProfile, ResolvedIdentity } from "../types.js";
+import type { Candidate, LinkedInProfile, OlympiadProfile, ResolvedIdentity } from "../types.js";
 import type { SeedQuery } from "../seeds/parseSeeds.js";
 import type { LinkedInSession } from "../linkedin/linkedinBrowser.js";
-import { openLinkedInSession, sleep } from "../linkedin/linkedinBrowser.js";
+import { openLinkedInSession } from "../linkedin/linkedinBrowser.js";
 import {
   formatSearchQuery,
   searchLinkedInByName,
@@ -17,16 +16,24 @@ import {
   isSearchConfirmed,
   pickBestLinkedInHit,
 } from "../linkedin/linkedinMatch.js";
-import { countryMatchesText } from "../linkedin/countryMatch.js";
 import {
   extractLinkedInProfile,
-  extractProfileLinksOnly,
-  profileFromSearchHit,
+  isFullLinkedInProfile,
   githubUsernameFromUrl,
   substackSlugFromUrl,
 } from "../linkedin/linkedinExtract.js";
 import { lookupOlympiad } from "../olympiad/parseOlympiad.js";
+import { olympiadSearchHints } from "../olympiad/searchHints.js";
 import { readCache, writeCache } from "../storage/jsonStore.js";
+import {
+  candidateToResolvedIdentity,
+  findScrapedCandidate,
+} from "./candidateLookup.js";
+import { PROFILE_SCRAPE_VERSION } from "../linkedin/linkedinExtract.js";
+import {
+  applyWebsiteToLinkedInUrls,
+  scrapeWebsite,
+} from "../website/scrapeWebsite.js";
 
 export interface ResolveOptions {
   olympiadIndex: Map<string, OlympiadProfile>;
@@ -36,7 +43,7 @@ export interface ResolveOptions {
 
 export type ResolveFailureReason =
   | "no_results"
-  | "low_confidence"
+  | "no_name_match"
   | "not_attempted";
 
 export type ResolveOutcome =
@@ -57,13 +64,33 @@ function resolveCountry(
 
 export async function resolveIdentity(
   seed: SeedQuery,
-  opts: ResolveOptions & { getSession: () => Promise<LinkedInSession> }
+  opts: ResolveOptions & {
+    getSession: () => Promise<LinkedInSession>;
+    existingCandidates?: Candidate[];
+  }
 ): Promise<ResolveOutcome> {
-  const { getSession, olympiadIndex, school } = opts;
+  const { getSession, olympiadIndex, school, existingCandidates = [] } = opts;
   const queryName = seed.name;
   const olympiad = lookupOlympiad(olympiadIndex, queryName);
   const country = resolveCountry(seed, olympiad);
-  const searchContext = { school, country };
+
+  const scraped = findScrapedCandidate(existingCandidates, seed, olympiad);
+  if (
+    scraped?.linkedin &&
+    scraped.linkedin.scrape_version === PROFILE_SCRAPE_VERSION
+  ) {
+    const site = scraped.linkedin.personal_website ?? "—";
+    console.log(
+      `  [linkedin] skip search — already in candidates.json (${scraped.linkedin.url}) site=${site}`
+    );
+    return {
+      ok: true,
+      identity: candidateToResolvedIdentity(scraped, queryName),
+    };
+  }
+
+  const olympiad_hints = olympiadSearchHints(olympiad);
+  const searchContext = { school, country, olympiad_hints };
   const searchQuery = formatSearchQuery(queryName, searchContext);
 
   console.log(`  [linkedin] search: ${searchQuery}`);
@@ -92,77 +119,49 @@ export async function resolveIdentity(
     query_name: queryName,
     expected_country: country,
     olympiad,
+    olympiad_hints,
   };
 
   const picked = pickBestLinkedInHit(hits, matchCtx);
 
-  if (!picked || picked.confidence < 0.35) {
+  if (!picked) {
     console.log(
-      `  [linkedin] low confidence (${picked?.confidence ?? 0}) for "${queryName}"`
+      `  [linkedin] top results don't match name "${queryName}"`
     );
-    return { ok: false, reason: "low_confidence" };
+    for (const h of hits.slice(0, 3)) {
+      console.log(`    ? ${h.title}`);
+    }
+    return { ok: false, reason: "no_name_match" };
   }
 
-  const searchConfirmed = isSearchConfirmed(
-    picked.hit,
-    matchCtx,
-    picked.confidence
+  console.log(
+    `  [linkedin] top result: ${picked.hit.title}` +
+      (picked.hit.headline ? ` — ${picked.hit.headline}` : "") +
+      (picked.hit.location ? ` — ${picked.hit.location}` : "")
   );
 
-  let linkedin: LinkedInProfile;
+  const searchConfirmed = isSearchConfirmed(picked.hit, matchCtx);
   let confidence = picked.confidence;
 
+  let linkedin: LinkedInProfile;
   const cachedProfile = readCache<LinkedInProfile>(
-    "linkedin-profile",
+    "linkedin-profile-v2",
     picked.hit.url,
     LINKEDIN_CACHE_TTL_MS
   );
 
-  if (cachedProfile?.data) {
+  if (cachedProfile?.data && isFullLinkedInProfile(cachedProfile.data)) {
     linkedin = cachedProfile.data;
     console.log(`  [linkedin] profile cache hit: ${picked.hit.url}`);
-    if (searchConfirmed) {
-      confidence = Math.min(1, confidence + 0.1);
-    } else if (country && picked.hit.location) {
-      if (countryMatchesText(country, picked.hit.location)) {
-        confidence = Math.min(1, confidence + 0.1);
-      } else if (!countryMatchesText(country, linkedin.country ?? "")) {
-        confidence = Math.max(0, confidence - 0.1);
-      }
-    }
-  } else if (searchConfirmed) {
-    console.log(
-      `  [linkedin] confirmed from search — ${picked.hit.location} (skipping full profile parse)`
-    );
-    const base = profileFromSearchHit(picked.hit, queryName);
-    const session = await getSession();
-    const links = await extractProfileLinksOnly(session, picked.hit.url);
-    linkedin = { ...base, ...links };
-    confidence = Math.min(1, confidence + 0.1);
-    writeCache("linkedin-profile", picked.hit.url, linkedin);
   } else {
+    console.log(`  [linkedin] scraping profile (education, experience, awards)`);
     const session = await getSession();
-    await sleep(LINKEDIN_DELAY_MS);
     linkedin = await extractLinkedInProfile(session, picked.hit, queryName);
-    writeCache("linkedin-profile", picked.hit.url, linkedin);
-
-    if (country && picked.hit.location) {
-      if (countryMatchesText(country, picked.hit.location)) {
-        confidence = Math.min(1, confidence + 0.1);
-      } else if (!countryMatchesText(country, linkedin.country ?? "")) {
-        console.log(
-          `  [linkedin] country mismatch (expected ${country}, search: ${picked.hit.location})`
-        );
-        confidence = Math.max(0, confidence - 0.1);
-      }
-    }
+    writeCache("linkedin-profile-v2", picked.hit.url, linkedin);
   }
 
-  if (confidence < 0.35) {
-    console.log(
-      `  [linkedin] rejected after country check (conf=${confidence.toFixed(2)})`
-    );
-    return { ok: false, reason: "low_confidence" };
+  if (searchConfirmed) {
+    confidence = Math.min(1, confidence + 0.1);
   }
 
   return {
@@ -173,20 +172,56 @@ export async function resolveIdentity(
       identity_confidence: confidence,
       github_url: linkedin.github_url,
       substack_url: linkedin.substack_url,
+      website: null,
     },
   };
 }
 
+async function enrichIdentityFromWebsite(
+  identity: ResolvedIdentity
+): Promise<void> {
+  if (identity.website?.github_url || identity.website?.email) return;
+
+  const siteUrl =
+    identity.linkedin.personal_website ?? identity.linkedin.website_url;
+  if (!siteUrl) return;
+
+  console.log(`  [website] scraping ${siteUrl}`);
+  const website = await scrapeWebsite(siteUrl);
+  if (!website) return;
+
+  const merged = applyWebsiteToLinkedInUrls(
+    identity.linkedin.github_url,
+    identity.linkedin.substack_url,
+    identity.linkedin.twitter_url,
+    website
+  );
+  identity.linkedin = {
+    ...identity.linkedin,
+    github_url: merged.github_url,
+    substack_url: merged.substack_url,
+    twitter_url: merged.twitter_url,
+  };
+  identity.github_url = merged.github_url;
+  identity.substack_url = merged.substack_url;
+  identity.website = website;
+
+  console.log(
+    `  [website] ${identity.query_name}: gh=${website.github_url ?? "—"} x=${website.twitter_url ?? "—"} email=${website.email ?? "—"} substack=${website.substack_url ?? "—"}`
+  );
+}
+
 export async function resolveIdentities(
   seeds: SeedQuery[],
-  olympiadIndex: Map<string, OlympiadProfile>
+  olympiadIndex: Map<string, OlympiadProfile>,
+  existingCandidates: Candidate[] = []
 ): Promise<ResolveResults> {
   const resolved: ResolvedIdentity[] = [];
   const failed: ResolveResults["failed"] = [];
   const seen = new Set<string>();
   const cap = Math.min(seeds.length, MAX_IDENTITY_RESOLVES);
+  const websiteJobs: Promise<void>[] = [];
 
-  // Lazy: a fully cached run never has to launch Chromium (or need cookies).
   const sessionRef: { current: LinkedInSession | null } = { current: null };
   const getSession = async (): Promise<LinkedInSession> => {
     if (!sessionRef.current) {
@@ -207,15 +242,20 @@ export async function resolveIdentities(
       const outcome = await resolveIdentity(seed, {
         getSession,
         olympiadIndex,
+        existingCandidates,
       });
       if (outcome.ok) {
         const identity = outcome.identity;
         const gh = githubUsernameFromUrl(identity.github_url);
         const ss = substackSlugFromUrl(identity.substack_url);
+        const site = identity.linkedin.personal_website ?? "—";
+        const contactCount = identity.linkedin.contact_links?.length ?? 0;
         console.log(
-          `  → ${identity.linkedin.url} conf=${identity.identity_confidence.toFixed(2)} gh=${gh ?? "—"} substack=${ss ?? "—"}`
+          `  → ${identity.linkedin.url} conf=${identity.identity_confidence.toFixed(2)} gh=${gh ?? "—"} substack=${ss ?? "—"} site=${site} contact=${contactCount}`
         );
         resolved.push(identity);
+        // Overlap website fetch with the next LinkedIn profiles.
+        websiteJobs.push(enrichIdentityFromWebsite(identity));
       } else {
         failed.push({ seed, reason: outcome.reason });
       }
@@ -229,6 +269,13 @@ export async function resolveIdentities(
       await sessionRef.current.close();
       console.log("[linkedin] Chromium session closed");
     }
+  }
+
+  if (websiteJobs.length) {
+    console.log(
+      `[website] waiting on ${websiteJobs.length} personal-site scrape(s)...`
+    );
+    await Promise.all(websiteJobs);
   }
 
   return { resolved, failed };

@@ -1,131 +1,74 @@
 import type { LinkedInSearchHit } from "./linkedinSearch.js";
 import type { OlympiadProfile } from "../types.js";
-import { countryMatchesText } from "./countryMatch.js";
 
 export interface MatchContext {
   query_name: string;
   expected_country?: string;
   olympiad?: OlympiadProfile;
-  github_username?: string;
-  substack_slug?: string;
+  olympiad_hints?: string[];
 }
 
-function nameInText(name: string, text: string): boolean {
-  const parts = name.toLowerCase().split(/\s+/).filter(Boolean);
-  const t = text.toLowerCase();
-  return parts.length >= 2 && parts.every((p) => t.includes(p));
+/** Strip connection degree and keep only the first line / name portion. */
+export function cleanSearchTitle(title: string): string {
+  const firstLine = title.split(/\n/)[0]?.trim() ?? title.trim();
+  return firstLine
+    .replace(/\s*[•·|]\s*(\d+(st|nd|rd)\+?|Following).*$/i, "")
+    .replace(/\s*[•·|].*$/, "")
+    .trim();
 }
 
-function countriesToCheck(ctx: MatchContext): string[] {
-  const out = new Set<string>();
-  if (ctx.expected_country) out.add(ctx.expected_country);
-  for (const c of ctx.olympiad?.countries ?? []) {
-    if (c) out.add(c);
-  }
-  return [...out];
+export function nameMatchesQuery(queryName: string, hitTitle: string): boolean {
+  const title = cleanSearchTitle(hitTitle).toLowerCase();
+  const parts = queryName.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!title || !parts.length) return false;
+  if (parts.length < 2) return title.includes(parts[0]);
+
+  // Every query name part must appear in the name line (not headline/location).
+  return parts.every((p) => title.includes(p));
 }
 
-export function scoreLinkedInHit(
-  hit: LinkedInSearchHit,
-  ctx: MatchContext
-): number {
-  let score = 0;
-  const nameBlob = `${hit.title}`;
-  const locationBlob = hit.location || "";
-  const headlineBlob = hit.headline || "";
-
-  if (
-    nameInText(ctx.query_name, hit.title) ||
-    nameInText(ctx.query_name, nameBlob)
-  ) {
-    score += 40;
-  }
-
-  for (const country of countriesToCheck(ctx)) {
-    if (countryMatchesText(country, locationBlob)) {
-      score += 35;
-      break;
-    }
-    if (
-      locationBlob &&
-      countryMatchesText(country, headlineBlob) &&
-      !countryMatchesText(country, locationBlob)
-    ) {
-      score += 5;
-    }
-  }
-
-  if (ctx.olympiad) {
-    for (const prize of ctx.olympiad.prizes) {
-      const tokens = ["imo", "ioi", "ipho", "icho", "olympiad", "gold", "silver"];
-      const blob = `${headlineBlob} ${locationBlob}`.toLowerCase();
-      if (tokens.some((t) => prize.toLowerCase().includes(t) && blob.includes(t))) {
-        score += 10;
-      }
-    }
-  }
-
-  if (ctx.github_username) {
-    const gh = ctx.github_username.toLowerCase();
-    const lower = `${headlineBlob} ${locationBlob}`.toLowerCase();
-    if (lower.includes(gh) || lower.includes(`github.com/${gh}`)) score += 25;
-  }
-
-  if (ctx.substack_slug) {
-    const slug = ctx.substack_slug.toLowerCase();
-    const lower = `${headlineBlob} ${locationBlob}`.toLowerCase();
-    if (lower.includes(slug) || lower.includes(`${slug}.substack.com`)) score += 20;
-  }
-
-  const headlineKeywords = [
-    "student",
-    "founder",
-    "engineer",
-    "researcher",
-    "intern",
-    "phd",
-    "undergraduate",
-  ];
-  if (headlineKeywords.some((k) => headlineBlob.toLowerCase().includes(k))) {
-    score += 5;
-  }
-
-  return Math.min(score, 100) / 100;
+/** Name + country and/or olympiad hints — LinkedIn ranking is the signal. */
+export function isTargetedSearch(ctx: MatchContext): boolean {
+  return !!(
+    ctx.expected_country ||
+    (ctx.olympiad_hints && ctx.olympiad_hints.length > 0)
+  );
 }
 
+/**
+ * For targeted searches, trust LinkedIn's top result (query already disambiguates).
+ * Only require a loose name match on the card title.
+ */
 export function pickBestLinkedInHit(
   hits: LinkedInSearchHit[],
   ctx: MatchContext
 ): { hit: LinkedInSearchHit; confidence: number } | null {
   if (!hits.length) return null;
 
-  let best = hits[0];
-  let bestScore = scoreLinkedInHit(best, ctx);
-
-  for (const hit of hits.slice(1)) {
-    const s = scoreLinkedInHit(hit, ctx);
-    if (s > bestScore) {
-      best = hit;
-      bestScore = s;
+  if (isTargetedSearch(ctx)) {
+    // Trust LinkedIn ranking — first card is almost always right for these queries.
+    const first = hits[0];
+    if (nameMatchesQuery(ctx.query_name, first.title)) {
+      return { hit: first, confidence: 0.85 };
     }
+    for (const hit of hits.slice(1)) {
+      if (nameMatchesQuery(ctx.query_name, hit.title)) {
+        return { hit, confidence: 0.85 };
+      }
+    }
+    return null;
   }
 
-  return { hit: best, confidence: bestScore };
+  const first = hits[0];
+  if (nameMatchesQuery(ctx.query_name, first.title)) {
+    return { hit: first, confidence: 0.5 };
+  }
+  return null;
 }
-
-export const SEARCH_CONFIRM_THRESHOLD = 0.65;
 
 export function isSearchConfirmed(
   hit: LinkedInSearchHit,
-  ctx: MatchContext,
-  confidence: number
+  ctx: MatchContext
 ): boolean {
-  if (confidence < SEARCH_CONFIRM_THRESHOLD) return false;
-  if (!nameInText(ctx.query_name, hit.title)) return false;
-
-  const countries = countriesToCheck(ctx);
-  if (countries.length === 0) return true;
-  if (!hit.location) return false;
-
-  return countries.some((c) => countryMatchesText(c, hit.location));
+  return nameMatchesQuery(ctx.query_name, hit.title) && isTargetedSearch(ctx);
 }

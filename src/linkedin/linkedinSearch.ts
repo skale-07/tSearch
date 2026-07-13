@@ -4,6 +4,12 @@ import type { LinkedInSession } from "./linkedinBrowser.js";
 import { sleep } from "./linkedinBrowser.js";
 import { primaryCountrySearchTerm } from "./countryMatch.js";
 
+export interface LinkedInSearchContext {
+  school?: string;
+  country?: string;
+  olympiad_hints?: string[];
+}
+
 export interface LinkedInSearchHit {
   url: string;
   title: string;
@@ -23,27 +29,96 @@ function normalizeProfileUrl(href: string): string | null {
   }
 }
 
-function buildSearchUrl(
+function buildSearchTerms(
   name: string,
-  context?: { school?: string; country?: string }
-): string {
+  context?: LinkedInSearchContext
+): string[] {
   const terms = [`"${name}"`];
+  for (const hint of context?.olympiad_hints ?? []) {
+    terms.push(hint);
+  }
   if (context?.country) {
     terms.push(primaryCountrySearchTerm(context.country));
   }
   if (context?.school) terms.push(context.school);
-  const keywords = encodeURIComponent(terms.join(" "));
+  return terms;
+}
+
+function buildSearchUrl(name: string, context?: LinkedInSearchContext): string {
+  const keywords = encodeURIComponent(buildSearchTerms(name, context).join(" "));
   return `https://www.linkedin.com/search/results/people/?keywords=${keywords}&origin=GLOBAL_SEARCH_HEADER`;
 }
 
 export function formatSearchQuery(
   name: string,
-  context?: { school?: string; country?: string }
+  context?: LinkedInSearchContext
 ): string {
-  const terms = [`"${name}"`];
-  if (context?.country) terms.push(primaryCountrySearchTerm(context.country));
-  if (context?.school) terms.push(context.school);
-  return terms.join(" ");
+  return buildSearchTerms(name, context).join(" ");
+}
+
+function looksLikeLocationLine(line: string): boolean {
+  if (!line.includes(",")) return false;
+  if (/•|1st|2nd|3rd|connection|follower|message|connect/i.test(line)) {
+    return false;
+  }
+  const parts = line.split(",").map((p) => p.trim()).filter(Boolean);
+  return parts.length >= 2 && parts.every((p) => p.length >= 2);
+}
+
+async function inferLocationFromContainer(
+  container: Locator,
+  headline: string,
+  title: string
+): Promise<string> {
+  const text = await container.innerText().catch(() => "");
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    if (line === title || line === headline) continue;
+    if (looksLikeLocationLine(line)) return line;
+  }
+  return "";
+}
+
+function normalizeCardName(raw: string): string {
+  const firstLine = raw.split(/\n/)[0]?.trim() ?? raw.trim();
+  return firstLine
+    .replace(/\s*[•·|]\s*(\d+(st|nd|rd)\+?|Following).*$/i, "")
+    .replace(/\s*[•·|].*$/, "")
+    .trim();
+}
+
+async function extractNameFromContainer(container: Locator): Promise<string> {
+  const selectors = [
+    ".entity-result__title-text span[aria-hidden='true']",
+    ".entity-result__title-text a span",
+    ".entity-result__title-text",
+  ];
+  for (const sel of selectors) {
+    const el = container.locator(sel).first();
+    if ((await el.count()) > 0) {
+      const name = normalizeCardName(await el.innerText().catch(() => ""));
+      if (name) return name;
+    }
+  }
+
+  const lines = (await container.innerText().catch(() => ""))
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    if (/^(message|connect|follow|mutual)/i.test(line)) break;
+    if (looksLikeLocationLine(line)) continue;
+    const name = normalizeCardName(line);
+    if (name.length >= 3 && name.length < 60 && /[A-Za-zÀ-ÿ]/.test(name)) {
+      return name;
+    }
+  }
+  return "";
 }
 
 async function readHitFromContainer(
@@ -57,35 +132,29 @@ async function readHitFromContainer(
   const url = normalizeProfileUrl(href);
   if (!url) return null;
 
-  const title =
-    (
-      await container
-        .locator(
-          ".entity-result__title-text span[aria-hidden='true'], .entity-result__title-text a span"
-        )
-        .first()
-        .innerText()
-        .catch(() => "")
-    ).trim() ||
-    (await link.innerText().catch(() => "")).trim();
+  const title = await extractNameFromContainer(container);
 
   const headline = (
     await container
-      .locator(".entity-result__primary-subtitle")
+      .locator(".entity-result__primary-subtitle, div[class*='primary-subtitle']")
       .first()
       .innerText()
       .catch(() => "")
   ).trim();
 
-  const location = (
+  let location = (
     await container
       .locator(
-        ".entity-result__secondary-subtitle, .entity-result__summary"
+        ".entity-result__secondary-subtitle, div[class*='secondary-subtitle'], .entity-result__summary"
       )
       .first()
       .innerText()
       .catch(() => "")
   ).trim();
+
+  if (!location) {
+    location = await inferLocationFromContainer(container, headline, title);
+  }
 
   return {
     url,
@@ -99,7 +168,7 @@ async function readHitFromContainer(
 export async function searchLinkedInByName(
   session: LinkedInSession,
   name: string,
-  context?: { school?: string; country?: string }
+  context?: LinkedInSearchContext
 ): Promise<LinkedInSearchHit[]> {
   const { page } = session;
   const searchUrl = buildSearchUrl(name, context);
@@ -118,7 +187,7 @@ export async function searchLinkedInByName(
 
   for (let i = 0; i < count && hits.length < MAX_LINKEDIN_RESULTS; i++) {
     const hit = await readHitFromContainer(containers.nth(i));
-    if (!hit || seen.has(hit.url)) continue;
+    if (!hit || !hit.title || seen.has(hit.url)) continue;
     seen.add(hit.url);
     hits.push(hit);
   }

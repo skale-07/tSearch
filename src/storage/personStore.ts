@@ -6,13 +6,14 @@ import type {
   OlympiadProfile,
   ScoreBreakdown,
   SubstackProfile,
+  WebsiteProfile,
 } from "../types.js";
 import { readJson, slugify, writeJsonAtomic } from "./jsonStore.js";
 
 export type IdentityStatus =
   | "resolved"
-  | "low_confidence"
   | "no_results"
+  | "no_name_match"
   | "not_attempted";
 
 export interface PersonRecord {
@@ -26,13 +27,19 @@ export interface PersonRecord {
   linkedin?: LinkedInProfile;
   github?: GitHubProfile;
   substack?: SubstackProfile;
+  website?: WebsiteProfile;
 
   links: {
     linkedin_url?: string;
     github_url?: string;
     substack_url?: string;
     twitter_url?: string;
+    email?: string;
+    personal_website?: string;
     website_url?: string;
+    contact_links?: string[];
+    instagram_url?: string;
+    youtube_url?: string;
   };
 
   identity: {
@@ -44,6 +51,7 @@ export interface PersonRecord {
   /** Raw material for future 2-hop expansion without re-fetching. */
   graph: {
     github_neighbors: string[];
+    github_collaborators: string[];
     substack_neighbors: string[];
     discovered_via: string[];
   };
@@ -56,6 +64,7 @@ export interface PersonRecord {
     linkedin_checked_at?: string;
     github_checked_at?: string;
     substack_checked_at?: string;
+    website_checked_at?: string;
   };
 
   first_seen: string;
@@ -70,6 +79,7 @@ export interface PersonUpdate {
   linkedin?: LinkedInProfile;
   github?: GitHubProfile;
   substack?: SubstackProfile;
+  website?: WebsiteProfile;
   links?: Partial<PersonRecord["links"]>;
   identity?: Partial<PersonRecord["identity"]>;
   graph?: Partial<PersonRecord["graph"]>;
@@ -96,7 +106,12 @@ function emptyRecord(name: string, now: string): PersonRecord {
     aliases: [],
     links: {},
     identity: { status: "not_attempted", confidence: 0 },
-    graph: { github_neighbors: [], substack_neighbors: [], discovered_via: [] },
+    graph: {
+      github_neighbors: [],
+      github_collaborators: [],
+      substack_neighbors: [],
+      discovered_via: [],
+    },
     score_history: [],
     freshness: {},
     first_seen: now,
@@ -124,9 +139,10 @@ export function upsertPerson(update: PersonUpdate): PersonRecord {
   if (update.linkedin) record.linkedin = update.linkedin;
   if (update.github) record.github = update.github;
   if (update.substack) record.substack = update.substack;
+  if (update.website) record.website = update.website;
 
-  for (const [k, v] of Object.entries(update.links ?? {})) {
-    if (v) record.links[k as keyof PersonRecord["links"]] = v;
+  if (update.links) {
+    record.links = { ...record.links, ...update.links };
   }
 
   if (update.identity) {
@@ -138,6 +154,10 @@ export function upsertPerson(update: PersonUpdate): PersonRecord {
       github_neighbors: union(
         record.graph.github_neighbors,
         update.graph.github_neighbors
+      ),
+      github_collaborators: union(
+        record.graph.github_collaborators,
+        update.graph.github_collaborators
       ),
       substack_neighbors: union(
         record.graph.substack_neighbors,

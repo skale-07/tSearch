@@ -16,8 +16,8 @@ import { loadOlympiadCsv, lookupOlympiad } from "../olympiad/parseOlympiad.js";
 import { parseSeeds, type SeedQuery } from "../seeds/parseSeeds.js";
 import { upsertPerson } from "../storage/personStore.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
-import { expandGraph, type IdentityNeighbors } from "./expandGraph.js";
-import { mergeCandidates } from "./mergeCandidates.js";
+import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
+import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
 
 function log(step: string, detail?: string): void {
   const ts = new Date().toLocaleTimeString();
@@ -26,6 +26,30 @@ function log(step: string, detail?: string): void {
 
 function normKey(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function loadExistingCandidates(): Candidate[] {
+  if (!fs.existsSync(OUTPUT_PATH)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf-8"));
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function candidateToRaw(c: Candidate): RawCandidate {
+  return {
+    key: c.key,
+    name: c.name,
+    discovered_via: c.discovered_via,
+    linkedin: c.linkedin,
+    identity_confidence: c.identity_confidence,
+    github: c.github,
+    substack: c.substack,
+    website: c.website,
+    olympiad: c.olympiad,
+  };
 }
 
 function persistPeople(
@@ -60,12 +84,27 @@ function persistPeople(
       linkedin: confirmed ? c.linkedin : undefined,
       github: c.github,
       substack: c.substack,
+      website: c.website,
       links: {
         linkedin_url: confirmed ? c.linkedin?.url : undefined,
-        github_url: c.github?.profile_url ?? c.linkedin?.github_url ?? undefined,
-        substack_url: c.substack?.url ?? c.linkedin?.substack_url ?? undefined,
-        twitter_url: c.linkedin?.twitter_url ?? undefined,
-        website_url: c.linkedin?.website_url ?? undefined,
+        github_url:
+          c.github?.profile_url ??
+          c.linkedin?.github_url ??
+          c.website?.github_url ??
+          undefined,
+        substack_url:
+          c.substack?.url ??
+          c.linkedin?.substack_url ??
+          c.website?.substack_url ??
+          undefined,
+        twitter_url:
+          c.linkedin?.twitter_url ?? c.website?.twitter_url ?? undefined,
+        email: c.website?.email ?? undefined,
+        personal_website: c.linkedin?.personal_website ?? undefined,
+        website_url: c.linkedin?.website_url ?? c.website?.url ?? undefined,
+        contact_links: c.linkedin?.contact_links,
+        instagram_url: c.website?.instagram_url ?? undefined,
+        youtube_url: c.website?.youtube_url ?? undefined,
       },
       identity: confirmed
         ? {
@@ -76,6 +115,7 @@ function persistPeople(
         : { status: "not_attempted", confidence: c.identity_confidence },
       graph: {
         github_neighbors: hood?.github,
+        github_collaborators: hood?.collaborators,
         substack_neighbors: hood?.substack,
         discovered_via: c.discovered_via,
       },
@@ -84,6 +124,7 @@ function persistPeople(
         linkedin_checked_at: confirmed ? now : undefined,
         github_checked_at: c.github ? now : undefined,
         substack_checked_at: c.substack ? now : undefined,
+        website_checked_at: c.website ? now : undefined,
       },
     });
     written++;
@@ -132,26 +173,72 @@ async function main(): Promise<void> {
   const olympiadIndex = loadOlympiadCsv(OLYMPIAD_CSV_PATH);
   log("olympiad", `indexed ${olympiadIndex.size} medalists`);
 
+  const existingCandidates = loadExistingCandidates();
+  if (existingCandidates.length) {
+    log("cache", `${existingCandidates.length} candidates loaded from ${OUTPUT_PATH}`);
+  }
+
   log("resolve", "LinkedIn identity resolution...");
   const { resolved: identities, failed } = await resolveIdentities(
     seeds,
-    olympiadIndex
+    olympiadIndex,
+    existingCandidates
   );
   log("resolve", `${identities.length}/${seeds.length} identities resolved`);
 
-  if (!identities.length) {
+  if (!identities.length && !existingCandidates.length) {
     console.error("No identities resolved. Check seeds, network, or cookies.json.");
     process.exit(1);
   }
 
-  log("expand", "GitHub/Substack graph expansion from verified URLs...");
-  const { pool, neighbors } = await expandGraph(identities, olympiadIndex);
+  let pool: Map<string, RawCandidate>;
+  let neighbors: Map<string, IdentityNeighbors>;
+  let seedTree: SeedTreeEdge[] = [];
+
+  if (identities.length) {
+    log("expand", "GitHub collaborator tree + Substack expansion...");
+    const expanded = await expandGraph(identities, olympiadIndex);
+    pool = expanded.pool;
+    neighbors = expanded.neighbors;
+    seedTree = expanded.seedTree;
+  } else {
+    log("expand", "skipped — no new identities");
+    pool = new Map();
+    neighbors = new Map();
+  }
 
   log("merge", `merging ${pool.size} raw candidates`);
-  const ranked = mergeCandidates([...pool.values()]).slice(0, MAX_CANDIDATES);
+  const merged = mergeCandidates([
+    ...pool.values(),
+    ...existingCandidates.map(candidateToRaw),
+  ]);
+  const ranked = merged.slice(0, MAX_CANDIDATES);
 
   fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(ranked, null, 2), "utf-8");
+
+  const treePath = path.resolve(path.dirname(OUTPUT_PATH), "seed_tree.json");
+  fs.writeFileSync(
+    treePath,
+    JSON.stringify(
+      {
+        generated_at: new Date().toISOString(),
+        seeds: identities.map((i) => ({
+          name: i.query_name,
+          github: i.github_url,
+          website: i.website?.url ?? null,
+        })),
+        edges: seedTree,
+      },
+      null,
+      2
+    ),
+    "utf-8"
+  );
+  log(
+    "tree",
+    `${seedTree.length} collaborator edges → ${treePath}`
+  );
 
   log("done", `wrote ${ranked.length} candidates → ${OUTPUT_PATH}`);
 

@@ -29,22 +29,68 @@ export interface SubstackProfile {
   active: boolean;
 }
 
+export interface LinkedInEducation {
+  school: string;
+  degree: string | null;
+  field: string | null;
+  years: string | null;
+}
+
+export interface LinkedInExperience {
+  title: string;
+  company: string | null;
+  dates: string | null;
+  location: string | null;
+}
+
+export interface LinkedInAward {
+  title: string;
+  issuer: string | null;
+  date: string | null;
+}
+
+export interface WebsiteProfile {
+  url: string;
+  scraped_at: string;
+  github_url: string | null;
+  substack_url: string | null;
+  twitter_url: string | null;
+  linkedin_url: string | null;
+  email: string | null;
+  instagram_url: string | null;
+  youtube_url: string | null;
+  /** External non-social links found on the site. */
+  other_links: string[];
+  /** Deduped href inventory (capped). */
+  all_links: string[];
+}
+
 export interface LinkedInProfile {
   url: string;
   name: string;
   photo_url: string | null;
   headline: string | null;
+  /** Primary college/university from education section. */
+  college: string | null;
   school: string | null;
   degree: string | null;
   country: string | null;
   graduation_year: number | null;
+  education: LinkedInEducation[];
   keywords: string[];
   github_url: string | null;
   substack_url: string | null;
   twitter_url: string | null;
+  /** Personal portfolio site from LinkedIn Contact info. */
+  personal_website: string | null;
   website_url: string | null;
-  experience: string[];
+  /** All external links found in Contact info. */
+  contact_links: string[];
+  experience: LinkedInExperience[];
+  awards: LinkedInAward[];
   skills: string[];
+  /** Bumped when scrape logic changes; invalidates stale profile cache. */
+  scrape_version?: number;
 }
 
 export interface OlympiadProfile {
@@ -65,6 +111,7 @@ export interface ResolvedIdentity {
   identity_confidence: number;
   github_url: string | null;
   substack_url: string | null;
+  website?: WebsiteProfile | null;
 }
 
 export interface Candidate {
@@ -75,6 +122,7 @@ export interface Candidate {
   identity_confidence: number;
   github?: GitHubProfile;
   substack?: SubstackProfile;
+  website?: WebsiteProfile;
   olympiad?: OlympiadProfile;
   final_score: number;
   score_breakdown: ScoreBreakdown;
