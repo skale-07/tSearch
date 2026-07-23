@@ -23,14 +23,18 @@ export function renderHtml(digest: DigestDocument): string {
   const cards = digest.candidates
     .map((c) => {
       const tech = c.technical_summary
-        ? `<p style="margin:8px 0;"><strong>Technical depth:</strong> ${esc(String(c.technical_summary.score))}/10 (confidence ${esc(String(c.technical_summary.confidence))})</p>
-           <p style="margin:8px 0;color:#333;">${esc(c.technical_summary.rationale.slice(0, 600))}</p>`
+        ? `<p style="margin:8px 0;"><strong>Technical:</strong> ${esc(String(c.technical_summary.score))}/5 avg (confidence ${esc(String(c.technical_summary.confidence))})</p>
+           <p style="margin:8px 0;color:#333;">${esc(c.technical_summary.rationale.slice(0, 700))}</p>`
         : "";
+      const writing =
+        c.writing_summary?.available && c.writing_summary.rationale
+          ? `<p style="margin:8px 0;"><strong>Writing:</strong> ${esc(c.writing_summary.rationale.slice(0, 500))}</p>`
+          : "";
       const artifacts = c.strongest_artifacts
         .map((a) => {
           const href = safeHref(a.url);
           return href
-            ? `<li><a href="${esc(href)}">${esc(a.title)}</a> — ${esc(a.reason_selected)}</li>`
+            ? `<li><a href="${esc(href)}">${esc(a.title)}</a></li>`
             : `<li>${esc(a.title)}</li>`;
         })
         .join("");
@@ -43,35 +47,38 @@ export function renderHtml(digest: DigestDocument): string {
         .map(([label, url]) => {
           const href = safeHref(url);
           return href
-            ? `<a href="${esc(href)}" style="margin-right:12px;">${esc(String(label))}</a>`
+            ? `<a href="${esc(href)}" style="margin-right:14px;font-weight:600;">${esc(String(label))}</a>`
             : "";
         })
         .join("");
+      const brief = esc(
+        (c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline).slice(
+          0,
+          900
+        )
+      );
+      const cory = c.cory_relevance
+        ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #ccc;border-radius:999px;font-size:12px;">Cory: ${esc(c.cory_relevance)}</span>`
+        : "";
 
       return `
       <section style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0;">
         <h2 style="margin:0 0 8px;font-size:18px;">${esc(String(c.rank))}. ${esc(c.name)}</h2>
-        <p style="margin:0;color:#555;font-size:13px;">${esc(c.archetype.replace(/_/g, " "))}</p>
+        <p style="margin:0 0 8px;">${links || "<span style='color:#888;'>No profile links</span>"}</p>
+        <p style="margin:0;color:#555;font-size:13px;">${esc(c.primary_archetype.replace(/_/g, " "))}${cory}</p>
         <p style="margin:8px 0 12px;">${esc(c.headline)}</p>
-        <p style="margin:4px 0;font-size:13px;">Discovery score: <strong>${esc(String(c.discovery_score))}</strong> · Assessment priority: <strong>${esc(String(c.assessment_priority_score))}/100</strong></p>
-        <h3 style="font-size:14px;margin:12px 0 4px;">Why highlighted</h3>
-        <ul style="margin:0;padding-left:18px;">${c.why_highlighted
-          .map(
-            (w) =>
-              `<li><strong>${esc(w.claim)}</strong> — ${esc(w.rationale.slice(0, 300))}</li>`
-          )
-          .join("")}</ul>
+        <p style="margin:4px 0;font-size:13px;">Assessment priority: <strong>${esc(String(c.assessment_priority_score))}/100</strong> · Discovery score: <strong>${esc(String(c.discovery_score))}</strong></p>
+        <h3 style="font-size:14px;margin:12px 0 4px;">Why send to Cory</h3>
+        <p style="margin:4px 0;color:#222;">${brief}</p>
+        <h3 style="font-size:14px;margin:12px 0 4px;">Specific work to inspect</h3>
+        <ul style="margin:0;padding-left:18px;">${artifacts || "<li><em>None retained</em></li>"}</ul>
         ${tech}
-        <h3 style="font-size:14px;margin:12px 0 4px;">Curiosity signal</h3>
-        <p style="margin:4px 0;">${esc(String(c.curiosity_summary.score))}/10 — ${esc(c.curiosity_summary.rationale.slice(0, 400))}</p>
-        <h3 style="font-size:14px;margin:12px 0 4px;">Best artifacts</h3>
-        <ul style="margin:0;padding-left:18px;">${artifacts}</ul>
-        <h3 style="font-size:14px;margin:12px 0 4px;">Uncertainties</h3>
+        ${writing}
+        <h3 style="font-size:14px;margin:12px 0 4px;">Caveats</h3>
         <ul style="margin:0;padding-left:18px;">${c.important_uncertainties
           .map((u) => `<li>${esc(u)}</li>`)
           .join("")}</ul>
         <p style="margin:12px 0 4px;"><strong>Next:</strong> ${esc(c.next_review_step)}</p>
-        <p style="margin:8px 0 0;">${links}</p>
       </section>`;
     })
     .join("\n");
@@ -84,7 +91,7 @@ export function renderHtml(digest: DigestDocument): string {
   <title>tSearch Digest ${esc(digest.digest_id)}</title>
 </head>
 <body style="font-family:Georgia,serif;line-height:1.45;color:#111;max-width:720px;margin:0 auto;padding:16px;">
-  <h1 style="font-size:22px;">tSearch Candidate Assessment Digest</h1>
+  <h1 style="font-size:22px;">tSearch → Cory: Candidate Digest</h1>
   <p style="color:#555;font-size:13px;">
     Run <code>${esc(digest.assessment_run_id)}</code> ·
     Digest <code>${esc(digest.digest_id)}</code> ·
@@ -93,7 +100,8 @@ export function renderHtml(digest: DigestDocument): string {
   <p>${esc(digest.criteria_summary.purpose)}</p>
   <p style="font-size:13px;">
     Discovered ${esc(String(digest.meta.discovered_candidate_count))} ·
-    Assessed ${esc(String(digest.meta.assessed_candidate_count))}
+    Assessed ${esc(String(digest.meta.assessed_candidate_count))} ·
+    Included ${esc(String(digest.candidates.length))}
   </p>
   <h2 style="font-size:16px;">Not treated as proof</h2>
   <ul>${digest.criteria_summary.important_non_signals

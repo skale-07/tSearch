@@ -21,6 +21,7 @@ import {
   EvidenceValidationError,
   validateJudgeDimensionsV2,
 } from "../evidence/evidenceValidation.js";
+import { coerceScoredDimensionsForEvidence } from "./normalizeLlmPayload.js";
 import { averageScores, toDimensionScoreV2 } from "./scoreUtils.js";
 
 export interface WritingArtifactInput {
@@ -110,6 +111,38 @@ export async function runWritingJudge(input: {
     rubricBundleVersion: input.rubricBundleVersion ?? WRITING_RUBRIC_VERSION,
   });
 
+  const allowedEvidence = new Set(evidenceIds);
+  const evidenceStrength = new Map(
+    input.evidence.map((e) => [e.evidence_id, e.strength] as const)
+  );
+  const coerced = coerceScoredDimensionsForEvidence(
+    {
+      ...value,
+      strongest_evidence_ids: (value.strongest_evidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+      counterevidence_ids: (value.counterevidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+      corpus_reconstruction: {
+        ...value.corpus_reconstruction,
+        evidence_ids: (value.corpus_reconstruction.evidence_ids ?? []).filter(
+          (id) => allowedEvidence.has(id)
+        ),
+        recurring_questions: (
+          value.corpus_reconstruction.recurring_questions ?? []
+        ).map((q) => ({
+          ...q,
+          evidence_ids: (q.evidence_ids ?? []).filter((id) =>
+            allowedEvidence.has(id)
+          ),
+        })),
+      },
+    },
+    allowedEvidence,
+    evidenceStrength
+  );
+
   const result: WritingJudgeResult = {
     schema_version: "writing-judge-v1",
     judge_type: "writing",
@@ -118,7 +151,7 @@ export async function runWritingJudge(input: {
     rubric_version: WRITING_RUBRIC_VERSION,
     prompt_version: WRITING_PROMPT_VERSION,
     model,
-    ...value,
+    ...coerced,
   };
   validateWritingResult(result, input.evidence);
   return result;

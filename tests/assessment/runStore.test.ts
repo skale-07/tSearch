@@ -51,6 +51,12 @@ function minimalRecord(
     },
     artifacts: { references: [], github_repositories: {}, evidence: [] },
     judge_results: {},
+    judge_statuses: {
+      technical: { status: "pending", attempt_count: 0, error_ids: [] },
+      writing: { status: "not_applicable", attempt_count: 0, error_ids: [] },
+      cross_artifact: { status: "pending", attempt_count: 0, error_ids: [] },
+      cory: { status: "pending", attempt_count: 0, error_ids: [] },
+    },
     synthesis: {
       archetype: "insufficient_evidence",
       headline: "x",
@@ -65,9 +71,17 @@ function minimalRecord(
       priority_confidence: 0,
       weight_version: "priority-v1",
     },
+    synthesis_state: {
+      status: "not_run",
+      valid_for_ranking: false,
+      fallback_used: false,
+    },
     digest_summary: { why_highlighted: [], next_review_step: "n/a" },
+    status: "pending",
+    pipeline_stage: "pending",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    revision: 0,
   };
 }
 

@@ -216,6 +216,11 @@ export type SseEvent =
       assessmentRunId?: string | null;
       digestHint?: string | null;
       exitCode?: number;
+      run_id?: string | null;
+      job_id?: string | null;
+      process_exit_code?: number;
+      assessment_status?: AssessmentRunStatus | null;
+      ui_tone?: "success" | "warning" | "danger";
     }
   | {
       type: "error";
@@ -223,6 +228,11 @@ export type SseEvent =
       exitCode?: number;
       assessmentRunId?: string | null;
       digestHint?: string | null;
+      run_id?: string | null;
+      job_id?: string | null;
+      process_exit_code?: number;
+      assessment_status?: AssessmentRunStatus | null;
+      ui_tone?: "danger";
     };
 
 export interface AssessmentCandidateRow {
@@ -234,6 +244,61 @@ export interface AssessmentCandidateRow {
   blog_url?: string;
   has_github: boolean;
   has_writing_surface: boolean;
+}
+
+export type AssessmentRunStatus =
+  | "queued"
+  | "collecting"
+  | "judging"
+  | "rendering"
+  | "completed"
+  | "completed_with_errors"
+  | "interrupted"
+  | "failed";
+
+export interface AssessmentError {
+  id?: string;
+  stage: string;
+  code: string;
+  message: string;
+  technical_details?: string;
+  retryable: boolean;
+  judge?: string;
+  attempt_count?: number;
+  occurred_at?: string;
+  candidate_id?: string;
+}
+
+export interface JudgeExecutionState {
+  status?: string;
+  attempt_count?: number;
+  error_ids?: string[];
+}
+
+export interface AssessmentRun {
+  run_id: string;
+  status: AssessmentRunStatus;
+  revision: number;
+  mock_llm: boolean;
+  candidate_count: number;
+  counts: Record<"pending" | "active" | "completed" | "partial" | "failed" | "insufficient_context", number>;
+  errors: AssessmentError[];
+}
+
+export interface AssessmentRunCandidate {
+  candidate_id: string;
+  name: string;
+  github_username?: string;
+  website_url?: string;
+  status: string;
+  pipeline_stage: string;
+  judge_statuses: Record<string, JudgeExecutionState>;
+  synthesis_state?: { valid_for_ranking?: boolean; status?: string };
+  priority_score?: number;
+  synthesis_valid: boolean;
+  error_count: number;
+  errors: AssessmentError[];
+  revision: number;
 }
 
 export async function fetchCandidates(): Promise<{
@@ -254,20 +319,198 @@ export async function fetchCandidates(): Promise<{
 }
 
 export async function startAssessmentRun(body: {
-  mode: "selected" | "top_n";
-  candidateIds?: string[];
-  limit?: number;
-  mock?: boolean;
-}): Promise<{ runId: string }> {
+  candidate_ids: string[];
+  mock_llm?: boolean;
+  skip_digest?: boolean;
+}): Promise<{
+  run_id: string;
+  job_id: string;
+  status: "queued";
+  requested_count: number;
+  eligible_count: number;
+  skipped_count: number;
+  skipped_candidates: Array<{ candidate_id: string; reason: string }>;
+}> {
   const res = await fetch("/api/assessment/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await readApiJson<{ runId?: string; error?: string }>(res);
+  const data = await readApiJson<{
+    run_id?: string;
+    job_id?: string;
+    status?: "queued";
+    requested_count?: number;
+    eligible_count?: number;
+    skipped_count?: number;
+    skipped_candidates?: Array<{ candidate_id: string; reason: string }>;
+    error?: string;
+  }>(res);
   if (!res.ok) throw new Error(data.error || res.statusText);
-  if (!data.runId) throw new Error("API response missing runId");
-  return { runId: data.runId };
+  if (!data.run_id || !data.job_id) throw new Error("API response missing run_id or job_id");
+  return {
+    run_id: data.run_id,
+    job_id: data.job_id,
+    status: data.status ?? "queued",
+    requested_count: data.requested_count ?? body.candidate_ids.length,
+    eligible_count: data.eligible_count ?? body.candidate_ids.length,
+    skipped_count: data.skipped_count ?? 0,
+    skipped_candidates: data.skipped_candidates ?? [],
+  };
+}
+
+async function assessmentRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init);
+  const data = await readApiJson<T & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+export function fetchAssessmentRun(runId: string): Promise<AssessmentRun> {
+  return assessmentRequest(`/api/assessment/runs/${encodeURIComponent(runId)}`);
+}
+
+export async function fetchAssessmentRunCandidates(
+  runId: string
+): Promise<AssessmentRunCandidate[]> {
+  const data = await assessmentRequest<{ candidates: AssessmentRunCandidate[] }>(
+    `/api/assessment/runs/${encodeURIComponent(runId)}/candidates`
+  );
+  return data.candidates;
+}
+
+export function retryFailedAssessment(runId: string): Promise<{ run_id: string; job_id: string }> {
+  return assessmentRequest(`/api/assessment/runs/${encodeURIComponent(runId)}/retry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "failed" }),
+  });
+}
+
+export function retryAssessmentCandidate(
+  runId: string,
+  candidateId: string
+): Promise<{ run_id: string; job_id: string }> {
+  return assessmentRequest(
+    `/api/assessment/runs/${encodeURIComponent(runId)}/retry-candidate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidate_id: candidateId }),
+    }
+  );
+}
+
+export function fetchLatestCandidateAssessment(candidateId: string): Promise<{
+  run_id: string;
+  assessment: CandidateAssessmentDetail;
+}> {
+  return assessmentRequest(`/api/candidates/${encodeURIComponent(candidateId)}/assessment`);
+}
+
+export interface AssessmentArtifactReference {
+  artifact_id: string;
+  kind?: string;
+  title: string;
+  canonical_url: string;
+}
+
+export interface AssessmentEvidenceItem {
+  evidence_id: string;
+  artifact_id: string;
+  source_type?: string;
+  source_url: string;
+  location?: {
+    file_path?: string;
+    heading?: string;
+    section?: string;
+    commit_sha?: string;
+  };
+  observation?: string;
+}
+
+export interface CandidateAssessmentDetail {
+  candidate_id?: string;
+  assessment_run_id?: string;
+  status: string;
+  pipeline_stage: string;
+  artifacts?: {
+    references?: AssessmentArtifactReference[];
+    evidence?: AssessmentEvidenceItem[];
+    github_repositories?: Record<string, { full_name?: string; name?: string }>;
+    blog_articles?: Record<string, { title?: string; canonical_url?: string }>;
+  };
+  digest_summary?: {
+    why_highlighted?: Array<{
+      claim: string;
+      rationale: string;
+      evidence_ids?: string[];
+    }>;
+    next_review_step?: string;
+  };
+  judge_results?: Record<string, unknown>;
+  judge_statuses?: Record<string, JudgeExecutionState>;
+  synthesis?: {
+    priority_score?: number;
+    archetype?: string;
+    headline?: string;
+    primary_strength?: string;
+    overall_rationale?: string;
+    strongest_evidence_ids?: string[];
+    [key: string]: unknown;
+  };
+  synthesis_state?: {
+    valid_for_ranking?: boolean;
+    fallback_used?: boolean;
+    status?: string;
+    [key: string]: unknown;
+  };
+  errors?: AssessmentError[];
+  identity?: { display_name?: string; github_username?: string };
+  updated_at?: string;
+}
+
+export async function fetchRunCandidateAssessment(
+  runId: string,
+  candidateId: string
+): Promise<{ run_id: string; assessment: CandidateAssessmentDetail }> {
+  return assessmentRequest(
+    `/api/assessment/runs/${encodeURIComponent(runId)}/candidates/${encodeURIComponent(candidateId)}`
+  );
+}
+
+const terminalRunStatuses = new Set<AssessmentRunStatus>([
+  "completed",
+  "completed_with_errors",
+  "failed",
+  "interrupted",
+]);
+
+export async function pollAssessmentRun(
+  runId: string,
+  opts: { onUpdate: (run: AssessmentRun) => void; signal?: AbortSignal }
+): Promise<AssessmentRun> {
+  let revision = -1;
+  while (!opts.signal?.aborted) {
+    const run = await fetchAssessmentRun(runId);
+    if (run.revision > revision) {
+      revision = run.revision;
+      opts.onUpdate(run);
+    }
+    if (terminalRunStatuses.has(run.status)) return run;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, 1_000);
+      opts.signal?.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          reject(new DOMException("Polling cancelled", "AbortError"));
+        },
+        { once: true }
+      );
+    });
+  }
+  throw new DOMException("Polling cancelled", "AbortError");
 }
 
 export function subscribeRunEvents(

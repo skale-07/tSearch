@@ -97,7 +97,63 @@ export const technicalJudgeV2JsonSchema: Record<string, unknown> = {
     },
     dimensions: {
       type: "array",
-      items: dimensionAssessmentV2JsonSchema,
+      minItems: 12,
+      maxItems: 12,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "dimension_id",
+          "score",
+          "applicability",
+          "rationale",
+          "supporting_evidence_ids",
+          "counterevidence_ids",
+          "missing_information",
+        ],
+        properties: {
+          dimension_id: {
+            type: "string",
+            enum: [
+              "problem_difficulty",
+              "mechanism_depth",
+              "architecture_depth",
+              "algorithmic_or_methodological_depth",
+              "implementation_quality",
+              "evaluation_and_validation",
+              "failure_handling",
+              "reproducibility",
+              "tradeoff_reasoning",
+              "completion_and_operational_reality",
+              "persistence_and_iteration",
+              "unusual_problem_selection",
+            ],
+          },
+          score: {
+            anyOf: [
+              { type: "integer", enum: [0, 1, 2, 3, 4, 5] },
+              { type: "null" },
+            ],
+          },
+          applicability: {
+            type: "string",
+            enum: ["applicable", "not_applicable", "insufficient_evidence"],
+          },
+          rationale: { type: "string", minLength: 1 },
+          supporting_evidence_ids: {
+            type: "array",
+            items: { type: "string" },
+          },
+          counterevidence_ids: {
+            type: "array",
+            items: { type: "string" },
+          },
+          missing_information: {
+            type: "array",
+            items: { type: "string" },
+          },
+        },
+      },
     },
     strongest_evidence_ids: { type: "array", items: { type: "string" } },
     counterevidence_ids: { type: "array", items: { type: "string" } },

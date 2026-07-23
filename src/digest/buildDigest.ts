@@ -1,10 +1,14 @@
 import crypto from "crypto";
 import type { CandidateAssessmentRecord } from "../assessment/types.js";
-import type { AssessmentRun } from "../assessment/types.js";
-import { DIGEST_TOP_N } from "../assessment/config.js";
+import type { AssessmentRun, ArtifactKind } from "../assessment/types.js";
+import { DIGEST_MIN_PRIORITY, DIGEST_TOP_N } from "../assessment/config.js";
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { DIGEST_SCHEMA_VERSION } from "./types.js";
-import { evidenceIndex } from "../assessment/evidence/evidenceValidation.js";
+import {
+  buildCoryBrief,
+  resolveProfileLinks,
+  selectNamedWorks,
+} from "./buildCoryBrief.js";
 
 function avgDims(
   record: CandidateAssessmentRecord,
@@ -44,16 +48,6 @@ function avgDims(
   };
 }
 
-function filterClaims(
-  claims: DigestCandidate["why_highlighted"],
-  evidenceIds: Set<string>
-): DigestCandidate["why_highlighted"] {
-  return claims.filter((c) => {
-    if (!c.evidence_ids.length) return c.claim === "Assessment incomplete";
-    return c.evidence_ids.every((id) => evidenceIds.has(id));
-  });
-}
-
 function contentHash(record: CandidateAssessmentRecord): string {
   return crypto
     .createHash("sha1")
@@ -68,28 +62,65 @@ function contentHash(record: CandidateAssessmentRecord): string {
     .digest("hex");
 }
 
+function isDigestEligible(
+  a: CandidateAssessmentRecord,
+  minPriority: number
+): boolean {
+  if (a.status === "failed" || a.status === "insufficient_context") return false;
+  if (a.synthesis_state && a.synthesis_state.valid_for_ranking === false) {
+    return false;
+  }
+  return a.synthesis.priority_score >= minPriority;
+}
+
+function clampTopN(topN: number): number {
+  return Math.min(10, Math.max(5, Math.round(topN)));
+}
+
 export function buildDigest(input: {
   run: AssessmentRun;
   assessments: CandidateAssessmentRecord[];
   discoveredCandidateCount: number;
   topN?: number;
+  minPriority?: number;
 }): DigestDocument {
-  const topN = input.topN ?? DIGEST_TOP_N;
-  const ranked = [...input.assessments]
-    .filter((a) => !a.error || a.synthesis.priority_score > 0)
-    .sort(
-      (a, b) =>
-        b.synthesis.priority_score - a.synthesis.priority_score ||
-        a.source_candidate.name.localeCompare(b.source_candidate.name)
-    )
-    .slice(0, Math.min(10, Math.max(5, topN) === topN ? topN : Math.min(10, topN)));
+  const topN = clampTopN(input.topN ?? DIGEST_TOP_N);
+  const minPriority = input.minPriority ?? DIGEST_MIN_PRIORITY;
 
-  const selected = ranked.slice(0, Math.min(10, Math.max(ranked.length, 0)));
+  const ranked = [...input.assessments]
+    .filter((a) => isDigestEligible(a, minPriority))
+    .sort((a, b) => {
+      const coryRank = (r?: string) =>
+        r === "high" ? 2 : r === "medium" ? 1 : 0;
+      const ca = coryRank(a.judge_results.cory?.relevance);
+      const cb = coryRank(b.judge_results.cory?.relevance);
+      return (
+        b.synthesis.priority_score - a.synthesis.priority_score ||
+        cb - ca ||
+        a.source_candidate.name.localeCompare(b.source_candidate.name)
+      );
+    })
+    .slice(0, topN);
+
+  // If the floor excluded everyone, fall back to top-N by priority so the
+  // digest is never silently empty for a finished run.
+  const selected =
+    ranked.length > 0
+      ? ranked
+      : [...input.assessments]
+          .filter((a) => a.synthesis.priority_score > 0)
+          .sort(
+            (a, b) =>
+              b.synthesis.priority_score - a.synthesis.priority_score ||
+              a.source_candidate.name.localeCompare(b.source_candidate.name)
+          )
+          .slice(0, topN);
 
   const candidates: DigestCandidate[] = selected.map((a, i) => {
-    const evidenceIds = new Set(
-      a.artifacts.evidence.map((e) => e.evidence_id)
-    );
+    const brief = buildCoryBrief(a);
+    const works = brief.works.length
+      ? brief.works
+      : selectNamedWorks(a);
     const technical = avgDims(a, [
       "technical_depth",
       "architecture_depth",
@@ -98,21 +129,11 @@ export function buildDigest(input: {
       "algorithmic_or_methodological_depth",
     ]);
     const curiosityScore = a.synthesis.domain_scores.curiosity;
-    const whyRaw = a.digest_summary.why_highlighted.length
-      ? a.digest_summary.why_highlighted
-      : [
-          {
-            claim: a.synthesis.primary_strength,
-            rationale: a.synthesis.overall_rationale.slice(0, 400),
-            evidence_ids: a.synthesis.strongest_evidence_ids.slice(0, 3),
-          },
-        ];
-    const why = filterClaims(whyRaw, evidenceIds).slice(0, 3);
-
     const axes = a.synthesis.axes;
     const writing = axes?.writing_intellectual_depth;
     const cross = axes?.cross_artifact_coherence;
     const assignment = a.synthesis.archetype_assignment;
+    const writingJudge = a.judge_results.writing;
 
     return {
       candidate_id: a.candidate_id,
@@ -127,17 +148,48 @@ export function buildDigest(input: {
       assessment_confidence: a.synthesis.priority_confidence,
       ownership_support: a.ownership?.support_class,
       evidence_support: axes?.evidence_completeness?.evidence_support,
-      why_highlighted: why,
-      technical_summary: technical,
-      writing_summary: writing
+      cory_relevance: brief.cory_relevance,
+      cory_reasons: brief.cory_reasons,
+      brief_rationale: brief.rationale,
+      why_highlighted: [
+        {
+          claim: brief.claim,
+          rationale: brief.rationale,
+          evidence_ids: brief.evidence_ids,
+        },
+      ],
+      technical_summary: technical
         ? {
-            score: writing.score,
-            confidence: writing.available ? 0.6 : 0.3,
-            rationale: writing.summary ?? "Writing axis",
-            evidence_ids: [],
-            available: writing.available,
+            ...technical,
+            rationale:
+              a.judge_results.technical?.summary?.slice(0, 500) ??
+              technical.rationale,
           }
         : undefined,
+      writing_summary: writingJudge
+        ? {
+            score:
+              writing?.score ??
+              (writingJudge.overall_writing_depth ===
+              "insufficient_public_evidence"
+                ? null
+                : 0),
+            confidence: writing?.available === false ? 0.3 : 0.6,
+            rationale: writingJudge.summary,
+            evidence_ids: writingJudge.strongest_evidence_ids.slice(0, 3),
+            available:
+              writingJudge.overall_writing_depth !==
+              "insufficient_public_evidence",
+          }
+        : writing
+          ? {
+              score: writing.score,
+              confidence: writing.available ? 0.6 : 0.3,
+              rationale: writing.summary ?? "Writing axis",
+              evidence_ids: [],
+              available: writing.available,
+            }
+          : undefined,
       cross_artifact_summary: cross
         ? {
             score: cross.score,
@@ -154,22 +206,17 @@ export function buildDigest(input: {
           "Observable inquiry / unusual+persistence signals (not intrinsic motivation).",
         evidence_ids: a.synthesis.strongest_evidence_ids.slice(0, 2),
       },
-      strongest_artifacts: a.artifacts.references.slice(0, 5).map((r) => ({
-        artifact_id: r.artifact_id,
-        kind: r.kind,
-        title: r.title,
-        url: r.canonical_url,
-        reason_selected: r.selected_reason,
+      strongest_artifacts: works.map((w) => ({
+        artifact_id: w.artifact_id,
+        kind: w.kind as ArtifactKind,
+        title: w.title,
+        url: w.url,
+        reason_selected: "cited_in_cory_brief",
       })),
       important_uncertainties: a.synthesis.important_uncertainties.slice(0, 4),
       next_review_step:
         a.digest_summary.next_review_step || a.synthesis.reason_to_review,
-      links: {
-        linkedin: a.source_candidate.linkedin_url,
-        github: a.source_candidate.github_url,
-        website: a.source_candidate.website_url,
-        blog: a.source_candidate.blog_url,
-      },
+      links: resolveProfileLinks(a),
     };
   });
 
@@ -204,13 +251,14 @@ export function buildDigest(input: {
     },
     criteria_summary: {
       purpose:
-        "Highlight candidates with inspectable evidence of technical depth, ownership, and self-directed inquiry — not résumé prestige.",
+        "Top assessed candidates for Cory review: strong public technical/writing signal with inspectable repos and articles — not résumé prestige.",
       dimensions: [
         "technical_strength",
         "ownership_support",
         "writing_intellectual_depth",
         "cross_artifact_coherence",
         "observable_inquiry",
+        "cory_relevance",
         "evidence_completeness",
       ],
       important_non_signals: [
@@ -224,6 +272,7 @@ export function buildDigest(input: {
         "Missing blogs do not zero technical scores.",
         "Ownership requires direct core-contribution evidence for high support.",
         "Discovery score (final_score) is shown separately and is not the assessment priority.",
+        `Digest includes candidates at or above priority ${minPriority} (top ${topN}).`,
       ],
     },
     meta: {
@@ -234,5 +283,3 @@ export function buildDigest(input: {
     candidates,
   };
 }
-
-void evidenceIndex;

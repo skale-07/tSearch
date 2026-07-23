@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "path";
 import { runAssessment } from "../src/assessment/runAssessment.js";
+import { loadAssessmentRun } from "../src/assessment/storage/assessmentRunStore.js";
 
 function arg(name: string): string | undefined {
   const idx = process.argv.indexOf(name);
@@ -52,9 +53,17 @@ async function main(): Promise<void> {
     forceCandidateId: arg("--force-candidate"),
   });
 
+  const run = loadAssessmentRun(runId);
+  const status = run?.status ?? "failed";
   console.log(`Assessment run completed: ${runId}`);
+  console.log(`Assessment run status: ${status}`);
   console.log(`Artifacts: output/assessment-runs/${runId}/`);
   console.log(`Digest: output/assessment-runs/${runId}/digest.md`);
+
+  if (status === "failed") {
+    process.exit(1);
+  }
+  // completed and completed_with_errors → exit 0
 }
 
 main().catch((err) => {

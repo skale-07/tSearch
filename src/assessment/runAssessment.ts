@@ -3,6 +3,7 @@ import path from "path";
 import type { Candidate, Repo } from "../types.js";
 import {
   ASSESSMENT_CANDIDATE_LIMIT,
+  ASSESSMENT_CANDIDATE_CONCURRENCY,
   ASSESSMENT_REPOSITORY_LIMIT,
   ASSESSMENT_PUBLICATION_LIMIT,
   ASSESSMENT_ARTICLE_LIMIT,
@@ -33,7 +34,13 @@ import {
   assertResumeCompatible,
   saveAssessmentRun,
   assessmentRunDir,
+  isRunImmutable,
 } from "./storage/assessmentRunStore.js";
+import {
+  assessCandidate,
+  type AssessCandidateContext,
+  type AssessCandidateMode,
+} from "./assessCandidate.js";
 import {
   ensureAssessmentCacheDirs,
   JUDGE_SCHEMA_VERSION,
@@ -214,6 +221,14 @@ async function assessOne(
   opts: RunAssessmentOptions,
   ctx: AssessOneContext
 ): Promise<CandidateAssessmentRecord> {
+  return assessCandidate({
+    runId,
+    selected,
+    opts,
+    ctx,
+    mode: "fresh",
+  });
+  /*
   const now = new Date().toISOString();
   const username = selected.identity.github_username;
   const siteUrl = websiteOrBlogUrl(selected);
@@ -660,6 +675,7 @@ async function assessOne(
       error,
     };
   }
+  */
 }
 
 function shouldAssessCandidate(
@@ -670,7 +686,18 @@ function shouldAssessCandidate(
   if (opts.forceCandidateId === candidateId) return true;
   const existing = loadCandidateAssessment(runId, candidateId);
   if (!existing) return true;
-  if (existing.error && opts.retryErrors) return true;
+  if (
+    opts.retryErrors &&
+    (existing.error ||
+      existing.errors?.length ||
+      existing.status === "partial" ||
+      existing.status === "failed" ||
+      Object.values(existing.judge_statuses ?? {}).some(
+        (judge) => judge.status === "failed"
+      ))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -700,7 +727,7 @@ export async function runAssessment(
 
   const rubricBundle = opts.rubricBundle ?? loadRubricBundle();
   const rubricBundleVersion = rubricBundleVersionLabel(rubricBundle);
-  const assessCtx: AssessOneContext = { rubricBundle, rubricBundleVersion };
+  const assessCtx: AssessCandidateContext = { rubricBundle, rubricBundleVersion };
 
   let runId: string;
   let selected: SelectedCandidate[];
@@ -708,7 +735,7 @@ export async function runAssessment(
   if (opts.resumeRunId) {
     const existing = loadAssessmentRun(opts.resumeRunId);
     if (!existing) throw new Error(`Run not found: ${opts.resumeRunId}`);
-    if (existing.status === "completed") {
+    if (isRunImmutable(existing.status)) {
       throw new Error(`Completed run ${opts.resumeRunId} is immutable`);
     }
 
@@ -817,26 +844,57 @@ export async function runAssessment(
 
   const selectedIdsAtStart = new Set(ordered.map((s) => s.candidate_id));
 
-  for (const s of ordered) {
+  const work = ordered.filter((s) => {
     if (!shouldAssessCandidate(runId, s.candidate_id, opts)) {
       logStage(runId, "candidate_skipped", { candidate_id: s.candidate_id });
-      continue;
+      return false;
     }
-    if (opts.forceCandidateId === s.candidate_id) {
-      clearCandidateRunErrors(runId, s.candidate_id);
-    }
-    logStage(runId, "candidate_selected", {
-      candidate_id: s.candidate_id,
-      name: s.candidate.name,
-    });
+    return true;
+  });
+
+  if (work.length) {
     updateAssessmentRunStatus(runId, "judging");
-    const record = await assessOne(
-      runId,
-      s,
-      { ...opts, mockLlm },
-      assessCtx
+    logStage(runId, "candidate_pool_start", {
+      count: work.length,
+      concurrency: ASSESSMENT_CANDIDATE_CONCURRENCY,
+    });
+
+    let nextWork = 0;
+    const workers = Array.from(
+      {
+        length: Math.min(ASSESSMENT_CANDIDATE_CONCURRENCY, work.length),
+      },
+      async () => {
+        while (true) {
+          const i = nextWork++;
+          if (i >= work.length) return;
+          const s = work[i]!;
+          if (opts.forceCandidateId === s.candidate_id) {
+            clearCandidateRunErrors(runId, s.candidate_id);
+          }
+          logStage(runId, "candidate_selected", {
+            candidate_id: s.candidate_id,
+            name: s.candidate.name,
+          });
+          const prior = loadCandidateAssessment(runId, s.candidate_id);
+          const mode: AssessCandidateMode =
+            opts.forceCandidateId === s.candidate_id
+              ? "force_full"
+              : opts.retryErrors
+                ? "retry_errors"
+                : "fresh";
+          await assessCandidate({
+            runId,
+            selected: s,
+            opts: { ...opts, mockLlm },
+            ctx: assessCtx,
+            prior,
+            mode,
+          });
+        }
+      }
     );
-    writeCandidateAssessment(runId, record);
+    await Promise.all(workers);
   }
 
   // Discovery boundary: never grow candidate set during assessment
@@ -859,7 +917,17 @@ export async function runAssessment(
     logStage(runId, "digest_rendered", { digest_id: digestId });
   }
 
-  updateAssessmentRunStatus(runId, "completed");
+  const assessments = listCandidateAssessments(runId);
+  const hasErrors =
+    loadAssessmentRun(runId)!.errors.length > 0 ||
+    assessments.some(
+      (assessment) =>
+        assessment.status === "partial" || assessment.status === "failed"
+    );
+  updateAssessmentRunStatus(
+    runId,
+    hasErrors ? "completed_with_errors" : "completed"
+  );
   return { runId };
 }
 

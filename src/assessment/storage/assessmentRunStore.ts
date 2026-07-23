@@ -10,6 +10,7 @@ import type {
   CandidateAssessmentRecord,
 } from "../types.js";
 import { ASSESSMENT_SCHEMA_VERSION as SCHEMA } from "../types.js";
+import { isTerminalRunStatus } from "../assessmentState.js";
 
 export function assessmentRunDir(runId: string): string {
   return path.join(getAssessmentRunsDir(), runId);
@@ -30,31 +31,88 @@ export function hashBytes(buf: Buffer | string): string {
   return crypto.createHash("sha256").update(buf).digest("hex");
 }
 
+function bumpRevision(prev?: number): number {
+  return (prev ?? 0) + 1;
+}
+
+/** True when the run must not be mutated further (except nothing). */
+export function isRunImmutable(status: AssessmentRunStatus): boolean {
+  return status === "completed";
+}
+
+/** Terminal but resumable for retry. */
+export function isRunResumable(status: AssessmentRunStatus): boolean {
+  return (
+    status === "completed_with_errors" ||
+    status === "interrupted" ||
+    status === "queued" ||
+    status === "pending" ||
+    status === "collecting" ||
+    status === "judging" ||
+    status === "rendering"
+  );
+}
+
+export function readJsonWithRetry<T>(
+  filePath: string,
+  opts?: { attempts?: number; delayMs?: number }
+): T | null {
+  const attempts = opts?.attempts ?? 3;
+  const delayMs = opts?.delayMs ?? 25;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      if (!fs.existsSync(filePath)) return null;
+      const raw = fs.readFileSync(filePath, "utf-8");
+      return JSON.parse(raw) as T;
+    } catch {
+      if (i === attempts - 1) return null;
+      const end = Date.now() + delayMs;
+      while (Date.now() < end) {
+        /* brief spin — sync context */
+      }
+    }
+  }
+  return null;
+}
+
 export function createAssessmentRun(
   partial: Omit<
     AssessmentRun,
-    "schema_version" | "id" | "created_at" | "status" | "errors" | "candidate_ids"
+    | "schema_version"
+    | "id"
+    | "created_at"
+    | "status"
+    | "errors"
+    | "candidate_ids"
+    | "revision"
+    | "updated_at"
   > & {
     id?: string;
     candidate_ids?: string[];
+    status?: AssessmentRunStatus;
   }
 ): AssessmentRun {
   const id = partial.id ?? makeAssessmentRunId();
   const dir = assessmentRunDir(id);
   if (fs.existsSync(path.join(dir, "run.json"))) {
-    const existing = readJson<AssessmentRun>(path.join(dir, "run.json"));
-    if (existing?.status === "completed") {
+    const existing = readJsonWithRetry<AssessmentRun>(
+      path.join(dir, "run.json")
+    );
+    if (existing && isRunImmutable(existing.status)) {
       throw new Error(`Cannot overwrite completed assessment run ${id}`);
     }
   }
   fs.mkdirSync(path.join(dir, "artifacts"), { recursive: true });
   fs.mkdirSync(path.join(dir, "assessments"), { recursive: true });
 
+  const now = new Date().toISOString();
   const run: AssessmentRun = {
     schema_version: SCHEMA,
     id,
-    created_at: new Date().toISOString(),
-    status: "pending",
+    created_at: now,
+    updated_at: now,
+    revision: 1,
+    status: partial.status ?? "queued",
     source: partial.source,
     config: partial.config,
     candidate_ids: partial.candidate_ids ?? [],
@@ -65,27 +123,40 @@ export function createAssessmentRun(
 }
 
 export function loadAssessmentRun(runId: string): AssessmentRun | null {
-  return readJson<AssessmentRun>(
+  return readJsonWithRetry<AssessmentRun>(
     path.join(assessmentRunDir(runId), "run.json")
   );
 }
 
 export function saveAssessmentRun(run: AssessmentRun): void {
-  writeJsonAtomic(path.join(assessmentRunDir(run.id), "run.json"), run);
+  const next: AssessmentRun = {
+    ...run,
+    updated_at: new Date().toISOString(),
+    revision: bumpRevision(run.revision),
+  };
+  writeJsonAtomic(path.join(assessmentRunDir(run.id), "run.json"), next);
 }
 
 export function updateAssessmentRunStatus(
   runId: string,
   status: AssessmentRunStatus,
   patch?: Partial<
-    Pick<AssessmentRun, "candidate_ids" | "errors" | "completed_at" | "digest_id" | "source" | "config">
+    Pick<
+      AssessmentRun,
+      "candidate_ids" | "errors" | "completed_at" | "digest_id" | "source" | "config"
+    >
   >
 ): AssessmentRun {
   const run = loadAssessmentRun(runId);
   if (!run) throw new Error(`Assessment run not found: ${runId}`);
-  if (run.status === "completed" && status !== "completed") {
+  if (isRunImmutable(run.status) && status !== "completed") {
     throw new Error(`Completed run ${runId} is immutable`);
   }
+  const terminal =
+    status === "completed" ||
+    status === "completed_with_errors" ||
+    status === "failed" ||
+    status === "interrupted";
   const next: AssessmentRun = {
     ...run,
     status,
@@ -96,9 +167,9 @@ export function updateAssessmentRunStatus(
     config: patch?.config ?? run.config,
     completed_at:
       patch?.completed_at ??
-      (status === "completed" || status === "failed"
-        ? new Date().toISOString()
-        : run.completed_at),
+      (terminal ? new Date().toISOString() : run.completed_at),
+    updated_at: new Date().toISOString(),
+    revision: bumpRevision(run.revision),
   };
   writeJsonAtomic(path.join(assessmentRunDir(runId), "run.json"), next);
   return next;
@@ -110,10 +181,12 @@ export function appendRunError(
 ): void {
   const run = loadAssessmentRun(runId);
   if (!run) throw new Error(`Assessment run not found: ${runId}`);
-  if (run.status === "completed") {
+  if (isRunImmutable(run.status)) {
     throw new Error(`Completed run ${runId} is immutable`);
   }
   run.errors.push(error);
+  run.updated_at = new Date().toISOString();
+  run.revision = bumpRevision(run.revision);
   writeJsonAtomic(path.join(assessmentRunDir(runId), "run.json"), run);
 }
 
@@ -123,10 +196,12 @@ export function clearCandidateRunErrors(
 ): void {
   const run = loadAssessmentRun(runId);
   if (!run) throw new Error(`Assessment run not found: ${runId}`);
-  if (run.status === "completed") {
+  if (isRunImmutable(run.status)) {
     throw new Error(`Completed run ${runId} is immutable`);
   }
   run.errors = run.errors.filter((e) => e.candidate_id !== candidateId);
+  run.updated_at = new Date().toISOString();
+  run.revision = bumpRevision(run.revision);
   writeJsonAtomic(path.join(assessmentRunDir(runId), "run.json"), run);
 }
 
@@ -148,16 +223,22 @@ export function writeCandidateAssessment(
   record: CandidateAssessmentRecord
 ): void {
   const run = loadAssessmentRun(runId);
-  if (run?.status === "completed") {
+  if (run && isRunImmutable(run.status)) {
     throw new Error(`Completed run ${runId} is immutable`);
   }
+  const prev = loadCandidateAssessment(runId, record.candidate_id);
+  const next: CandidateAssessmentRecord = {
+    ...record,
+    updated_at: new Date().toISOString(),
+    revision: bumpRevision(prev?.revision ?? record.revision),
+  };
   writeJsonAtomic(
     path.join(
       assessmentRunDir(runId),
       "assessments",
       `${record.candidate_id}.json`
     ),
-    record
+    next
   );
 }
 
@@ -165,7 +246,7 @@ export function loadCandidateAssessment(
   runId: string,
   candidateId: string
 ): CandidateAssessmentRecord | null {
-  return readJson(
+  return readJsonWithRetry(
     path.join(assessmentRunDir(runId), "assessments", `${candidateId}.json`)
   );
 }
@@ -178,7 +259,9 @@ export function listCandidateAssessments(
   return fs
     .readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
-    .map((f) => readJson<CandidateAssessmentRecord>(path.join(dir, f)))
+    .map((f) =>
+      readJsonWithRetry<CandidateAssessmentRecord>(path.join(dir, f))
+    )
     .filter((x): x is CandidateAssessmentRecord => !!x);
 }
 
@@ -198,14 +281,14 @@ export function writeRunDigestFiles(
 export function invalidateRunDigests(runId: string): void {
   const run = loadAssessmentRun(runId);
   if (!run) throw new Error(`Assessment run not found: ${runId}`);
-  if (run.status === "completed") {
+  if (isRunImmutable(run.status)) {
     throw new Error(`Completed run ${runId} is immutable`);
   }
   const dir = assessmentRunDir(runId);
   const digestJsonPath = path.join(dir, "digest.json");
   let digestId: string | undefined = run.digest_id;
   if (fs.existsSync(digestJsonPath)) {
-    const doc = readJson<{ digest_id?: string }>(digestJsonPath);
+    const doc = readJsonWithRetry<{ digest_id?: string }>(digestJsonPath);
     if (doc?.digest_id) digestId = doc.digest_id;
     fs.unlinkSync(digestJsonPath);
   }
@@ -220,8 +303,30 @@ export function invalidateRunDigests(runId: string): void {
       if (fs.existsSync(p)) fs.unlinkSync(p);
     }
   }
-  const next = { ...run, digest_id: undefined };
+  const next = {
+    ...run,
+    digest_id: undefined,
+    updated_at: new Date().toISOString(),
+    revision: bumpRevision(run.revision),
+  };
   writeJsonAtomic(path.join(dir, "run.json"), next);
+}
+
+export function listAssessmentRunIds(): string[] {
+  const root = getAssessmentRunsDir();
+  if (!fs.existsSync(root)) return [];
+  return fs
+    .readdirSync(root)
+    .filter((name) => name.startsWith("arun_"))
+    .filter((name) =>
+      fs.existsSync(path.join(root, name, "run.json"))
+    );
+}
+
+export function listNonterminalRuns(): AssessmentRun[] {
+  return listAssessmentRunIds()
+    .map((id) => loadAssessmentRun(id))
+    .filter((r): r is AssessmentRun => !!r && !isTerminalRunStatus(r.status));
 }
 
 export interface ResumeCompatConfig {
@@ -245,7 +350,7 @@ export function assertResumeCompatible(
   run: AssessmentRun,
   expected: ResumeCompatConfig
 ): void {
-  if (run.status === "completed") {
+  if (isRunImmutable(run.status)) {
     throw new Error(`Completed run ${run.id} is immutable; cannot resume`);
   }
   const mismatches: string[] = [];
@@ -318,3 +423,6 @@ export function assertResumeCompatible(
     );
   }
 }
+
+// re-export for callers that used readJson from here historically
+export { readJson };

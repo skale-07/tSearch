@@ -43,6 +43,16 @@ export const ASSESSMENT_CANDIDATE_LIMIT = Number(
 export const ASSESSMENT_REPOSITORY_LIMIT = Number(
   process.env.ASSESSMENT_REPOSITORY_LIMIT ?? 3
 );
+/** How many candidates to assess in parallel (GitHub/OpenAI rate limits apply). */
+export const ASSESSMENT_CANDIDATE_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.ASSESSMENT_CANDIDATE_CONCURRENCY ?? 2)
+);
+/** How many repos to fetch in parallel per candidate. */
+export const ASSESSMENT_REPO_FETCH_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.ASSESSMENT_REPO_FETCH_CONCURRENCY ?? 3)
+);
 export const ASSESSMENT_PUBLICATION_LIMIT = Number(
   process.env.ASSESSMENT_PUBLICATION_LIMIT ?? 3
 );
@@ -97,11 +107,27 @@ export const JUDGE_CACHE_TTL_MS = Number(
 );
 
 export const DIGEST_TOP_N = Number(process.env.DIGEST_TOP_N ?? 10);
+/** Minimum assessment priority to include in the Cory digest (0–100). */
+export const DIGEST_MIN_PRIORITY = Number(
+  process.env.DIGEST_MIN_PRIORITY ?? 50
+);
 export const DIGEST_EMAIL_TO = process.env.DIGEST_EMAIL_TO?.trim() ?? "";
 export const DIGEST_EMAIL_FROM = process.env.DIGEST_EMAIL_FROM?.trim() ?? "";
 export const DIGEST_EMAIL_SUBJECT_PREFIX =
   process.env.DIGEST_EMAIL_SUBJECT_PREFIX?.trim() ?? "[tSearch Digest]";
-export const EMAIL_PROVIDER_API_KEY =
-  process.env.EMAIL_PROVIDER_API_KEY?.trim() ||
-  process.env.RESEND_API_KEY?.trim() ||
-  "";
+
+function resolveEmailApiKey(): string {
+  const candidates = [
+    process.env.EMAIL_PROVIDER_API_KEY,
+    process.env.RESEND_API_KEY,
+  ];
+  for (const raw of candidates) {
+    const key = raw?.trim() ?? "";
+    // Ignore .env.example-style placeholders
+    if (!key || key === "re_..." || key.endsWith("...")) continue;
+    return key;
+  }
+  return "";
+}
+
+export const EMAIL_PROVIDER_API_KEY = resolveEmailApiKey();

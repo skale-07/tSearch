@@ -17,12 +17,67 @@ export type ArtifactKind =
 export type EvidenceStrength = "weak" | "moderate" | "strong";
 
 export type AssessmentRunStatus =
-  | "pending"
+  | "queued"
+  | "pending" // legacy; API normalizes to queued
   | "collecting"
   | "judging"
   | "rendering"
   | "completed"
+  | "completed_with_errors"
+  | "interrupted"
   | "failed";
+
+/** Mid-pipeline progress only — never a terminal outcome. */
+export type CandidateAssessmentStage =
+  | "pending"
+  | "collecting"
+  | "judging_technical"
+  | "judging_writing"
+  | "linking_artifacts"
+  | "judging_cross_artifact"
+  | "judging_cory"
+  | "synthesizing"
+  | "done";
+
+/** Terminal / lifecycle status for UI color and retry behavior. */
+export type CandidateAssessmentStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "partial"
+  | "failed"
+  | "insufficient_context";
+
+export type JudgeExecutionStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "abstained"
+  | "not_applicable"
+  | "failed";
+
+export interface JudgeExecutionState {
+  status: JudgeExecutionStatus;
+  started_at?: string;
+  completed_at?: string;
+  attempt_count: number;
+  error_ids: string[];
+  fallback_used?: boolean;
+}
+
+export interface CandidateJudgeStatuses {
+  technical: JudgeExecutionState;
+  writing: JudgeExecutionState;
+  cross_artifact: JudgeExecutionState;
+  cory: JudgeExecutionState;
+}
+
+export interface SynthesisExecutionState {
+  status: "pending" | "completed" | "partial" | "failed" | "not_run";
+  valid_for_ranking: boolean;
+  fallback_used: boolean;
+  completed_at?: string;
+}
 
 export type CandidateIdSource =
   | "github_username"
@@ -326,13 +381,42 @@ export interface CandidateAssessmentRecord {
   /** Deterministic artifact relationships (when both repo + writing exist) */
   relationships?: ArtifactRelationship[];
   judge_results: CandidateJudgeResults;
+  judge_statuses: CandidateJudgeStatuses;
   synthesis: CandidateSynthesis;
+  synthesis_state: SynthesisExecutionState;
   digest_summary: CandidateDigestSummary;
+  status: CandidateAssessmentStatus;
+  pipeline_stage: CandidateAssessmentStage;
   created_at: string;
   updated_at: string;
+  revision: number;
+  errors?: AssessmentError[];
+  /** @deprecated Prefer errors[]; kept for older records */
   error?: AssessmentRunError;
 }
 
+export interface AssessmentError {
+  id?: string;
+  stage:
+    | "collecting"
+    | "technical"
+    | "writing"
+    | "relationships"
+    | "cross_artifact"
+    | "cory"
+    | "synthesis"
+    | "persistence";
+  code: string;
+  message: string;
+  technical_details?: string;
+  retryable: boolean;
+  judge?: "technical" | "writing" | "cross_artifact" | "cory";
+  attempt_count?: number;
+  occurred_at: string;
+  candidate_id?: string;
+}
+
+/** @deprecated Prefer AssessmentError */
 export interface AssessmentRunError {
   code: string;
   message: string;
@@ -340,6 +424,8 @@ export interface AssessmentRunError {
   candidate_id?: string;
   stage?: string;
   at: string;
+  technical_details?: string;
+  judge?: string;
 }
 
 export interface AssessmentRun {
@@ -347,6 +433,8 @@ export interface AssessmentRun {
   id: string;
   created_at: string;
   completed_at?: string;
+  updated_at?: string;
+  revision?: number;
   status: AssessmentRunStatus;
   source: {
     candidates_path: string;

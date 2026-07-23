@@ -15,6 +15,7 @@
     "digest:send": "tsx scripts/sendDigest.ts",
     "test": "vitest run",
     "test:assessment": "vitest run tests/assessment tests/digest",
+    "test:web": "vitest run tests/web",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],

@@ -18,7 +18,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { RadialTree } from "./RadialTree";
 import "./App.css";
 
-type Status = "idle" | "running" | "done" | "failed";
+type Status = "idle" | "running" | "done" | "warning" | "failed";
 
 export default function App() {
   const [seeds, setSeeds] = useState<SeedOption[]>([]);
@@ -40,6 +40,7 @@ export default function App() {
   const [expanding, setExpanding] = useState(false);
   const [assessOpen, setAssessOpen] = useState(false);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
+  const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,11 +100,16 @@ export default function App() {
         if (ev.type === "log") {
           setLogs((prev) => [...prev, ev.line]);
         } else if (ev.type === "done") {
-          setStatus("done");
+          setStatus(
+            ev.assessment_status === "completed_with_errors" ||
+              ev.assessment_status === "interrupted"
+              ? "warning"
+              : "done"
+          );
           if (ev.digestHint) setAssessmentDigest(ev.digestHint);
-          else if (ev.assessmentRunId) {
+          else if (ev.assessmentRunId || ev.run_id) {
             setAssessmentDigest(
-              `output/assessment-runs/${ev.assessmentRunId}/digest.md`
+              `output/assessment-runs/${ev.assessmentRunId ?? ev.run_id}/digest.md`
             );
           }
           unsub();
@@ -319,9 +325,7 @@ export default function App() {
             className="run-btn"
             onClick={() => {
               setAssessOpen(true);
-              setPanelProfile(null);
-              setPanelNode(null);
-              setSelectedNodeId(null);
+              setAssessmentPreselect([]);
             }}
             disabled={status === "running"}
           >
@@ -380,6 +384,10 @@ export default function App() {
           error={panelError}
           expanding={expanding}
           onExpandBranch={onExpandBranch}
+          onAssessCandidate={(candidateId) => {
+            setAssessmentPreselect([candidateId]);
+            setAssessOpen(true);
+          }}
           onClose={() => {
             setPanelProfile(null);
             setPanelNode(null);
@@ -394,6 +402,7 @@ export default function App() {
           digestHint={assessmentDigest}
           onClose={() => setAssessOpen(false)}
           onStartRun={(runId) => void onAssessmentStart(runId)}
+          preselectCandidateIds={assessmentPreselect}
           onError={(message) => {
             setStatus("failed");
             setError(message);

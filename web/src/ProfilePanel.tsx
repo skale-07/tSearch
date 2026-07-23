@@ -1,5 +1,13 @@
-import type { ProfileRecord, TreeNodeSummary } from "./api";
+import { useEffect, useState } from "react";
+import {
+  fetchCandidates,
+  fetchLatestCandidateAssessment,
+  type CandidateAssessmentDetail,
+  type ProfileRecord,
+  type TreeNodeSummary,
+} from "./api";
 import { surfaceScoreToCss } from "./surfaceColor";
+import { AssessmentResultView } from "./AssessmentResultView";
 
 interface Props {
   profile: ProfileRecord | null;
@@ -9,6 +17,7 @@ interface Props {
   expanding: boolean;
   onClose: () => void;
   onExpandBranch?: () => void;
+  onAssessCandidate?: (candidateId: string) => void;
 }
 
 function LinkRow({ href, label }: { href?: string; label: string }) {
@@ -28,7 +37,55 @@ export function ProfilePanel({
   expanding,
   onClose,
   onExpandBranch,
+  onAssessCandidate,
 }: Props) {
+  const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [assessment, setAssessment] = useState<CandidateAssessmentDetail | null>(null);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
+
+  useEffect(() => {
+    const username = profile?.github?.username;
+    if (!username) {
+      setCandidateId(null);
+      setAssessment(null);
+      return;
+    }
+    let cancelled = false;
+    setAssessmentLoading(true);
+    void fetchCandidates()
+      .then((data) => {
+        const candidate = data.candidates.find(
+          (item) => item.github_username?.toLowerCase() === username.toLowerCase()
+        );
+        if (!candidate) {
+          if (!cancelled) {
+            setCandidateId(null);
+            setAssessment(null);
+          }
+          return;
+        }
+        if (!cancelled) setCandidateId(candidate.candidate_id);
+        return fetchLatestCandidateAssessment(candidate.candidate_id)
+          .then((result) => {
+            if (!cancelled) setAssessment(result.assessment);
+          })
+          .catch(() => {
+            if (!cancelled) setAssessment(null);
+          });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCandidateId(null);
+          setAssessment(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAssessmentLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.github?.username]);
   if (!profile && !loading && !error) return null;
 
   const hasLinkedIn = !!(
@@ -250,6 +307,32 @@ export function ProfilePanel({
               {profile.website.email && <p>{profile.website.email}</p>}
             </section>
           )}
+
+          <section className="profile-assessment">
+            <h3>Assessment</h3>
+            {assessmentLoading && <p className="muted">Loading assessment…</p>}
+            {!assessmentLoading && !assessment && (
+              <>
+                <p className="muted">No assessment recorded for this candidate.</p>
+                {candidateId && onAssessCandidate && (
+                  <button type="button" className="expand-btn" onClick={() => onAssessCandidate(candidateId)}>
+                    Assess candidate
+                  </button>
+                )}
+              </>
+            )}
+            {assessment && (
+              <AssessmentResultView
+                assessment={assessment}
+                runId={assessment.assessment_run_id}
+                onRetry={
+                  candidateId && onAssessCandidate
+                    ? () => onAssessCandidate(candidateId)
+                    : undefined
+                }
+              />
+            )}
+          </section>
         </div>
       )}
     </aside>

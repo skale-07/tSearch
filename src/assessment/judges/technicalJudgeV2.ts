@@ -22,6 +22,7 @@ import {
   validateJudgeDimensionsV2,
 } from "../evidence/evidenceValidation.js";
 import { averageScores, toDimensionScoreV2 } from "./scoreUtils.js";
+import { coerceScoredDimensionsForEvidence } from "./normalizeLlmPayload.js";
 
 function assertEvidenceIds(
   ids: string[],
@@ -143,6 +144,30 @@ export async function runTechnicalJudgeV2(input: {
     }
   }
 
+  const allowedEvidence = new Set(input.evidence.map((e) => e.evidence_id));
+  const evidenceStrength = new Map(
+    input.evidence.map((e) => [e.evidence_id, e.strength] as const)
+  );
+  const coerced = coerceScoredDimensionsForEvidence(
+    {
+      ...value,
+      strongest_evidence_ids: (value.strongest_evidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+      counterevidence_ids: (value.counterevidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+      artifact_reconstruction: {
+        ...value.artifact_reconstruction,
+        evidence_ids: (value.artifact_reconstruction.evidence_ids ?? []).filter(
+          (id) => allowedEvidence.has(id)
+        ),
+      },
+    },
+    allowedEvidence,
+    evidenceStrength
+  );
+
   const ownershipConf = Math.min(
     ...input.repositories.map((r) => {
       const cls = r.ownership.support_class;
@@ -162,7 +187,7 @@ export async function runTechnicalJudgeV2(input: {
     rubric_version: TECHNICAL_RUBRIC_VERSION,
     prompt_version: TECHNICAL_PROMPT_VERSION_V2,
     model,
-    ...value,
+    ...coerced,
   };
 
   validateTechnicalResultV2(result, input.evidence, {

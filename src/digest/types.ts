@@ -24,6 +24,10 @@ export interface DigestCandidate {
     rationale: string;
     evidence_ids: string[];
   }>;
+  /** Few-sentence Cory brief naming specific works */
+  brief_rationale?: string;
+  cory_relevance?: string;
+  cory_reasons?: string[];
   technical_summary?: {
     score: number;
     confidence: number;

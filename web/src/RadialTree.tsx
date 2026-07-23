@@ -534,7 +534,7 @@ export function RadialTree({
             } else if (n.hop === 1) {
               setBranchFocusId((prev) => (prev === n.id ? null : n.id));
             } else if (n.hop === 2) {
-              const parent = n.parentId ?? parentOfHop2(n, edges);
+              const parent = n.parentId ?? parentOfHop2(toSummary(n), edges);
               if (parent) setBranchFocusId(parent);
             }
             onSelect(toSummary(n));

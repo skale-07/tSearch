@@ -163,10 +163,13 @@ describe("digest rendering", () => {
         assessment("cand_b", "Bob", 90),
       ],
       discoveredCandidateCount: 20,
+      minPriority: 0,
     });
     expect(digest.candidates[0]?.name).toBe("Bob");
     expect(digest.candidates[0]?.discovery_score).toBe(1.2);
     expect(digest.candidates[0]?.assessment_priority_score).toBe(90);
+    expect(digest.candidates[0]?.brief_rationale).toMatch(/engine/i);
+    expect(digest.candidates[0]?.links.github).toMatch(/github/i);
   });
 
   it("escapes HTML and omits emails", () => {
@@ -176,6 +179,7 @@ describe("digest rendering", () => {
         assessment("cand_x", '<script>alert(1)</script>', 50),
       ],
       discoveredCandidateCount: 1,
+      minPriority: 0,
     });
     // inject email into headline via mutation for escape test
     digest.candidates[0]!.headline = `Hello <img src=x onerror=alert(1)> contact me@secret.com`;
@@ -186,6 +190,7 @@ describe("digest rendering", () => {
     const md = renderMarkdown(digest);
     expect(md).toContain("Discovery score");
     expect(md).toContain("Assessment priority");
+    expect(md).toMatch(/Profiles:/);
   });
 
   it("renderer does not call LLM (pure functions)", () => {
@@ -193,8 +198,25 @@ describe("digest rendering", () => {
       run,
       assessments: [assessment("cand_c", "Cara", 70)],
       discoveredCandidateCount: 5,
+      minPriority: 0,
     });
     expect(renderMarkdown(digest).length).toBeGreaterThan(100);
     expect(renderHtml(digest)).toContain("tSearch");
+  });
+
+  it("filters below min priority and names specific works", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_low", "Low", 20),
+        assessment("cand_high", "High", 80),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 50,
+      topN: 5,
+    });
+    expect(digest.candidates.map((c) => c.name)).toEqual(["High"]);
+    expect(digest.candidates[0]?.strongest_artifacts[0]?.title).toMatch(/engine/);
+    expect(digest.candidates[0]?.brief_rationale).toMatch(/High/);
   });
 });

@@ -96,5 +96,5 @@ export function ensureAssessmentCacheDirs(): void {
 }
 
 export const LEGACY_RUBRIC_BUNDLE_VERSION = "legacy-phase2";
-export const TECHNICAL_JUDGE_IMPLEMENTATION_VERSION = "technical-judge-v1";
+export const TECHNICAL_JUDGE_IMPLEMENTATION_VERSION = "technical-judge-v2";
 export const JUDGE_SCHEMA_VERSION = "judge-schema-v1";

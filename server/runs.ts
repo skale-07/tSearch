@@ -9,6 +9,8 @@ import {
   loadProfile,
   resolveSeedSlugFromTree,
 } from "./tree.js";
+import { readPersistedAssessmentStatus } from "./assessmentApi.js";
+import { prepareAssessmentRun } from "./assessmentApi.js";
 
 export type RunStatus = "running" | "done" | "failed";
 
@@ -272,12 +274,12 @@ function extractAssessmentRunId(logs: string[]): string | null {
 }
 
 export function startAssessmentRun(input: {
-  mode: "selected" | "top_n";
-  candidateIds?: string[];
-  limit?: number;
+  assessmentRunId: string;
   mock?: boolean;
-  inputPath: string;
-}): { runId: string } | { error: string; status: number } {
+  skipDigest?: boolean;
+  resumeArgs?: string[];
+  label?: string;
+}): { runId: string; assessmentRunId: string } | { error: string; status: number } {
   if (activeRunId) {
     return {
       error: `A run is already in progress (${activeRunId}). Wait for it to finish.`,
@@ -285,46 +287,27 @@ export function startAssessmentRun(input: {
     };
   }
 
-  if (!fs.existsSync(input.inputPath)) {
-    return {
-      error: `Candidates file not found at ${input.inputPath}. Run discovery first.`,
-      status: 404,
-    };
-  }
-
   const args = [
     "tsx",
     "scripts/assessCandidates.ts",
-    "--input",
-    input.inputPath,
+    "--resume",
+    input.assessmentRunId,
   ];
-
-  if (input.mode === "selected") {
-    const ids = (input.candidateIds ?? []).map((s) => s.trim()).filter(Boolean);
-    if (!ids.length) {
-      return { error: "mode=selected requires candidateIds", status: 400 };
-    }
-    args.push("--candidates", ids.join(","));
-    args.push("--limit", String(ids.length));
-  } else {
-    const limit = Math.max(1, Math.floor(Number(input.limit ?? 10)));
-    args.push("--limit", String(limit));
-  }
-
-  if (input.mock) {
-    args.push("--mock");
-  }
+  if (input.skipDigest !== false) args.push("--skip-digest");
+  if (input.mock) args.push("--mock");
+  if (input.resumeArgs?.length) args.push(...input.resumeArgs);
 
   const id = crypto.randomBytes(6).toString("hex");
   const run: RunRecord = {
     id,
-    name: input.mode === "selected" ? "assessment:selected" : "assessment:top_n",
+    name: input.label ?? `assessment:${input.assessmentRunId}`,
     country: "",
     status: "running",
     startedAt: new Date().toISOString(),
     logs: [],
     listeners: new Set(),
     kind: "assessment",
+    assessmentRunId: input.assessmentRunId,
   };
   runs.set(id, run);
   activeRunId = id;
@@ -340,42 +323,118 @@ export function startAssessmentRun(input: {
 
   pushLog(
     run,
-    `[ui] started assessment job ${id} mode=${input.mode} input=${input.inputPath}`
+    `[ui] started assessment job ${id} run=${input.assessmentRunId}`
   );
   attachChild(run, child, (code) => {
-    const assessmentRunId = extractAssessmentRunId(run.logs);
-    if (assessmentRunId) run.assessmentRunId = assessmentRunId;
+    const assessmentRunId =
+      run.assessmentRunId ??
+      extractAssessmentRunId(run.logs) ??
+      input.assessmentRunId;
+    run.assessmentRunId = assessmentRunId;
+
+    let assessmentStatus: string | null = null;
+    try {
+      assessmentStatus = readPersistedAssessmentStatus(assessmentRunId);
+    } catch {
+      assessmentStatus = null;
+    }
+
     const digestHint = assessmentRunId
       ? `output/assessment-runs/${assessmentRunId}/digest.md`
       : null;
 
-    if (code === 0) {
+    const exitCode = code ?? 1;
+    const payloadBase = {
+      job_id: id,
+      run_id: assessmentRunId,
+      process_exit_code: exitCode,
+      assessment_status: assessmentStatus,
+      assessmentRunId,
+      digestHint,
+      exitCode,
+    };
+
+    // Never treat exit 0 alone as success — require readable persisted status
+    if (
+      assessmentStatus === "completed" ||
+      assessmentStatus === "completed_with_errors" ||
+      assessmentStatus === "interrupted"
+    ) {
       run.status = "done";
       pushLog(
         run,
-        `[ui] assessment finished ok${
-          assessmentRunId ? ` assessmentRunId=${assessmentRunId}` : ""
-        }`
+        `[ui] assessment finished assessment_status=${assessmentStatus}`
       );
       notifyDone(run, {
         type: "done",
-        assessmentRunId: assessmentRunId ?? null,
-        digestHint,
-        exitCode: code,
+        ...payloadBase,
+        ui_tone:
+          assessmentStatus === "completed"
+            ? "success"
+            : "warning",
       });
-    } else {
+      return;
+    }
+
+    if (assessmentStatus === "failed" || exitCode !== 0) {
       run.status = "failed";
-      run.error = `Assessment exited with code ${code}`;
-      pushLog(run, `[ui] assessment failed with exit code ${code}`);
+      run.error =
+        assessmentStatus === "failed"
+          ? "Assessment run failed"
+          : `Assessment exited with code ${exitCode}`;
+      pushLog(run, `[ui] assessment failed: ${run.error}`);
       notifyDone(run, {
         type: "error",
         message: run.error,
-        assessmentRunId: assessmentRunId ?? null,
-        digestHint,
-        exitCode: code,
+        ...payloadBase,
+        ui_tone: "danger",
       });
+      return;
     }
+
+    // Exit 0 but unreadable / nonterminal status — never success
+    run.status = "failed";
+    run.error =
+      "Assessment process exited but persisted run status was unreadable or nonterminal";
+    pushLog(run, `[ui] ${run.error}`);
+    notifyDone(run, {
+      type: "error",
+      message: run.error,
+      ...payloadBase,
+      assessment_status: null,
+      ui_tone: "danger",
+    });
   });
 
-  return { runId: id };
+  return { runId: id, assessmentRunId: input.assessmentRunId };
+}
+
+/** @deprecated Prefer prepareAssessmentRun + startAssessmentRun with assessmentRunId */
+export function startAssessmentRunLegacy(input: {
+  mode: "selected" | "top_n";
+  candidateIds?: string[];
+  limit?: number;
+  mock?: boolean;
+  inputPath: string;
+}): { runId: string } | { error: string; status: number } {
+  if (input.mode !== "selected") {
+    return {
+      error: "top_n is removed; pass candidate_ids for eligible candidates",
+      status: 400,
+    };
+  }
+  const prepared = prepareAssessmentRun({
+    candidate_ids: input.candidateIds ?? [],
+    mock_llm: input.mock,
+    skip_digest: true,
+    inputPath: input.inputPath,
+  });
+  if ("error" in prepared) return prepared;
+  const started = startAssessmentRun({
+    assessmentRunId: prepared.run_id,
+    mock: prepared.mock_llm,
+    skipDigest: prepared.skip_digest,
+  });
+  if ("error" in started) return started;
+  return { runId: started.runId };
 }

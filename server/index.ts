@@ -5,9 +5,20 @@ import {
   getActiveRunId,
   getRun,
   startAssessmentRun,
+  startAssessmentRunLegacy,
   startBranchRun,
   startRun,
 } from "./runs.js";
+import {
+  assertCandidateInRun,
+  findLatestCandidateAssessment,
+  getAssessmentRunCandidateRows,
+  getAssessmentRunResponse,
+  prepareAssessmentRun,
+  reconcileAbandonedAssessmentRuns,
+  loadAssessmentRun,
+} from "./assessmentApi.js";
+import { loadCandidateAssessment } from "../src/assessment/storage/assessmentRunStore.js";
 import {
   buildTree,
   cookiesExist,
@@ -142,35 +153,180 @@ app.get("/api/candidates", (_req, res) => {
 });
 
 app.post("/api/assessment/runs", (req, res) => {
-  const mode = req.body?.mode as "selected" | "top_n" | undefined;
-  if (mode !== "selected" && mode !== "top_n") {
+  // New contract: { candidate_ids, mock_llm?, skip_digest? }
+  const candidateIdsRaw = req.body?.candidate_ids ?? req.body?.candidateIds;
+  const candidate_ids = Array.isArray(candidateIdsRaw)
+    ? candidateIdsRaw.filter((x: unknown) => typeof x === "string")
+    : [];
+
+  // Legacy top_n / mode support → reject with guidance except selected via legacy
+  if (req.body?.mode === "top_n") {
     res.status(400).json({
-      error: 'Body requires { mode: "selected" | "top_n" }',
+      error:
+        "top_n is removed. Pass candidate_ids for all eligible candidates instead.",
     });
     return;
   }
 
-  const candidateIds = Array.isArray(req.body?.candidateIds)
-    ? req.body.candidateIds.filter((x: unknown) => typeof x === "string")
-    : undefined;
-  const limit =
-    typeof req.body?.limit === "number" && Number.isFinite(req.body.limit)
-      ? req.body.limit
-      : undefined;
-  const mock = Boolean(req.body?.mock);
-
-  const result = startAssessmentRun({
-    mode,
-    candidateIds,
-    limit,
-    mock,
-    inputPath: OUTPUT_PATH,
-  });
-  if ("error" in result) {
-    res.status(result.status).json({ error: result.error });
+  if (!candidate_ids.length && req.body?.mode === "selected") {
+    const legacy = startAssessmentRunLegacy({
+      mode: "selected",
+      candidateIds: Array.isArray(req.body?.candidateIds)
+        ? req.body.candidateIds.filter((x: unknown) => typeof x === "string")
+        : [],
+      mock: Boolean(req.body?.mock ?? req.body?.mock_llm),
+      inputPath: OUTPUT_PATH,
+    });
+    if ("error" in legacy) {
+      res.status(legacy.status).json({ error: legacy.error });
+      return;
+    }
+    res.status(202).json({ job_id: legacy.runId, runId: legacy.runId });
     return;
   }
-  res.status(202).json({ runId: result.runId });
+
+  const prepared = prepareAssessmentRun({
+    candidate_ids,
+    mock_llm: Boolean(req.body?.mock_llm ?? req.body?.mock),
+    skip_digest: req.body?.skip_digest !== false,
+    inputPath: OUTPUT_PATH,
+  });
+  if ("error" in prepared) {
+    res.status(prepared.status).json({ error: prepared.error });
+    return;
+  }
+
+  const started = startAssessmentRun({
+    assessmentRunId: prepared.run_id,
+    mock: prepared.mock_llm,
+    skipDigest: prepared.skip_digest,
+  });
+  if ("error" in started) {
+    res.status(started.status).json({ error: started.error });
+    return;
+  }
+
+  res.status(202).json({
+    run_id: prepared.run_id,
+    job_id: started.runId,
+    status: "queued" as const,
+    requested_count: prepared.requested_count,
+    eligible_count: prepared.eligible_count,
+    skipped_count: prepared.skipped_count,
+    skipped_candidates: prepared.skipped_candidates,
+  });
+});
+
+app.get("/api/assessment/runs/:runId", (req, res) => {
+  const data = getAssessmentRunResponse(req.params.runId);
+  if (!data) {
+    res.status(404).json({ error: "Assessment run not found" });
+    return;
+  }
+  res.json(data);
+});
+
+app.get("/api/assessment/runs/:runId/candidates", (req, res) => {
+  const rows = getAssessmentRunCandidateRows(req.params.runId);
+  if (!rows) {
+    res.status(404).json({ error: "Assessment run not found" });
+    return;
+  }
+  res.json({ candidates: rows });
+});
+
+app.post("/api/assessment/runs/:runId/retry", (req, res) => {
+  if (req.body?.mode !== "failed") {
+    res.status(400).json({ error: 'Body requires { mode: "failed" }' });
+    return;
+  }
+  const run = getAssessmentRunResponse(req.params.runId);
+  if (!run) {
+    res.status(404).json({ error: "Assessment run not found" });
+    return;
+  }
+  const started = startAssessmentRun({
+    assessmentRunId: req.params.runId,
+    mock: run.mock_llm,
+    skipDigest: true,
+    resumeArgs: ["--retry-errors"],
+    label: `assessment:retry-failed:${req.params.runId}`,
+  });
+  if ("error" in started) {
+    res.status(started.status).json({ error: started.error });
+    return;
+  }
+  res.status(202).json({
+    run_id: started.assessmentRunId,
+    job_id: started.runId,
+    status: "queued" as const,
+  });
+});
+
+app.post("/api/assessment/runs/:runId/retry-candidate", (req, res) => {
+  const candidate_id =
+    typeof req.body?.candidate_id === "string"
+      ? req.body.candidate_id.trim()
+      : "";
+  if (!candidate_id) {
+    res.status(400).json({ error: "Body requires { candidate_id }" });
+    return;
+  }
+  const checked = assertCandidateInRun(req.params.runId, candidate_id);
+  if ("error" in checked) {
+    res.status(checked.status).json({ error: checked.error });
+    return;
+  }
+  const run = getAssessmentRunResponse(req.params.runId)!;
+  const started = startAssessmentRun({
+    assessmentRunId: req.params.runId,
+    mock: run.mock_llm,
+    skipDigest: true,
+    resumeArgs: ["--force-candidate", candidate_id],
+    label: `assessment:force:${candidate_id}`,
+  });
+  if ("error" in started) {
+    res.status(started.status).json({ error: started.error });
+    return;
+  }
+  res.status(202).json({
+    run_id: started.assessmentRunId,
+    job_id: started.runId,
+    status: "queued" as const,
+  });
+});
+
+app.get("/api/assessment/runs/:runId/candidates/:candidateId", (req, res) => {
+  const run = loadAssessmentRun(req.params.runId);
+  if (!run) {
+    res.status(404).json({ error: "Assessment run not found" });
+    return;
+  }
+  if (!run.candidate_ids.includes(req.params.candidateId)) {
+    res.status(404).json({ error: "Candidate not in this run" });
+    return;
+  }
+  const record = loadCandidateAssessment(
+    req.params.runId,
+    req.params.candidateId
+  );
+  if (!record) {
+    res.status(404).json({ error: "Assessment record not found yet" });
+    return;
+  }
+  res.json({ run_id: req.params.runId, assessment: record });
+});
+
+app.get("/api/candidates/:candidateId/assessment", (req, res) => {
+  const found = findLatestCandidateAssessment(req.params.candidateId);
+  if (!found) {
+    res.status(404).json({ error: "No assessment found for candidate" });
+    return;
+  }
+  res.json({
+    run_id: found.run_id,
+    assessment: found.record,
+  });
 });
 
 app.get("/api/runs/:id", (req, res) => {
@@ -334,6 +490,12 @@ app.get("/api/trees", (_req, res) => {
 });
 
 app.listen(PORT, () => {
+  const { interrupted } = reconcileAbandonedAssessmentRuns();
+  if (interrupted.length) {
+    console.log(
+      `[api] marked ${interrupted.length} abandoned assessment run(s) interrupted`
+    );
+  }
   console.log(`[api] listening on http://localhost:${PORT}`);
   console.log(`[api] cookies ${cookiesExist() ? "ok" : "MISSING"} @ ${COOKIES_PATH}`);
   console.log(`[api] profiles @ ${PROFILES_DIR}`);

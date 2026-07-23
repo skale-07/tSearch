@@ -20,6 +20,7 @@ import {
   EvidenceValidationError,
   validateJudgeDimensionsV2,
 } from "../evidence/evidenceValidation.js";
+import { coerceScoredDimensionsForEvidence } from "./normalizeLlmPayload.js";
 import { averageScores, toDimensionScoreV2 } from "./scoreUtils.js";
 
 /** Minimal relationship shape until relationships module lands. */
@@ -118,6 +119,24 @@ export async function runCrossArtifactJudge(input: {
       input.rubricBundleVersion ?? CROSS_ARTIFACT_RUBRIC_VERSION,
   });
 
+  const allowedEvidence = new Set(input.evidence.map((e) => e.evidence_id));
+  const evidenceStrength = new Map(
+    input.evidence.map((e) => [e.evidence_id, e.strength] as const)
+  );
+  const coerced = coerceScoredDimensionsForEvidence(
+    {
+      ...value,
+      strongest_evidence_ids: (value.strongest_evidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+      counterevidence_ids: (value.counterevidence_ids ?? []).filter((id) =>
+        allowedEvidence.has(id)
+      ),
+    },
+    allowedEvidence,
+    evidenceStrength
+  );
+
   const result: CrossArtifactJudgeResult = {
     schema_version: "cross-artifact-judge-v1",
     judge_type: "cross_artifact",
@@ -127,7 +146,7 @@ export async function runCrossArtifactJudge(input: {
     rubric_id: CROSS_ARTIFACT_RUBRIC_ID,
     rubric_version: CROSS_ARTIFACT_RUBRIC_VERSION,
     prompt_version: CROSS_ARTIFACT_PROMPT_VERSION,
-    ...value,
+    ...coerced,
   };
   validateCrossArtifactResult(result, input.evidence);
   return result;

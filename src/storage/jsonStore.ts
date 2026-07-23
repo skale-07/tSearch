@@ -25,11 +25,67 @@ function cacheFile(namespace: string, key: string): string {
   return path.join(CACHE_DIR, namespace, `${slug}-${hash}.json`);
 }
 
+function sleepSync(ms: number): void {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    /* brief spin for Windows/OneDrive lock release */
+  }
+}
+
+/**
+ * Atomic JSON write. On Windows, `rename` cannot replace an existing file, and
+ * OneDrive/AV often returns EPERM on the first replace attempt — so we
+ * unlink-then-rename with retries.
+ */
 export function writeJsonAtomic(filePath: string, value: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.tmp`;
+  const tmp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(value, null, 2), "utf-8");
-  fs.renameSync(tmp, filePath);
+
+  const maxAttempts = 8;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      try {
+        fs.renameSync(tmp, filePath);
+        return;
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        // Windows: destination exists → rename fails (EPERM/EEXIST)
+        if (
+          (code === "EPERM" || code === "EEXIST" || code === "EACCES") &&
+          fs.existsSync(filePath)
+        ) {
+          fs.unlinkSync(filePath);
+          fs.renameSync(tmp, filePath);
+          return;
+        }
+        throw err;
+      }
+    } catch (err) {
+      lastErr = err;
+      const code = (err as NodeJS.ErrnoException).code;
+      if (
+        (code === "EPERM" || code === "EACCES" || code === "EBUSY") &&
+        attempt < maxAttempts - 1
+      ) {
+        sleepSync(25 * (attempt + 1));
+        continue;
+      }
+      try {
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+      } catch {
+        /* ignore cleanup */
+      }
+      throw err;
+    }
+  }
+  try {
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  } catch {
+    /* ignore */
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 export function readJson<T>(filePath: string): T | null {

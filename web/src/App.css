@@ -146,6 +146,10 @@ select {
   color: var(--collab);
 }
 
+.status-warning {
+  color: var(--accent);
+}
+
 .status-failed {
   color: var(--danger);
 }
@@ -609,6 +613,331 @@ code {
   margin-top: 1rem;
   font-size: 0.8rem;
   line-height: 1.4;
+}
+
+.assess-progress {
+  margin: 0.9rem 0;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(18, 21, 26, 0.45);
+}
+
+.assess-progress-head,
+.assess-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.status-tone,
+.judge-chip {
+  display: inline-block;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--line);
+}
+
+.status-tone.success,
+.judge-chip.success {
+  color: var(--collab);
+  border-color: rgba(61, 186, 156, 0.45);
+}
+
+.status-tone.warning,
+.judge-chip.warning {
+  color: var(--accent);
+  border-color: rgba(232, 197, 106, 0.45);
+}
+
+.status-tone.danger,
+.judge-chip.danger {
+  color: var(--danger);
+  border-color: rgba(255, 123, 114, 0.45);
+}
+
+.assess-retry {
+  cursor: pointer;
+  background: transparent;
+  font-family: var(--font-body);
+}
+
+.assess-ineligible {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.assess-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.58);
+  z-index: 10;
+}
+
+.assess-modal {
+  width: min(430px, 100%);
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-elev);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.36);
+}
+
+.assess-modal h3 {
+  margin-top: 0;
+}
+
+.assess-modal li,
+.assess-live-toggle {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.assess-live-toggle {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0.8rem 0;
+}
+
+.profile-assessment {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+}
+
+.assessment-partial {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.assessment-priority {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.assessment-judge {
+  margin: 0.7rem 0;
+  padding: 0.55rem;
+  border-left: 2px solid var(--line);
+}
+
+.assessment-judge strong {
+  display: block;
+  text-transform: capitalize;
+  font-size: 0.85rem;
+}
+
+.assessment-judge p {
+  margin: 0.25rem 0;
+}
+
+.assessment-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.assessment-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.status-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.status-pill.success { color: #7dcea0; border-color: #7dcea055; }
+.status-pill.warning { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.status-pill.danger { color: #e07474; border-color: #e0747455; }
+
+.assessment-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assessment-headline {
+  font-family: var(--serif, Fraunces, serif);
+  font-size: 1.05rem;
+  margin: 0.2rem 0;
+}
+
+.assessment-judge-card {
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+}
+
+.assessment-judge-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.assessment-band {
+  font-size: 0.78rem;
+  text-transform: capitalize;
+  color: var(--accent);
+}
+
+.assessment-dim-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.assessment-dim-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1.2fr) 4.5rem 1fr;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  align-items: start;
+}
+
+.assessment-dim-name {
+  text-transform: capitalize;
+}
+
+.assessment-dim-score {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.assessment-dim-rationale {
+  line-height: 1.35;
+}
+
+.assessment-dim-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.assessment-works,
+.assessment-highlights {
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+
+.assessment-works h4,
+.assessment-highlights h4,
+.assessment-errors h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted, #8a8a8a);
+}
+
+.assessment-cite-list {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.assessment-cite-list.compact {
+  font-size: 0.78rem;
+}
+
+.assessment-cite-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+
+.assessment-cite-link:hover {
+  opacity: 0.85;
+}
+
+.assessment-cite-block {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.assessment-highlight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.assessment-highlight-list p {
+  margin: 0.2rem 0 0;
+}
+
+.assessment-reasons {
+  margin: 0.35rem 0 0.2rem 1.1rem;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.assessment-error-details {
+  white-space: pre-wrap;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin: 0.35rem 0 0;
+  max-height: 8rem;
+  overflow: auto;
+}
+
+.assess-row-btn {
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  padding: 0;
+}
+
+.assess-detail {
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.assess-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 720px) {
+  .assessment-dim-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
