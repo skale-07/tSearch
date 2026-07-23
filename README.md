@@ -1,6 +1,6 @@
 # tSearch
 
-Unseen talent discovery: resolve olympiad / named seeds on LinkedIn, enrich from personal sites, expand a GitHub (and Substack) graph, inspect people on a radial tree, run LLM judges on public work, and email a Cory shortlist with profile links and named repos/articles.
+Unseen talent discovery: resolve olympiad / named seeds on LinkedIn, enrich from personal sites, expand a GitHub (and Substack) graph, inspect people on a radial tree, run LLM judges on public work, and email a shortlist with profile links and named repos/articles.
 
 ```text
 login (cookies) → resolve LinkedIn + websites → expand GitHub/Substack (hop-1)
@@ -63,7 +63,7 @@ Do not commit `.env` or `cookies.json`.
 | Persist | `candidates.json`, `profiles/`, `data/people/`, `cache/` | `mergeCandidates.ts`, `profileStore.ts`, `personStore.ts` |
 | UI API | Seeds, trees, profiles, spawn pipeline | `server/index.ts`, `server/runs.ts`, `server/tree.ts` |
 | Assess | LLM judges on frozen candidate IDs | `src/assessment/` |
-| Digest | Top-N Cory brief + Resend | `src/digest/` |
+| Digest | Top-N brief + Resend | `src/digest/` |
 
 ---
 
@@ -158,7 +158,7 @@ UI only offers expand when the hop-1 node has a LinkedIn URL (`can_expand` in `s
 | `data/people/<slug>.json` | Accumulating person metadata (seeds + olympiad pedigree) |
 | `cache/**` | LinkedIn / website / GitHub / Substack JSON caches |
 
-#### Discovery score (`final_score`) — not Cory priority
+#### Discovery score (`final_score`)
 
 From [`computeScore`](src/scoring/computeScore.ts):
 
@@ -171,7 +171,7 @@ From [`computeScore`](src/scoring/computeScore.ts):
 | `identity` | `identity_confidence * 0.2` |
 | **`final_score`** | Sum of the five |
 
-Assessment copies this into `source_snapshot.discovery_score` for display only. Ranking for Cory uses assessment **priority_score**.
+Assessment copies this into `source_snapshot.discovery_score` for display only. Ranking for uses assessment **priority_score**.
 
 ### Candidate JSON shape (abridged)
 
@@ -241,7 +241,7 @@ Or use **Assess** in the UI (`POST /api/assessment/runs`).
 Per candidate (see [`assessCandidate.ts`](src/assessment/assessCandidate.ts)):
 
 1. Collect GitHub repos (selection + artifact fetch) and/or blog articles  
-2. Technical + writing judges (parallel when both apply); then cross-artifact / Cory when linked  
+2. Technical + writing judges (parallel when both apply); then cross-artifact / when linked  
 3. Synthesis → `priority_score`; persist under `output/assessment-runs/<arun_…>/`  
 4. UI shows named linked citations from `artifacts.references` / evidence  
 
@@ -253,7 +253,7 @@ Judges coerce scored dimensions missing evidence IDs (demote / backfill) rather 
 
 ---
 
-## Cory digest
+## Email digest
 
 Built from a finished assessment run (**no** extra LLM). Selects priority ≥ `DIGEST_MIN_PRIORITY` (default **50**), top 5–10 (`DIGEST_TOP_N`). Each card: GitHub / LinkedIn / website links + brief naming specific repos/articles ([`buildCoryBrief`](src/digest/buildCoryBrief.ts)).
 
