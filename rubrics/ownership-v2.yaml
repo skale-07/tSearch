@@ -1,0 +1,193 @@
+rubric_id: ownership-v2
+version: 2.0.0
+construct: candidate_ownership
+description: Assess how strongly public evidence supports that the candidate personally owns or
+  drove the technical work under review. Ownership is separate from artifact quality.
+dimensions:
+  - dimension_id: identity_attribution
+    description: Strength of linkage between the candidate identity and the attributable author of
+      observed contributions.
+    applicable_artifacts: &a1
+      - github_repository
+    anchors:
+      - score: 0
+        description: No usable identity match between candidate and contribution authors.
+      - score: 1
+        description: Weak or ambiguous identity match (similar name only, conflicting logins).
+      - score: 3
+        description: Consistent login/email/name match with moderate residual ambiguity.
+      - score: 5
+        description: Exact or near-exact identity match across author fields with no material conflict.
+    strong_evidence_examples:
+      - Exact GitHub login match on commits/PRs
+      - Verified author email mapped to candidate
+      - Repo owner login equals candidate username with matching commit authors
+    weak_evidence_examples:
+      - Display-name similarity without login match
+      - Single coincidental email domain match
+    counterevidence_examples:
+      - Contribution authors clearly belong to a different person
+      - Multiple conflicting logins with no resolution
+    prohibited_shortcuts:
+      - Treat repo star count as identity evidence
+      - Assume owner username means all commits are theirs without checking authors
+  - dimension_id: observable_contribution_volume
+    description: Whether attributable commits, PRs, or equivalent actions demonstrate real participation
+      volume relative to the sampled repository history.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No attributable commits, PRs, or equivalent actions.
+      - score: 1
+        description: Sparse attributable activity (one-off commit/PR).
+      - score: 3
+        description: Repeated attributable commits/PRs across a meaningful sample.
+      - score: 5
+        description: Substantial attributable volume relative to repository sample, not a token presence.
+    strong_evidence_examples:
+      - Candidate commit share computed against repository-level denominator
+      - Multiple merged PRs authored by candidate
+    weak_evidence_examples:
+      - One README typo commit
+      - Presence in contributors list without commit/PR detail
+    counterevidence_examples:
+      - All sampled commits authored by others
+      - Bot/automation account authored the bulk of history
+    prohibited_shortcuts:
+      - Use followers or stars as contribution volume
+      - Treat total repo commits as candidate commits
+  - dimension_id: core_technical_contribution
+    description: Evidence the candidate changed central technical files/mechanisms rather than only
+      peripheral docs, configs, or chores.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No evidence of candidate changes to core technical paths.
+      - score: 1
+        description: Only peripheral or non-central file changes attributable to candidate.
+      - score: 3
+        description: Attributable changes touch selected central implementation paths.
+      - score: 5
+        description: Repeated attributable changes to core mechanisms/architecture files with changed-file
+          proof.
+    strong_evidence_examples:
+      - Candidate PR diffs altering selected core source files
+      - Blame/line attribution on central modules
+    weak_evidence_examples:
+      - Candidate touched only docs/, .github/, or formatting
+    counterevidence_examples:
+      - Central files exist but no changed-file evidence ties them to candidate
+      - Selected files treated as authored solely because they were collected
+    prohibited_shortcuts:
+      - Equate file selection with authorship
+      - Score high from repo ownership alone
+  - dimension_id: responsibility_and_maintenance
+    description: "Signals of ongoing responsibility: reviews, releases, CODEOWNERS, maintainer role, or
+      explicit contribution statements."
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No responsibility signals beyond optional code authorship.
+      - score: 1
+        description: Weak or nominal responsibility signal without corroboration.
+      - score: 3
+        description: Clear review/release/CODEOWNERS/maintainer evidence alongside contributions.
+      - score: 5
+        description: Multiple independent responsibility signals showing sustained stewardship.
+    strong_evidence_examples:
+      - Candidate listed in CODEOWNERS for core paths
+      - Candidate authored releases and reviewed PRs
+    weak_evidence_examples:
+      - Single review emoji reaction
+      - Self-assigned label without activity
+    counterevidence_examples:
+      - Another maintainer owns releases and reviews while candidate only opens minor PRs
+    prohibited_shortcuts:
+      - Infer maintainer status from bio text alone
+      - Treat org membership as ownership
+  - dimension_id: contribution_continuity
+    description: Duration and recurrence of candidate involvement rather than a short burst.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No dated continuity information.
+      - score: 1
+        description: Single short burst of activity.
+      - score: 3
+        description: Activity spans multiple weeks/months with recurrence.
+      - score: 5
+        description: Long contribution span with repeated active weeks and post-release maintenance.
+    strong_evidence_examples:
+      - Active weeks computed from dated commits/PRs
+      - Post-release maintenance commits by candidate
+    weak_evidence_examples:
+      - Two commits on consecutive days only
+    counterevidence_examples:
+      - Imported history creates false long span
+      - Squash-merge collapses distinguishable continuity
+    prohibited_shortcuts:
+      - Use account age as continuity
+      - Assume continuity from README last-updated date
+  - dimension_id: provenance_integrity
+    description: Degree to which provenance risks (fork/template/generated/vendored/imported history)
+      undermine ownership claims.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Dominant provenance risks make ownership unverifiable.
+      - score: 1
+        description: Material provenance risks with little mitigating original work.
+      - score: 3
+        description: Some risks present but candidate original work remains identifiable.
+      - score: 5
+        description: Low provenance risk; observable work is not explained by scaffold/template/vendor import.
+    strong_evidence_examples:
+      - Non-fork original repo with candidate core diffs
+      - Generated/vendored paths excluded from ownership claims
+    weak_evidence_examples:
+      - Fork with only dependency bumps
+      - Template README retained with minimal edits
+    counterevidence_examples:
+      - Heavy vendor/copy of upstream with cosmetic renames
+      - Course assignment skeleton dominates diff
+    prohibited_shortcuts:
+      - Ignore fork flag because candidate is owner
+      - Treat generated code volume as personal depth
+prohibited_inferences:
+  - Equating repository ownership or stars with primary creation of core mechanisms
+  - Treating selected central files as candidate-authored without changed-file or blame evidence
+  - Computing contribution share with candidate-commit count as the denominator
+  - Inferring high ownership from scaffold-only or template repositories
+  - Claiming confirmed creator language when identity support is low
+confidence_caps:
+  - rule: identity_support is low
+    max_confidence: 0.25
+  - rule: no direct_core_contribution_present
+    max_confidence: 0.55
+  - rule: high provenance risk (fork/template/generated/vendored dominant)
+    max_confidence: 0.45
+  - rule: evidence_coverage is low
+    max_confidence: 0.5
+abstention_rules:
+  - condition: identity_support is low
+    action: return insufficient_public_evidence; do not assign high/medium ownership
+  - condition: no attributable commits, PRs, reviews, releases, CODEOWNERS, or contribution statements
+    action: return insufficient_public_evidence
+  - condition: repository sample too thin to estimate share or core contribution
+    action: cap at low/medium support and mark missing_information
+evidence_requirements:
+  - when: claiming high_ownership_support
+    require: direct core contribution evidence plus exact/high identity support
+  - when: reporting candidate_commit_share
+    require: repository-level sampled denominator, not candidate-only count
+  - when: listing candidate_core_file_paths
+    require: changed-file or blame evidence tying candidate to those paths
+source_notes:
+  - statement: GitHub commit author fields can be spoofed; login match is stronger than name match.
+    status: platform_constraint
+  - statement: Ownership support classes are provisional product gates pending calibration.
+    status: requires_calibration
+  - statement: Created-repo signal is positive but insufficient alone for high ownership.
+    status: provisional_product_rule
+  - statement: Squash merges and monorepos distort contribution share and centrality.
+    status: empirically_supported

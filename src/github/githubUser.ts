@@ -43,18 +43,37 @@ export function computeGithubContextScore(input: {
   const signals: string[] = [];
   let score = 0;
 
+  // Off-GitHub identity spectrum: LinkedIn + writing weigh more than X/etc.
+  // GitHub itself is not scored (everyone on this graph already has it).
+  const hasLinkedIn = input.social_accounts.some(
+    (s) => s.provider.toLowerCase() === "linkedin" && s.url
+  );
+  if (hasLinkedIn) {
+    score += 4;
+    signals.push("linkedin");
+  }
+
   if (input.blog?.trim()) {
-    score += 3;
+    score += 4;
     signals.push("blog");
   }
-  if (input.twitter_username?.trim()) {
-    score += 2;
+
+  const hasTwitter =
+    !!input.twitter_username?.trim() ||
+    input.social_accounts.some((s) => {
+      const p = s.provider.toLowerCase();
+      return (p === "twitter" || p === "x") && !!s.url;
+    });
+  if (hasTwitter) {
+    score += 1;
     signals.push("twitter");
   }
+
   if (input.email?.trim()) {
-    score += 2;
+    score += 3;
     signals.push("email");
   }
+
   if (input.bio && input.bio.trim().length >= 20) {
     score += 1;
     signals.push("bio");
@@ -67,16 +86,24 @@ export function computeGithubContextScore(input: {
     score += 1;
     signals.push("location");
   }
+
   for (const s of input.social_accounts) {
     const p = s.provider.toLowerCase();
-    if (signals.includes(p)) continue;
-    score += 2;
+    if (
+      !s.url ||
+      p === "linkedin" ||
+      p === "twitter" ||
+      p === "x" ||
+      p === "github" ||
+      signals.includes(p)
+    ) {
+      continue;
+    }
+    score += 1;
     signals.push(p);
   }
-  if (input.repos >= 5) {
-    score += 1;
-    signals.push("repos");
-  }
+
+  void input.repos; // intentionally unused — not an identity surface
 
   return { score, signals };
 }

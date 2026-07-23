@@ -1,0 +1,305 @@
+rubric_id: blog-intellectual-depth-v1
+version: 1.0.0
+construct: writing_intellectual_depth
+description: Assess intellectual depth of technical articles/essays and corpora. Do not reward
+  length, tone, or citation count alone.
+dimensions:
+  - dimension_id: question_quality
+    description: Sharpness and productivity of the question the writing pursues.
+    applicable_artifacts: &a1
+      - technical_article
+      - essay
+    anchors:
+      - score: 0
+        description: No discernible question.
+      - score: 1
+        description: Vague topic without a driving question.
+      - score: 3
+        description: Clear, non-trivial question guiding the piece.
+      - score: 5
+        description: Precise, hard question that structures inquiry and evidence.
+    strong_evidence_examples:
+      - Opening states a falsifiable or decision-relevant question
+      - Question refined as evidence appears
+    weak_evidence_examples:
+      - Generic 'thoughts on AI' framing
+    counterevidence_examples:
+      - Title question never addressed in body
+    prohibited_shortcuts:
+      - Treat clickbait framing as question quality
+  - dimension_id: research_depth
+    description: Depth of investigation into prior art, mechanisms, and relevant context.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No research content.
+      - score: 1
+        description: Surface summary without engagement.
+      - score: 3
+        description: Substantive engagement with relevant prior material.
+      - score: 5
+        description: Deep research that surfaces tensions, gaps, or under-discussed constraints.
+    strong_evidence_examples:
+      - Compares competing explanations with specifics
+      - Traces a claim to primary technical sources
+    weak_evidence_examples:
+      - Link dump without commentary
+    counterevidence_examples:
+      - Misstates sources to fit narrative
+    prohibited_shortcuts:
+      - Score from number of hyperlinks alone
+  - dimension_id: source_quality_and_integration
+    description: Whether sources are appropriate and integrated into the argument rather than listed.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No sources or unusable sources.
+      - score: 1
+        description: Decorative citations or irrelevant prestige sources.
+      - score: 3
+        description: Relevant sources woven into claims.
+      - score: 5
+        description: High-quality sources critically integrated, including dissenting ones.
+    strong_evidence_examples:
+      - Primary papers/docs used to support mechanistic claims
+      - Conflicts between sources explicitly handled
+    weak_evidence_examples:
+      - Footnote theater
+      - Citations unused in argument
+    counterevidence_examples:
+      - Prestigious venue cited for an unrelated claim
+    prohibited_shortcuts:
+      - Reward citation count
+      - Penalize non-academic but primary engineering sources
+  - dimension_id: reasoning_rigor
+    description: Logical structure, validity of inferences, and sensitivity to alternatives.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No reasoning chain.
+      - score: 1
+        description: Assertions without support.
+      - score: 3
+        description: Mostly coherent reasoning with some gaps.
+      - score: 5
+        description: Tight reasoning with explicit assumptions and checked inferences.
+    strong_evidence_examples:
+      - Assumptions stated and tested
+      - Counterarguments addressed without strawmen
+    weak_evidence_examples:
+      - Motivational rhetoric replacing argument
+    counterevidence_examples:
+      - Conclusions that do not follow from stated premises
+    prohibited_shortcuts:
+      - Equate confident tone with rigor
+  - dimension_id: mechanistic_explanation
+    description: Explanation of how something works, not merely that it works or matters.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No mechanism explained.
+      - score: 1
+        description: Label-level description only.
+      - score: 3
+        description: Workable mechanistic account of key steps.
+      - score: 5
+        description: Precise mechanistic explanation with failure modes and boundary conditions.
+    strong_evidence_examples:
+      - Stepwise causal/process explanation tied to artifacts
+      - Explains why a naive mental model fails
+    weak_evidence_examples:
+      - Analogies without mechanism
+      - Buzzword stacks
+    counterevidence_examples:
+      - Claims understanding while contradicting linked code/paper
+    prohibited_shortcuts:
+      - Score from diagram count alone
+  - dimension_id: original_analysis
+    description: Presence of author-generated analysis, not only restatement.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No analysis.
+      - score: 1
+        description: Pure restatement/summary.
+      - score: 3
+        description: Some original synthesis or calculation.
+      - score: 5
+        description: Clear original analysis artifacts (derivations, experiments, novel framing) owned by
+          the author.
+    strong_evidence_examples:
+      - Author-produced figures, measurements, or derivations
+      - Novel framing that changes what evidence matters
+    weak_evidence_examples:
+      - Rephrased release notes
+    counterevidence_examples:
+      - Copied charts presented as original
+    prohibited_shortcuts:
+      - Treat first-person voice as originality
+      - Score from uniqueness of topic alone
+  - dimension_id: cross_domain_synthesis
+    description: Quality of connecting ideas across domains when claimed.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No synthesis.
+      - score: 1
+        description: Name-dropping domains without connection.
+      - score: 3
+        description: Plausible cross-domain link with partial development.
+      - score: 5
+        description: Non-trivial synthesis that transfers constraints/methods usefully.
+    strong_evidence_examples:
+      - Transfers a method with explicit mapping of assumptions
+      - Shows what does and does not carry across domains
+    weak_evidence_examples:
+      - "'X is like Y' one-liners"
+    counterevidence_examples:
+      - Forced analogies that break under constraints
+    prohibited_shortcuts:
+      - Reward multidisciplinary buzzwords
+  - dimension_id: intellectual_honesty
+    description: Willingness to confront weaknesses, contrary evidence, and overclaim risk.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Cannot assess honesty.
+      - score: 1
+        description: One-sided advocacy; contrary evidence ignored.
+      - score: 3
+        description: Some acknowledgment of weaknesses.
+      - score: 5
+        description: Active engagement with contrary evidence and claim scope limits.
+    strong_evidence_examples:
+      - Discusses failed attempts or negative results
+      - Narrows claims when evidence is thin
+    weak_evidence_examples:
+      - A 'Limitations' heading with empty platitudes
+    counterevidence_examples:
+      - Buried caveats contradicted by absolute conclusions
+    prohibited_shortcuts:
+      - Treat presence of Limitations heading as proof of honesty
+  - dimension_id: uncertainty_and_limitations
+    description: Calibration of uncertainty and explicit limits of the analysis.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No uncertainty handling.
+      - score: 1
+        description: False certainty throughout.
+      - score: 3
+        description: Key uncertainties noted.
+      - score: 5
+        description: "Uncertainty is operationalized: what would change the conclusion and what is unknown."
+    strong_evidence_examples:
+      - States what evidence would falsify the claim
+      - Separates established fact from speculation
+    weak_evidence_examples:
+      - Generic 'more research needed'
+    counterevidence_examples:
+      - Hedging language that still asserts strong product claims
+    prohibited_shortcuts:
+      - Reward excessive hedging without content
+  - dimension_id: observable_self_directed_inquiry
+    description: Evidence the author is driving an inquiry rather than performing summaries on demand.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No inquiry signal.
+      - score: 1
+        description: Reactive summary of news/releases.
+      - score: 3
+        description: Author-driven questions pursued across the piece.
+      - score: 5
+        description: Clear self-directed inquiry program visible in questions, methods, and follow-ups.
+    strong_evidence_examples:
+      - Author sets an agenda and pursues it with artifacts
+      - Follow-up posts answer earlier open questions
+    weak_evidence_examples:
+      - Syndicated news rewrite
+    counterevidence_examples:
+      - Inquiry claimed in bio but not in artifacts
+    prohibited_shortcuts:
+      - Infer personality traits from one article
+  - dimension_id: topic_persistence
+    description: Returning to related questions over time with cumulative progress.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Single isolated note; no corpus signal.
+      - score: 1
+        description: One-off piece with no related follow-through.
+      - score: 3
+        description: Multiple related pieces with some continuity.
+      - score: 5
+        description: Sustained topic arc with dated progression and compounding insight.
+    strong_evidence_examples:
+      - Series with explicit callbacks and updated beliefs
+      - Dated corpus spanning months on one problem family
+    weak_evidence_examples:
+      - Many unrelated short posts
+    counterevidence_examples:
+      - Same post republished as 'series'
+    prohibited_shortcuts:
+      - Score from post count alone
+      - Claim persistence from one article
+  - dimension_id: clarity
+    description: Communicative clarity of technical ideas without sacrificing precision.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Unintelligible.
+      - score: 1
+        description: Confused or ambiguous on key points.
+      - score: 3
+        description: Mostly clear with occasional muddle.
+      - score: 5
+        description: Precise and readable; a careful reader can reconstruct the argument.
+    strong_evidence_examples:
+      - Definitions introduced before use
+      - Examples that disambiguate formal claims
+    weak_evidence_examples:
+      - Stylish prose that obscures mechanism
+    counterevidence_examples:
+      - Contradictory terminology across sections
+    prohibited_shortcuts:
+      - Equate simplicity with shallowness
+      - Reward jargon density
+prohibited_inferences:
+  - Scoring article length, vocabulary complexity, or academic tone as depth
+  - Treating citation count or source prestige as sufficient for high scores
+  - Inferring stable personality traits from a single article
+  - Treating a Limitations heading as proof of intellectual honesty
+  - Establishing corpus-level topic persistence from one post
+confidence_caps:
+  - rule: metadata-only or paywalled without full text
+    max_confidence: 0.3
+  - rule: single article used for corpus-level dimensions
+    max_confidence: 0.45
+  - rule: author identity weakly linked to article
+    max_confidence: 0.4
+  - rule: machine-translated text with uncertain fidelity
+    max_confidence: 0.5
+abstention_rules:
+  - condition: full text unavailable
+    action: abstain on reasoning/mechanism dimensions; mark missing_information
+  - condition: only one article in corpus
+    action: do not score topic_persistence above low; prefer abstain/insufficient for corpus claims
+  - condition: article language unsupported for reliable judging
+    action: abstain rather than guess
+evidence_requirements:
+  - when: score >= 4 on original_analysis
+    require: explicit original analysis artifacts (figures, measurements, derivations, experiments)
+  - when: score >= 4 on topic_persistence
+    require: multiple dated artifacts with linked questions/themes
+  - when: claiming belief revision
+    require: explicit textual evidence of changed claims across time
+source_notes:
+  - statement: Crawl/extraction budgets are provisional product rules, not epistemic truth.
+    status: provisional_product_rule
+  - statement: Paywalled metadata-only pages cannot support high intellectual-depth scores.
+    status: platform_constraint
+  - statement: Citation count alone is a weak predictor of reasoning quality.
+    status: empirically_supported
+  - statement: Anchor wording needs human calibration on held-out blogs.
+    status: requires_calibration

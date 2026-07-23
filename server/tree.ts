@@ -14,6 +14,10 @@ import {
   relationDir,
 } from "../src/storage/profileStore.js";
 import { slugify } from "../src/storage/jsonStore.js";
+import {
+  computeIdentitySurfaceScore,
+  SURFACE_SCORE_MAX,
+} from "../src/github/identitySurface.js";
 
 export interface TreeNodeSummary {
   id: string;
@@ -25,6 +29,14 @@ export interface TreeNodeSummary {
   context_signals: string[];
   photo_url?: string;
   linkedin_url?: string;
+  website_url?: string;
+  blog_url?: string;
+  has_linkedin: boolean;
+  has_writing_surface: boolean;
+  /** Off-GitHub identity surface (LinkedIn/writing weighted > X). */
+  surface_score: number;
+  surface_signals: string[];
+  surface_score_max: number;
   can_expand: boolean;
 }
 
@@ -61,6 +73,24 @@ function listNeighborDirs(baseDir: string): string[] {
 
 function toSummary(p: ProfileRecord): TreeNodeSummary {
   const linkedin_url = linkedInUrlFromProfile(p) ?? undefined;
+  const website_url =
+    p.links?.personal_website?.trim() ||
+    p.website?.url?.trim() ||
+    undefined;
+  const blogRaw = p.links?.blog?.trim() || p.github?.blog?.trim() || undefined;
+  const blog_url =
+    blogRaw && blogRaw !== website_url ? blogRaw : website_url ? undefined : blogRaw;
+  const writing = website_url || blogRaw || undefined;
+  const surface = computeIdentitySurfaceScore({
+    linkedin_url,
+    website_url,
+    blog_url: blogRaw,
+    twitter_url: p.links?.twitter_url,
+    twitter_username: p.github?.twitter_username,
+    email: p.links?.email ?? p.github?.email,
+    social_accounts:
+      p.links?.social_accounts ?? p.github?.social_accounts ?? null,
+  });
   const hop = p.hop ?? (p.relation === "seed" ? 0 : 1);
   return {
     id: hop === 2 && p.parents.length > 1 ? `${p.parents[1]}:${p.slug}` : p.slug,
@@ -72,6 +102,13 @@ function toSummary(p: ProfileRecord): TreeNodeSummary {
     context_signals: p.context_signals ?? [],
     photo_url: p.linkedin?.photo_url ?? undefined,
     linkedin_url,
+    website_url,
+    blog_url,
+    has_linkedin: !!linkedin_url,
+    has_writing_surface: !!writing,
+    surface_score: surface.score,
+    surface_signals: surface.signals,
+    surface_score_max: SURFACE_SCORE_MAX,
     can_expand: hop === 1 && !!linkedin_url,
   };
 }

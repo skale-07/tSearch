@@ -1,7 +1,13 @@
 import express from "express";
-import path from "path";
-import { COOKIES_PATH, PROFILES_DIR } from "../src/config.js";
-import { getActiveRunId, getRun, startBranchRun, startRun } from "./runs.js";
+import fs from "fs";
+import { COOKIES_PATH, OUTPUT_PATH, PROFILES_DIR } from "../src/config.js";
+import {
+  getActiveRunId,
+  getRun,
+  startAssessmentRun,
+  startBranchRun,
+  startRun,
+} from "./runs.js";
 import {
   buildTree,
   cookiesExist,
@@ -11,6 +17,12 @@ import {
   type TreeResponse,
 } from "./tree.js";
 import type { ProfileRelation } from "../src/storage/profileStore.js";
+import {
+  githubUsernameFromCandidate,
+  identityFromCandidate,
+} from "../src/assessment/candidateIdentity.js";
+import type { Candidate } from "../src/types.js";
+import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
 
@@ -92,6 +104,75 @@ app.post("/api/runs/branch", (req, res) => {
   res.status(202).json({ runId: result.runId });
 });
 
+app.get("/api/candidates", (_req, res) => {
+  if (!fs.existsSync(OUTPUT_PATH)) {
+    res.status(404).json({
+      error: `Candidates file not found at ${OUTPUT_PATH}. Run discovery first.`,
+      path: OUTPUT_PATH,
+    });
+    return;
+  }
+  try {
+    const loaded = loadCandidatesFromPath(OUTPUT_PATH);
+    const candidates = [...loaded]
+      .sort((a, b) => (b.final_score ?? 0) - (a.final_score ?? 0))
+      .map((c: Candidate) => {
+        const identity = identityFromCandidate(c);
+        const github_username = githubUsernameFromCandidate(c);
+        const website_url =
+          c.linkedin?.personal_website ?? c.website?.url ?? undefined;
+        const blog_url = c.github?.blog ?? c.substack?.url ?? undefined;
+        return {
+          candidate_id: identity.candidate_id,
+          name: c.name,
+          final_score: c.final_score ?? 0,
+          github_username,
+          website_url,
+          blog_url,
+          has_github: Boolean(github_username),
+          has_writing_surface: Boolean(blog_url || website_url),
+        };
+      });
+    res.json({ candidates, path: OUTPUT_PATH });
+  } catch (err) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
+app.post("/api/assessment/runs", (req, res) => {
+  const mode = req.body?.mode as "selected" | "top_n" | undefined;
+  if (mode !== "selected" && mode !== "top_n") {
+    res.status(400).json({
+      error: 'Body requires { mode: "selected" | "top_n" }',
+    });
+    return;
+  }
+
+  const candidateIds = Array.isArray(req.body?.candidateIds)
+    ? req.body.candidateIds.filter((x: unknown) => typeof x === "string")
+    : undefined;
+  const limit =
+    typeof req.body?.limit === "number" && Number.isFinite(req.body.limit)
+      ? req.body.limit
+      : undefined;
+  const mock = Boolean(req.body?.mock);
+
+  const result = startAssessmentRun({
+    mode,
+    candidateIds,
+    limit,
+    mock,
+    inputPath: OUTPUT_PATH,
+  });
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.status(202).json({ runId: result.runId });
+});
+
 app.get("/api/runs/:id", (req, res) => {
   const run = getRun(req.params.id);
   if (!run) {
@@ -106,6 +187,8 @@ app.get("/api/runs/:id", (req, res) => {
     startedAt: run.startedAt,
     finishedAt: run.finishedAt,
     seedSlug: run.seedSlug,
+    assessmentRunId: run.assessmentRunId,
+    kind: run.kind,
     error: run.error,
     logCount: run.logs.length,
   });
@@ -142,7 +225,14 @@ app.get("/api/runs/:id/events", (req, res) => {
 
   if (run.status !== "running") {
     if (run.status === "done") {
-      send({ type: "done", seedSlug: run.seedSlug ?? null });
+      send({
+        type: "done",
+        seedSlug: run.seedSlug ?? null,
+        assessmentRunId: run.assessmentRunId ?? null,
+        digestHint: run.assessmentRunId
+          ? `output/assessment-runs/${run.assessmentRunId}/digest.md`
+          : null,
+      });
     } else {
       send({ type: "error", message: run.error ?? "failed" });
     }

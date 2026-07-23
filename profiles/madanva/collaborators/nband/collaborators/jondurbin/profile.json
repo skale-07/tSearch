@@ -1,0 +1,219 @@
+{
+  "slug": "jondurbin",
+  "name": "Jon Durbin",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "jondurbin",
+    "display_name": "Jon Durbin",
+    "profile_url": "https://github.com/jondurbin",
+    "bio": null,
+    "blog": null,
+    "twitter_username": null,
+    "company": null,
+    "location": null,
+    "email": "jon@jondurbin.com",
+    "social_accounts": [],
+    "context_score": 3,
+    "context_signals": [
+      "email",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "st_durbin",
+        "topics": [],
+        "language": "Solidity",
+        "stars": 0,
+        "pushed_at": "2025-09-09T10:25:05Z"
+      },
+      {
+        "name": "ridges",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-08-05T09:24:33Z"
+      },
+      {
+        "name": "FastDeploy",
+        "topics": [],
+        "language": "C++",
+        "stars": 0,
+        "pushed_at": "2025-06-30T11:32:43Z"
+      },
+      {
+        "name": "comfyui_HiDream-Sampler",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-04-09T11:01:10Z"
+      },
+      {
+        "name": "targon",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-10-27T08:43:56Z"
+      },
+      {
+        "name": "omegalabs-bittensor-subnet",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-10-23T14:17:45Z"
+      },
+      {
+        "name": "LogicNet",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-09-12T19:07:49Z"
+      },
+      {
+        "name": "bittensor",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-08-06T14:11:01Z"
+      },
+      {
+        "name": "omegalabs-anytoany-bittensor",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-06-01T10:46:16Z"
+      },
+      {
+        "name": "openkaito",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-05-24T09:43:30Z"
+      },
+      {
+        "name": "dippy-bittensor-subnet",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-05-11T09:47:14Z"
+      },
+      {
+        "name": "taskiq-redis",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-04-29T11:43:01Z"
+      },
+      {
+        "name": "wombo-bittensor-subnet",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-04-27T09:05:35Z"
+      },
+      {
+        "name": "bagel",
+        "topics": [],
+        "language": "Python",
+        "stars": 326,
+        "pushed_at": "2024-04-11T11:38:49Z"
+      },
+      {
+        "name": "qlora",
+        "topics": [],
+        "language": "Python",
+        "stars": 79,
+        "pushed_at": "2024-04-10T21:51:10Z"
+      },
+      {
+        "name": "airoboros",
+        "topics": [],
+        "language": "Python",
+        "stars": 1051,
+        "pushed_at": "2024-03-07T16:23:51Z"
+      },
+      {
+        "name": "ImageAlchemy",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-02-25T16:33:37Z"
+      },
+      {
+        "name": "trl",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2024-01-08T13:59:15Z"
+      },
+      {
+        "name": "FastChat",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2023-12-24T05:44:47Z"
+      },
+      {
+        "name": "transformers",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-10-25T12:38:06Z"
+      },
+      {
+        "name": "mathjson-scratch",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2023-10-21T09:27:33Z"
+      },
+      {
+        "name": "axolotl",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-09-04T04:19:03Z"
+      },
+      {
+        "name": "llama-recipes",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2023-09-01T13:06:53Z"
+      },
+      {
+        "name": "dre2",
+        "topics": [],
+        "language": "C",
+        "stars": 8,
+        "pushed_at": "2023-07-31T13:31:06Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/jondurbin",
+    "email": "jon@jondurbin.com"
+  },
+  "context_score": 3,
+  "context_signals": [
+    "email",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:29.787Z"
+}

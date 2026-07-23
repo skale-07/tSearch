@@ -1,0 +1,228 @@
+rubric_id: cory-relevance-v1
+version: 1.0.0
+construct: cory_relevance
+description: Reviewer-specific routing rubric for Cory relevance. Separate from general technical or
+  intellectual quality. Hybrid rule-plus-judge inputs; not a trained preference model.
+dimensions:
+  - dimension_id: technical_strength_fit
+    description: Whether technical strength is high enough to be worth Cory review time.
+    applicable_artifacts: &a1
+      - github_repository
+      - technical_article
+      - essay
+      - research_publication
+    anchors:
+      - score: 0
+        description: No technical signal.
+      - score: 1
+        description: Clearly below review bar.
+      - score: 3
+        description: Borderline technical strength; maybe review.
+      - score: 5
+        description: Strong technical evidence that matches Cory review priorities.
+    strong_evidence_examples:
+      - High technical judge support with inspectable mechanisms
+      - Unusual hard problem with real implementation
+    weak_evidence_examples:
+      - Polished portfolio without depth
+    counterevidence_examples:
+      - High stars but scaffold-only repos
+    prohibited_shortcuts:
+      - Route solely on résumé prestige
+      - Equate academic venue with Cory fit
+  - dimension_id: ownership_credibility
+    description: Whether ownership support is credible enough that review is not chasing someone else's work.
+    applicable_artifacts:
+      - github_repository
+    anchors:
+      - score: 0
+        description: Ownership unknowable/insufficient.
+      - score: 1
+        description: Weak ownership; high impostor risk.
+      - score: 3
+        description: Medium ownership support with residual doubt.
+      - score: 5
+        description: High ownership support with core contribution evidence.
+    strong_evidence_examples:
+      - high_ownership_support with direct core contribution
+      - Identity exact/high plus sustained central PRs
+    weak_evidence_examples:
+      - Owner of empty template repo
+    counterevidence_examples:
+      - Strong artifact but low ownership confidence
+    prohibited_shortcuts:
+      - Ignore ownership when technical score is high
+  - dimension_id: writing_intellectual_fit
+    description: Whether writing depth adds routing value for Cory (optional booster, not a gate).
+    applicable_artifacts:
+      - technical_article
+      - essay
+    anchors:
+      - score: 0
+        description: No writing artifacts.
+      - score: 1
+        description: Writing present but shallow/off-target.
+      - score: 3
+        description: Moderately deep writing relevant to technical inquiry.
+      - score: 5
+        description: Strong intellectual writing that sharpens why this candidate matters to Cory.
+    strong_evidence_examples:
+      - Mechanistic essays tied to candidate's own experiments
+      - Honest limitations and belief updates
+    weak_evidence_examples:
+      - SEO listicles
+      - Generic career blogs
+    counterevidence_examples:
+      - Strong writing about others' work with no candidate artifacts
+    prohibited_shortcuts:
+      - Require writing for GitHub-only candidates
+      - Zero a strong builder for missing blog
+  - dimension_id: cross_artifact_inquiry_fit
+    description: Whether cross-artifact inquiry patterns increase review interest.
+    applicable_artifacts:
+      - github_repository
+      - technical_article
+      - essay
+      - research_publication
+      - project_page
+    anchors:
+      - score: 0
+        description: No cross-artifact signal.
+      - score: 1
+        description: Scattered unrelated artifacts.
+      - score: 3
+        description: Some inquiry thread across artifacts.
+      - score: 5
+        description: Compelling closed-loop inquiry across writing and building.
+    strong_evidence_examples:
+      - Question → repo → follow-up results narrative
+      - Deterministic links across artifacts
+    weak_evidence_examples:
+      - Keyword-only thematic overlap
+    counterevidence_examples:
+      - Fabricated coherence without relationships
+    prohibited_shortcuts:
+      - Penalize GitHub-only candidates for missing cross-artifact evidence
+  - dimension_id: unusual_problem_attraction
+    description: Attraction of unusual substantive problems Cory is more likely to care about.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No unusualness signal.
+      - score: 1
+        description: Commonplace clone/tutorial work.
+      - score: 3
+        description: Somewhat distinctive problem framing.
+      - score: 5
+        description: Highly unusual substantive problem aligned with Cory curiosity patterns.
+    strong_evidence_examples:
+      - Rare constraint-driven systems/research problem with evidence
+      - Odd but rigorous experimental design
+    weak_evidence_examples:
+      - Aesthetic weirdness without technical substance
+    counterevidence_examples:
+      - Another chatbot wrapper marketed as novel
+    prohibited_shortcuts:
+      - Score from edgy naming alone
+  - dimension_id: evidence_completeness_for_review
+    description: Whether evidence is complete enough for a productive human review.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Evidence too thin to review.
+      - score: 1
+        description: Major gaps block assessment.
+      - score: 3
+        description: Enough evidence for a cautious review.
+      - score: 5
+        description: Evidence pack is review-ready with clear uncertainties labeled.
+    strong_evidence_examples:
+      - Artifacts, evidence_ids, and uncertainties packaged cleanly
+      - Ownership and technical claims separately supported
+    weak_evidence_examples:
+      - Broken links / empty repos
+    counterevidence_examples:
+      - High claims with missing evidence_ids
+    prohibited_shortcuts:
+      - Treat long digests as completeness
+  - dimension_id: sparse_evidence_upside
+    description: Upside potential when evidence is sparse but what exists is unusually strong.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No upside case.
+      - score: 1
+        description: Sparse and weak.
+      - score: 3
+        description: Sparse but intriguing signal.
+      - score: 5
+        description: Sparse yet exceptional signal justifying high-priority human look.
+    strong_evidence_examples:
+      - One deep unusual repo with strong ownership and clear mechanism
+      - Thin public surface but exceptional inspectable core
+    weak_evidence_examples:
+      - Sparse and generic
+    counterevidence_examples:
+      - Mystery candidate with no inspectable artifacts
+    prohibited_shortcuts:
+      - Romanticize sparsity without strength
+      - Confuse incomplete identity with upside
+  - dimension_id: stage_and_calibration_alignment
+    description: Fit to current Cory stage preferences and calibration weights.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Unscorable against current calibration.
+      - score: 1
+        description: Misaligned with current Cory routing priorities.
+      - score: 3
+        description: Partial alignment with calibration weights.
+      - score: 5
+        description: Strong alignment with current Cory calibration and stage focus.
+    strong_evidence_examples:
+      - Matches current calibration_version priorities
+      - Stage-appropriate (e.g., independent builder vs research-first) for active search
+    weak_evidence_examples:
+      - Excellent candidate for a different reviewer's taste only
+    counterevidence_examples:
+      - Uses outdated calibration weights
+    prohibited_shortcuts:
+      - Hard-code permanent personal taste as universal quality
+prohibited_inferences:
+  - Treating Cory relevance as a universal quality score
+  - Zeroing GitHub-only candidates for missing writing/cross-artifact domains
+  - Using publication counts, venue prestige, or citations as primary routing features
+  - Training or pretending a complex preference model from this rubric alone
+  - Collapsing ownership uncertainty into high relevance
+confidence_caps:
+  - rule: identity risk / wrong-person suspicion
+    max_confidence: 0.2
+  - rule: ownership support insufficient_public_evidence
+    max_confidence: 0.35
+  - rule: calibration_version missing or stale
+    max_confidence: 0.5
+  - rule: overall evidence completeness low
+    max_confidence: 0.45
+abstention_rules:
+  - condition: identity correctness in doubt
+    action: relevance insufficient_evidence; human_review_recommended true
+  - condition: technical and ownership both insufficient
+    action: relevance low or insufficient_evidence; do not boost on writing alone
+  - condition: inputs missing required judge outputs for hybrid rule
+    action: abstain and list missing inputs rather than invent scores
+evidence_requirements:
+  - when: relevance is high
+    require: reasons[] with evidence_ids covering technical and ownership (or explicit sparse-upside case)
+  - when: human_review_recommended is false
+    require: no outstanding identity risk flags
+  - when: citing calibration alignment
+    require: calibration_version populated
+source_notes:
+  - statement: Cory relevance is reviewer-specific routing, not general excellence.
+    status: provisional_product_rule
+  - statement: Calibration weights must be versioned and held out tested.
+    status: requires_calibration
+  - statement: Missing blog must not erase strong technical+ownership evidence.
+    status: empirically_supported
+  - statement: Public evidence under-samples private work; sparse-upside cases remain necessary.
+    status: platform_constraint

@@ -1,0 +1,407 @@
+{
+  "slug": "cataluna84",
+  "name": "Mayank Bhaskar",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "cataluna84",
+    "display_name": "Mayank Bhaskar",
+    "profile_url": "https://github.com/cataluna84",
+    "bio": "Founder & CEO 🐱‍👤 | Weekly @TWIML Generative AI meetups 🗣 | @Cohere-Labs Community Lead & Researcher 👥 | @LucknowAI | Prev Infobeans, TCS",
+    "blog": "https://www.linkedin.com/services/page/80043633192678670a/",
+    "twitter_username": "cataluna84",
+    "company": "OM Enterprises — AI Research & Engineering Labs",
+    "location": "India",
+    "email": "mayankbhaskar007@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/cataluna84"
+      },
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/cataluna84/"
+      },
+      {
+        "provider": "generic",
+        "url": "https://www.kaggle.com/cataluna84"
+      },
+      {
+        "provider": "reddit",
+        "url": "https://www.reddit.com/user/CATALUNA84/"
+      }
+    ],
+    "context_score": 17,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "email",
+      "bio",
+      "company",
+      "location",
+      "linkedin",
+      "generic",
+      "reddit",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "llm-architectures",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-20T18:00:29Z"
+      },
+      {
+        "name": "lid",
+        "topics": [
+          "benchmark",
+          "huggingface",
+          "language-identification",
+          "lid",
+          "lora",
+          "mechanistic-interpretability",
+          "multilingual",
+          "pytorch",
+          "quantization",
+          "transformer"
+        ],
+        "language": "Jupyter Notebook",
+        "stars": 1,
+        "pushed_at": "2026-07-13T08:15:14Z"
+      },
+      {
+        "name": "arc-agi-3",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 3,
+        "pushed_at": "2026-07-13T01:14:38Z"
+      },
+      {
+        "name": "cataluna84",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-23T06:37:21Z"
+      },
+      {
+        "name": "football-ntap",
+        "topics": [
+          "deberta-v3",
+          "ensemble",
+          "football",
+          "gemma",
+          "huggingface-transformers",
+          "mixture-of-experts",
+          "mlm-pretraining",
+          "multiple-choice-qa",
+          "nlp",
+          "pytorch",
+          "qwen3",
+          "self-consistency",
+          "shipd-ai",
+          "text-classification",
+          "weights-and-biases"
+        ],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-04-21T09:29:00Z"
+      },
+      {
+        "name": "crosslingual-emergent-misalignment",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2026-04-12T11:29:05Z"
+      },
+      {
+        "name": "codec-finetuning",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-03-21T18:33:02Z"
+      },
+      {
+        "name": "VisionInterpretability",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 1,
+        "pushed_at": "2026-03-11T02:28:18Z"
+      },
+      {
+        "name": "Generative_Deep_Learning",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 3,
+        "pushed_at": "2026-02-06T15:32:26Z"
+      },
+      {
+        "name": "jamba",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-10-24T16:56:53Z"
+      },
+      {
+        "name": "dolma",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-04-15T15:55:22Z"
+      },
+      {
+        "name": "s4",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 3,
+        "pushed_at": "2025-02-25T18:52:00Z"
+      },
+      {
+        "name": "Google-Startup-School-AI-Q1-2025",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2025-02-25T18:33:06Z"
+      },
+      {
+        "name": "S5",
+        "topics": [],
+        "language": "Python",
+        "stars": 4,
+        "pushed_at": "2025-02-22T14:35:05Z"
+      },
+      {
+        "name": "mamba",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2025-01-18T04:25:57Z"
+      },
+      {
+        "name": "beyond-jupyter",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-09-11T06:40:15Z"
+      },
+      {
+        "name": "ARENA_3.0",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-09-08T20:48:24Z"
+      },
+      {
+        "name": "AI-Alignment",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2024-09-02T14:37:42Z"
+      },
+      {
+        "name": "practical-dl-for-coders-part-2",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2023-06-20T13:44:25Z"
+      },
+      {
+        "name": "pytorch-Deep-Learning",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 2,
+        "pushed_at": "2021-09-23T07:33:12Z"
+      },
+      {
+        "name": "hpp-book",
+        "topics": [],
+        "language": "Python",
+        "stars": 3,
+        "pushed_at": "2021-03-30T07:04:43Z"
+      },
+      {
+        "name": "handson-ml2",
+        "topics": [
+          "handson-ml2",
+          "machine-learning",
+          "tensorflow",
+          "tensorflow-tutorials"
+        ],
+        "language": "Jupyter Notebook",
+        "stars": 2,
+        "pushed_at": "2021-03-30T02:29:27Z"
+      },
+      {
+        "name": "Miscc",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-09-08T11:46:29Z"
+      },
+      {
+        "name": "MixtureDensityNetworks",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 2,
+        "pushed_at": "2020-08-23T12:53:27Z"
+      },
+      {
+        "name": "ts_tutorial",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-08-12T15:50:34Z"
+      },
+      {
+        "name": "awesome-ml-courses",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2020-07-21T07:11:57Z"
+      },
+      {
+        "name": "annotated-transformer",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2020-06-01T13:50:22Z"
+      },
+      {
+        "name": "WorldModels_v1.0",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 7,
+        "pushed_at": "2020-06-01T12:21:29Z"
+      },
+      {
+        "name": "ClassicPhotos",
+        "topics": [],
+        "language": "Swift",
+        "stars": 0,
+        "pushed_at": "2020-03-20T01:03:21Z"
+      },
+      {
+        "name": "dont_be_turtle",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2020-03-20T00:53:54Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://www.linkedin.com/uas/login?session_redirect=https%3A%2F%2Fwww.linkedin.com%2Fservices%2Fpage%2F80043633192678670a%2F",
+    "scraped_at": "2026-07-22T23:56:13.133Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": "https://www.linkedin.com/login",
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://static.licdn.com/aero-v1/sc/h/akt4ae504epesldzj74dzred8",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BLynmkfy.css",
+      "https://static.licdn.com/scds/common/u/images/logos/favicons/v1/favicon.ico",
+      "https://static.licdn.com/aero-v1/sc/h/assets/kuu7tUnu.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DXbBiiH8.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BffWzDKV.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BEN1OkR1.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DyuiOAFV.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DWgBfb85.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/ddM9HprU.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/B9fiMAnG.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/B5BL-RZl.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BONz-hQ2.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BsncGD6L.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DDVhubi9.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/CM5iuG5H.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/CZ8-Yjgr.js"
+    ],
+    "all_links": [
+      "https://static.licdn.com/aero-v1/sc/h/akt4ae504epesldzj74dzred8",
+      "https://www.linkedin.com/login",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BLynmkfy.css",
+      "https://www.linkedin.com",
+      "https://www.linkedin.com/signup/cold-join",
+      "https://www.linkedin.com/legal/user-agreement",
+      "https://www.linkedin.com/legal/privacy-policy",
+      "https://www.linkedin.com/legal/cookie-policy",
+      "https://www.linkedin.com/passwordReset/?session_redirect=https%3A%2F%2Fwww.linkedin.com%2Fservices%2Fpage%2F80043633192678670a%2F",
+      "https://www.linkedin.com/help/linkedin/answer/a403269",
+      "https://www.linkedin.com/legal/copyright-policy",
+      "https://www.linkedin.com/help/linkedin",
+      "https://static.licdn.com/scds/common/u/images/logos/favicons/v1/favicon.ico",
+      "https://static.licdn.com/aero-v1/sc/h/assets/kuu7tUnu.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DXbBiiH8.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BffWzDKV.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BEN1OkR1.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DyuiOAFV.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DWgBfb85.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/ddM9HprU.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/B9fiMAnG.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/B5BL-RZl.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BONz-hQ2.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/BsncGD6L.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/DDVhubi9.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/CM5iuG5H.js",
+      "https://static.licdn.com/aero-v1/sc/h/assets/CZ8-Yjgr.js"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/cataluna84",
+    "linkedin_url": "https://www.linkedin.com/login",
+    "personal_website": "https://www.linkedin.com/uas/login?session_redirect=https%3A%2F%2Fwww.linkedin.com%2Fservices%2Fpage%2F80043633192678670a%2F",
+    "blog": "https://www.linkedin.com/services/page/80043633192678670a/",
+    "twitter_url": "https://x.com/cataluna84",
+    "email": "mayankbhaskar007@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://x.com/cataluna84"
+      },
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/cataluna84/"
+      },
+      {
+        "provider": "generic",
+        "url": "https://www.kaggle.com/cataluna84"
+      },
+      {
+        "provider": "reddit",
+        "url": "https://www.reddit.com/user/CATALUNA84/"
+      }
+    ]
+  },
+  "context_score": 17,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "email",
+    "bio",
+    "company",
+    "location",
+    "linkedin",
+    "generic",
+    "reddit",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.033Z"
+}

@@ -1,0 +1,367 @@
+{
+  "slug": "jacobkimmel",
+  "name": "Jacob Kimmel",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "jacobkimmel",
+    "display_name": "Jacob Kimmel",
+    "profile_url": "https://github.com/jacobkimmel",
+    "bio": "Co-founder & President, @NewLimit | previously Principal Investigator @calico, PhD @UCSF | Interested in aging, genomics, machine learning",
+    "blog": "jck.bio",
+    "twitter_username": "jacobkimmel",
+    "company": "@newlimit",
+    "location": "san francisco, ca",
+    "email": "jacobkimmel@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/jacobkimmel"
+      }
+    ],
+    "context_score": 11,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "email",
+      "bio",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "jacobkimmel.github.io",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2026-07-11T18:19:08Z"
+      },
+      {
+        "name": "zebrahub-paper-umap-3d",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-09-13T23:01:09Z"
+      },
+      {
+        "name": "anndata",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-02-23T15:19:09Z"
+      },
+      {
+        "name": "scvi-tutorials",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-05-30T16:08:00Z"
+      },
+      {
+        "name": "scVI",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2023-04-26T05:20:45Z"
+      },
+      {
+        "name": "scg_lib_structs",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2022-11-15T09:58:31Z"
+      },
+      {
+        "name": "sc_progress",
+        "topics": [],
+        "language": "HTML",
+        "stars": 0,
+        "pushed_at": "2022-08-11T03:36:36Z"
+      },
+      {
+        "name": "DnaChisel",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2022-05-05T16:33:07Z"
+      },
+      {
+        "name": "coolname",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2022-01-25T17:56:05Z"
+      },
+      {
+        "name": "non-parametric-transformers",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2021-12-16T01:33:38Z"
+      },
+      {
+        "name": "GSEA.py",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-05-10T16:02:26Z"
+      },
+      {
+        "name": "CellBender",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-04-02T01:29:39Z"
+      },
+      {
+        "name": "scanpy",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-04-01T06:56:27Z"
+      },
+      {
+        "name": "kb_python",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-12-07T23:42:47Z"
+      },
+      {
+        "name": "supermariopy",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-11-08T08:09:15Z"
+      },
+      {
+        "name": "ps_decomp",
+        "topics": [
+          "fft",
+          "fourier-transform",
+          "image-analysis",
+          "microscopy"
+        ],
+        "language": "Python",
+        "stars": 24,
+        "pushed_at": "2020-07-28T02:42:04Z"
+      },
+      {
+        "name": "pytorch_modelsize",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 360,
+        "pushed_at": "2020-06-03T16:52:18Z"
+      },
+      {
+        "name": "myodyn",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-04-02T17:24:10Z"
+      },
+      {
+        "name": "set_transformer",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-02-11T03:12:22Z"
+      },
+      {
+        "name": "hmR",
+        "topics": [],
+        "language": "R",
+        "stars": 0,
+        "pushed_at": "2020-01-05T00:25:14Z"
+      },
+      {
+        "name": "fcdensenet_pytorch",
+        "topics": [],
+        "language": "Python",
+        "stars": 10,
+        "pushed_at": "2020-01-02T00:35:05Z"
+      },
+      {
+        "name": "musc_tracker",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 1,
+        "pushed_at": "2020-01-01T22:08:29Z"
+      },
+      {
+        "name": "GSEApy",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2019-04-05T21:39:07Z"
+      },
+      {
+        "name": "DEprior",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2019-03-06T15:48:58Z"
+      },
+      {
+        "name": "lanternfish",
+        "topics": [
+          "biology",
+          "cell",
+          "cnn",
+          "convolutional-neural-networks",
+          "deep-learning",
+          "machine-learning",
+          "motility"
+        ],
+        "language": "Python",
+        "stars": 14,
+        "pushed_at": "2019-01-26T05:07:00Z"
+      },
+      {
+        "name": "anchor",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2018-10-26T00:01:43Z"
+      },
+      {
+        "name": "tools",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2018-08-23T00:32:29Z"
+      },
+      {
+        "name": "velocyto.py",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2018-08-22T08:53:23Z"
+      },
+      {
+        "name": "seurat",
+        "topics": [],
+        "language": "R",
+        "stars": 0,
+        "pushed_at": "2018-04-19T18:54:06Z"
+      },
+      {
+        "name": "DeepCell",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 2,
+        "pushed_at": "2018-01-17T00:49:27Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://jck.bio/",
+    "scraped_at": "2026-07-22T23:56:16.249Z",
+    "github_url": "https://github.com/jacobkimmel",
+    "substack_url": null,
+    "twitter_url": "https://twitter.com/jacobkimmel",
+    "linkedin_url": "https://linkedin.com/in/jacob-kimmel",
+    "email": "jacob@jck.bio",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://blog.jck.bio",
+      "https://www.notion.so/Bookshelf-016329fb5d194ded9ae325e072eff685",
+      "https://newlimit.com",
+      "https://blog.jck.bio/p/predictive-biology",
+      "http://calicolabs.com",
+      "https://reprog.research.calicolabs.com",
+      "https://mca.research.calicolabs.com",
+      "https://myo.research.calicolabs.com",
+      "https://scnym.research.calicolabs.com",
+      "https://ucsf.edu",
+      "https://ccc.ucsf.edu",
+      "http://tetrad.ucsf.edu/faculty/wallace-wallace",
+      "http://bracklab.com",
+      "https://scholar.google.com/citations?user=O4Hrt44AAAAJ&amp;hl=en",
+      "https://www.googletagmanager.com/gtag/js?id=G-KZVT2X768P"
+    ],
+    "all_links": [
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-57x57.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-114x114.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-72x72.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-144x144.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-60x60.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-120x120.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-76x76.png",
+      "http://jck.bio/assets/images/favicon/apple-touch-icon-152x152.png",
+      "http://jck.bio/assets/images/favicon/favicon-196x196.png",
+      "http://jck.bio/assets/images/favicon/favicon-96x96.png",
+      "http://jck.bio/assets/images/favicon/favicon-32x32.png",
+      "http://jck.bio/assets/images/favicon/favicon-16x16.png",
+      "http://jck.bio/assets/images/favicon/favicon-128.png",
+      "http://jck.bio",
+      "http://jck.bio/feed.xml",
+      "https://blog.jck.bio",
+      "https://www.notion.so/Bookshelf-016329fb5d194ded9ae325e072eff685",
+      "http://jck.bio/cv",
+      "http://jck.bio/elsewhere",
+      "https://newlimit.com",
+      "https://blog.jck.bio/p/predictive-biology",
+      "http://calicolabs.com",
+      "https://reprog.research.calicolabs.com",
+      "https://mca.research.calicolabs.com",
+      "https://myo.research.calicolabs.com",
+      "https://scnym.research.calicolabs.com",
+      "https://ucsf.edu",
+      "https://ccc.ucsf.edu",
+      "http://tetrad.ucsf.edu/faculty/wallace-wallace",
+      "http://bracklab.com",
+      "http://jck.bio/aging_musc_dynamics",
+      "mailto:jacob@jck.bio",
+      "https://twitter.com/jacobkimmel",
+      "https://linkedin.com/in/jacob-kimmel",
+      "https://github.com/jacobkimmel",
+      "https://scholar.google.com/citations?user=O4Hrt44AAAAJ&amp;hl=en",
+      "https://www.googletagmanager.com/gtag/js?id=G-KZVT2X768P",
+      "http://jck.bio/assets/images/profile.jpg"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/jacobkimmel",
+    "linkedin_url": "https://linkedin.com/in/jacob-kimmel",
+    "personal_website": "https://jck.bio/",
+    "blog": "jck.bio",
+    "twitter_url": "https://twitter.com/jacobkimmel",
+    "email": "jacob@jck.bio",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/jacobkimmel"
+      }
+    ]
+  },
+  "context_score": 11,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "email",
+    "bio",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.143Z"
+}

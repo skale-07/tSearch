@@ -1,0 +1,365 @@
+{
+  "slug": "mbsebada",
+  "name": "Miguel Sebada",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "mbsebada",
+    "display_name": "Miguel Sebada",
+    "profile_url": "https://github.com/mbsebada",
+    "bio": "Veteran. Builder. Exploring AI agents, automation, and the systems that connect them.",
+    "blog": "miguelsebada.com",
+    "twitter_username": null,
+    "company": null,
+    "location": "New York, NY",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/miguel-sebada"
+      }
+    ],
+    "context_score": 8,
+    "context_signals": [
+      "blog",
+      "bio",
+      "location",
+      "linkedin",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "free-for-dev",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-30T09:12:37Z"
+      },
+      {
+        "name": "SkateboardML",
+        "topics": [
+          "codex-active",
+          "computer-vision",
+          "machine-learning",
+          "video-classification"
+        ],
+        "language": "Julia",
+        "stars": 1,
+        "pushed_at": "2026-06-27T15:37:43Z"
+      },
+      {
+        "name": "nltk",
+        "topics": [
+          "codex-archive",
+          "fork",
+          "nlp"
+        ],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-06-27T15:37:42Z"
+      },
+      {
+        "name": "100-days-of-javascript",
+        "topics": [
+          "codex-archive",
+          "javascript-practice",
+          "tutorial-fork"
+        ],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-06-27T15:37:38Z"
+      },
+      {
+        "name": "gorest-2d-animation-spritesheet-generator",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-21T18:40:50Z"
+      },
+      {
+        "name": "lt-sdk",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-06-02T21:32:01Z"
+      },
+      {
+        "name": "lectures",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-28T06:35:41Z"
+      },
+      {
+        "name": "research-chatgpt-guesses-between-1-and-100",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-25T09:22:26Z"
+      },
+      {
+        "name": "knowledge-work-plugins",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-24T21:48:52Z"
+      },
+      {
+        "name": "codegraph",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-21T22:11:20Z"
+      },
+      {
+        "name": "cupid-music-player",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-21T20:21:31Z"
+      },
+      {
+        "name": "ruflo",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-15T02:29:40Z"
+      },
+      {
+        "name": "financial-services",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-15T01:26:05Z"
+      },
+      {
+        "name": "opensre",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-15T01:24:36Z"
+      },
+      {
+        "name": "local-deep-research",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-15T00:39:17Z"
+      },
+      {
+        "name": "piclaw",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-14T18:08:43Z"
+      },
+      {
+        "name": "maigret",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-14T12:55:11Z"
+      },
+      {
+        "name": "supersplat",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-14T11:07:09Z"
+      },
+      {
+        "name": "agent-skills",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-14T04:52:08Z"
+      },
+      {
+        "name": "autonomous-self-balancing-vehicle",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-13T21:19:16Z"
+      },
+      {
+        "name": "spark-cli-skills",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-13T17:56:52Z"
+      },
+      {
+        "name": "CloakBrowser",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-13T16:55:41Z"
+      },
+      {
+        "name": "skills1",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-13T13:05:22Z"
+      },
+      {
+        "name": "splat-transform",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-12T17:07:57Z"
+      },
+      {
+        "name": "langclaw",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-05-12T09:36:30Z"
+      },
+      {
+        "name": "dbeaver",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-04T21:46:13Z"
+      },
+      {
+        "name": "TradingAgents",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-01T19:23:24Z"
+      },
+      {
+        "name": "clawsweeper",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-25T22:45:30Z"
+      },
+      {
+        "name": "Open-Generative-AI",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-25T20:44:37Z"
+      },
+      {
+        "name": "thunderbolt",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-25T05:37:29Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://miguelsebada.com/",
+    "scraped_at": "2026-07-22T23:56:24.743Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": "https://linkedin.com/in/miguel-sebada",
+    "email": "mbsebada@gmail.com",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://secure.gravatar.com",
+      "https://widgets.wp.com",
+      "https://jetpack.wordpress.com",
+      "https://s0.wp.com",
+      "https://public-api.wordpress.com",
+      "https://0.gravatar.com",
+      "https://1.gravatar.com",
+      "https://2.gravatar.com",
+      "https://i0.wp.com",
+      "https://c0.wp.com",
+      "https://fonts-api.wp.com/css?family=Roboto:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&",
+      "https://fonts-api.wp.com/css?family=Roboto+Slab:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&",
+      "https://wp.me/PfuWNR-3l",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=32%2C32&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=192%2C192&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=180%2C180&",
+      "https://www.pollockcohen.com/docs/WIWIKT-Damian-Williams-NYLJ.pdf",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2024/10/img_8577.jpg?fit=900%2C1200&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=270%2C270&",
+      "https://s0.wp.com/wp-content/js/bilmur.min.js?m=202630"
+    ],
+    "all_links": [
+      "https://secure.gravatar.com",
+      "https://widgets.wp.com",
+      "https://jetpack.wordpress.com",
+      "https://s0.wp.com",
+      "https://public-api.wordpress.com",
+      "https://0.gravatar.com",
+      "https://1.gravatar.com",
+      "https://2.gravatar.com",
+      "https://i0.wp.com",
+      "https://c0.wp.com",
+      "https://miguelsebada.com/feed",
+      "https://miguelsebada.com/comments/feed",
+      "https://miguelsebada.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fmiguelsebada.com%2F",
+      "https://miguelsebada.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fmiguelsebada.com%2F&",
+      "https://miguelsebada.com/wp-content/plugins/jetpack/modules/related-posts/related-posts.css?m=1771329624",
+      "https://miguelsebada.com/_static/??-eJydy8ENgCAMAMCFRIQYfBlnqdAACVZCi6xvXMH736jK3yRIomvpMRPr2OABgaaQEpDHoM+eS9AVRLARK07QMMyeeRo/OoYsXz6u3Wzr4pxx1r4VHDKQ",
+      "https://miguelsebada.com/wp-content/plugins/gravatar-enhanced/build/patterns-view.css?m=1740661622",
+      "https://miguelsebada.com/wp-content/themes/hey/style.css?m=1712168812",
+      "https://miguelsebada.com/_static/??wp-content/plugins/elementor/assets/css/frontend.min.css,wp-content/uploads/elementor/css/post-116.css?m=1784655508",
+      "https://fonts-api.wp.com/css?family=Roboto:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&",
+      "https://fonts-api.wp.com/css?family=Roboto+Slab:100,100italic,200,200italic,300,300italic,400,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic&",
+      "https://miguelsebada.com/wp-json",
+      "https://miguelsebada.com/wp-json/wp/v2/pages/207",
+      "https://miguelsebada.com/xmlrpc.php?rsd",
+      "https://miguelsebada.com",
+      "https://wp.me/PfuWNR-3l",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=32%2C32&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=192%2C192&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=180%2C180&",
+      "mailto:mbsebada@gmail.com",
+      "https://linkedin.com/in/miguel-sebada",
+      "https://www.pollockcohen.com/docs/WIWIKT-Damian-Williams-NYLJ.pdf",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2024/10/img_8577.jpg?fit=900%2C1200&",
+      "https://i0.wp.com/miguelsebada.com/wp-content/uploads/2026/07/miguelsebada-site-icon-1.png?fit=270%2C270&",
+      "https://s0.wp.com/wp-content/js/bilmur.min.js?m=202630",
+      "https://stats.wp.com/e-202630.js"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/mbsebada",
+    "linkedin_url": "https://linkedin.com/in/miguel-sebada",
+    "personal_website": "https://miguelsebada.com/",
+    "blog": "miguelsebada.com",
+    "email": "mbsebada@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "linkedin",
+        "url": "https://www.linkedin.com/in/miguel-sebada"
+      }
+    ]
+  },
+  "context_score": 8,
+  "context_signals": [
+    "blog",
+    "bio",
+    "location",
+    "linkedin",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:31.179Z"
+}

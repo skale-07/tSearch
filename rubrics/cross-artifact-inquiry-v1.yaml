@@ -1,0 +1,219 @@
+rubric_id: cross-artifact-inquiry-v1
+version: 1.0.0
+construct: cross_artifact_inquiry
+description: Evaluate inquiry patterns across artifacts. Do not rescore technical implementation
+  quality or writing quality.
+dimensions:
+  - dimension_id: question_to_artifact_translation
+    description: Whether questions in writing/research become concrete artifacts (repos, experiments, datasets).
+    applicable_artifacts: &a1
+      - github_repository
+      - technical_article
+      - essay
+      - research_publication
+      - project_page
+    anchors:
+      - score: 0
+        description: No translation visible.
+      - score: 1
+        description: Themes coexist without translation.
+      - score: 3
+        description: At least one clear question mapped to an artifact.
+      - score: 5
+        description: Multiple questions systematically translated into artifacts with traceable links.
+    strong_evidence_examples:
+      - Article states question and links a repo that implements the experiment
+      - Repo README cites the originating question/post
+    weak_evidence_examples:
+      - Same keywords across unrelated artifacts
+    counterevidence_examples:
+      - Article promises an experiment that never appears
+    prohibited_shortcuts:
+      - Infer translation from topical keyword overlap alone
+  - dimension_id: idea_project_alignment
+    description: Alignment between stated ideas and what projects actually do.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No alignment signal.
+      - score: 1
+        description: Ideas and projects diverge without acknowledgment.
+      - score: 3
+        description: Partial alignment with explainable gaps.
+      - score: 5
+        description: "Tight alignment: project behavior matches claimed ideas under inspection."
+    strong_evidence_examples:
+      - Deterministic URL relationship plus matching mechanism claims
+      - Project outputs discussed honestly in follow-up writing
+    weak_evidence_examples:
+      - Shared buzzwords only
+    counterevidence_examples:
+      - Writing claims results the repo does not produce
+    prohibited_shortcuts:
+      - Assume alignment from co-occurrence on a homepage
+  - dimension_id: iteration_across_artifacts
+    description: Iterative refinement spanning multiple artifact types over time.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No cross-artifact iteration.
+      - score: 1
+        description: One-shot artifacts with no follow-through.
+      - score: 3
+        description: Some cross-artifact iteration (e.g., post then repo update).
+      - score: 5
+        description: "Clear multi-step iteration: question → build → revise → republish."
+    strong_evidence_examples:
+      - "Dated sequence: article → repo experiment → follow-up article"
+      - PRs/commits responding to issues raised in writing
+    weak_evidence_examples:
+      - Unrelated artifacts created in the same week
+    counterevidence_examples:
+      - Backdated edits fabricating a sequence
+    prohibited_shortcuts:
+      - Reward volume of artifacts without sequence
+  - dimension_id: evidence_of_belief_updating
+    description: Observable updates to beliefs/claims when new evidence appears across artifacts.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No belief-update evidence.
+      - score: 1
+        description: Static repeated claims.
+      - score: 3
+        description: Some explicit revision or narrowed claim.
+      - score: 5
+        description: Documented belief updates tied to new experimental/writing evidence.
+    strong_evidence_examples:
+      - Follow-up post retracts or narrows an earlier claim with reasons
+      - Repo changelog reflects invalidated assumption discussed in writing
+    weak_evidence_examples:
+      - Silent README wording tweaks
+    counterevidence_examples:
+      - Contradictory claims presented as continuous success
+    prohibited_shortcuts:
+      - Infer updating from tone changes alone
+  - dimension_id: cross_domain_connection_quality
+    description: Substance of connections across domains when multiple domains appear.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No cross-domain connection.
+      - score: 1
+        description: Decorative multidisciplinary labeling.
+      - score: 3
+        description: Partial useful connection across domains.
+      - score: 5
+        description: High-quality transfer of constraints/methods across domains with tests.
+    strong_evidence_examples:
+      - Method from domain A implemented/tested in domain B artifact
+      - Explicit mapping of assumptions across domains
+    weak_evidence_examples:
+      - Tag soup on a personal site
+    counterevidence_examples:
+      - Forced metaphors without artifact support
+    prohibited_shortcuts:
+      - Score from number of topic tags
+  - dimension_id: sustained_inquiry
+    description: Duration and coherence of an inquiry thread across artifacts.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No sustained thread.
+      - score: 1
+        description: Ephemeral scattered artifacts.
+      - score: 3
+        description: A recognizable thread over a meaningful period.
+      - score: 5
+        description: Long-running coherent inquiry with compounding artifacts.
+    strong_evidence_examples:
+      - Multi-month thread with linked artifacts on one question family
+      - Relationship graph shows ordered follow-ups
+    weak_evidence_examples:
+      - Burst of unrelated repos and posts
+    counterevidence_examples:
+      - Rebranded duplicates pretending to be a thread
+    prohibited_shortcuts:
+      - Use career length as sustained inquiry
+  - dimension_id: experiment_and_feedback_loop
+    description: Closed loops where experiments feed back into questions and vice versa.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No loop.
+      - score: 1
+        description: Open-loop claims without feedback.
+      - score: 3
+        description: Partial loop (experiment exists; weak feedback).
+      - score: 5
+        description: "Closed loop: experiment results change subsequent questions/artifacts."
+    strong_evidence_examples:
+      - Results section in writing cites repo outputs and next experiments
+      - Issues/PRs opened from measured failures described in posts
+    weak_evidence_examples:
+      - Demo GIF without measurement
+    counterevidence_examples:
+      - Feedback claimed without timestamps or artifacts
+    prohibited_shortcuts:
+      - Treat any blog+repo pair as a loop
+  - dimension_id: coherence_without_redundancy
+    description: Artifacts complement rather than merely repeat each other.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No coherence assessment possible.
+      - score: 1
+        description: Redundant copies or incoherent scatter.
+      - score: 3
+        description: Mostly complementary with some duplication.
+      - score: 5
+        description: Coherent portfolio where each artifact adds distinct evidentiary value.
+    strong_evidence_examples:
+      - Writing interprets; repo implements; dataset/eval supports — distinct roles
+      - Minimal duplication beyond necessary cross-links
+    weak_evidence_examples:
+      - Copy-pasted README across repos
+      - Same essay republished everywhere
+    counterevidence_examples:
+      - Coherence claimed while relationship evidence is only keyword similarity
+    prohibited_shortcuts:
+      - Penalize necessary cross-linking
+      - Reward sheer diversity of unrelated topics
+prohibited_inferences:
+  - Rescoring implementation quality or prose quality inside this construct
+  - Treating topical keyword overlap as a coherent inquiry thread
+  - Storing LLM-inferred relationships as deterministic links
+  - Claiming belief updating without explicit evidence across time
+  - Inferring high cross-artifact strength from a single artifact type alone
+confidence_caps:
+  - rule: only one artifact type available
+    max_confidence: 0.35
+  - rule: relationships are inferred/nondeterministic only
+    max_confidence: 0.5
+  - rule: sparse relationship evidence_ids
+    max_confidence: 0.45
+  - rule: timestamps missing for claimed sequences
+    max_confidence: 0.4
+abstention_rules:
+  - condition: fewer than two related artifacts with usable relationships
+    action: overall inquiry support insufficient_public_evidence; abstain on most dimensions
+  - condition: artifact IDs in relationships fail validation
+    action: reject relationship; do not score from it
+  - condition: sequence claims lack dates
+    action: cap iteration/belief-updating dimensions and list missing_information
+evidence_requirements:
+  - when: score >= 4 on question_to_artifact_translation
+    require: deterministic or high-support relationship evidence_ids between question and artifact
+  - when: score >= 4 on evidence_of_belief_updating
+    require: explicit revision evidence across dated artifacts
+  - when: claiming a reconstructed inquiry thread
+    require: ordered artifact_ids plus relationship_ids and evidence_ids
+source_notes:
+  - statement: Deterministic URL/citation links are stronger than LLM thematic inference.
+    status: empirically_supported
+  - statement: Cross-artifact judging without blogs is expected to abstain often.
+    status: provisional_product_rule
+  - statement: Public artifacts underrepresent private iteration loops.
+    status: platform_constraint
+  - statement: Thread reconstruction anchors require calibration against human raters.
+    status: requires_calibration

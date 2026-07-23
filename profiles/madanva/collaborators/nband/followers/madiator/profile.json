@@ -1,0 +1,356 @@
+{
+  "slug": "madiator",
+  "name": "Mahesh Sathiamoorthy",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "madiator",
+    "display_name": "Mahesh Sathiamoorthy",
+    "profile_url": "https://github.com/madiator",
+    "bio": "smahesh.com",
+    "blog": "smahesh.com",
+    "twitter_username": "madiator",
+    "company": "Bespoke Labs",
+    "location": "Bay Area",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/madiator"
+      }
+    ],
+    "context_score": 8,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "madiator.github.com",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2026-05-24T19:38:48Z"
+      },
+      {
+        "name": "paperpauper",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-06-07T01:15:52Z"
+      },
+      {
+        "name": "curator",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-04-27T20:40:55Z"
+      },
+      {
+        "name": "lingua",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-10-18T23:48:39Z"
+      },
+      {
+        "name": "ollama",
+        "topics": [],
+        "language": "Go",
+        "stars": 0,
+        "pushed_at": "2024-09-22T01:38:22Z"
+      },
+      {
+        "name": "ragas",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-09-04T10:03:46Z"
+      },
+      {
+        "name": "MiniCheck",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-08-19T23:44:28Z"
+      },
+      {
+        "name": "llm-aggrefact.github.io",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2024-08-09T07:15:20Z"
+      },
+      {
+        "name": "lilac",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-03-19T12:41:30Z"
+      },
+      {
+        "name": "smarter.github.io",
+        "topics": [],
+        "language": "CSS",
+        "stars": 0,
+        "pushed_at": "2023-01-09T07:30:10Z"
+      },
+      {
+        "name": "ANRG-Blogaware-Site",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2022-05-27T17:49:55Z"
+      },
+      {
+        "name": "resume",
+        "topics": [],
+        "language": "TeX",
+        "stars": 3,
+        "pushed_at": "2017-07-25T22:34:05Z"
+      },
+      {
+        "name": "left",
+        "topics": [],
+        "language": "CSS",
+        "stars": 0,
+        "pushed_at": "2015-08-21T06:22:06Z"
+      },
+      {
+        "name": "HadoopUSC",
+        "topics": [],
+        "language": "Java",
+        "stars": 71,
+        "pushed_at": "2013-07-18T18:44:25Z"
+      },
+      {
+        "name": "githubdatachallenge2",
+        "topics": [],
+        "language": "Matlab",
+        "stars": 0,
+        "pushed_at": "2013-05-28T05:18:06Z"
+      },
+      {
+        "name": "github-network-analysis",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2013-05-06T18:32:33Z"
+      },
+      {
+        "name": "VANETSim",
+        "topics": [],
+        "language": "Java",
+        "stars": 1,
+        "pushed_at": "2013-05-03T01:54:11Z"
+      },
+      {
+        "name": "spaceships-demo",
+        "topics": [],
+        "language": "Java",
+        "stars": 0,
+        "pushed_at": "2013-02-27T17:36:14Z"
+      },
+      {
+        "name": "tumblr_theme",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2013-01-09T05:23:49Z"
+      },
+      {
+        "name": "octopress",
+        "topics": [],
+        "language": "Ruby",
+        "stars": 1,
+        "pushed_at": "2012-08-03T21:03:49Z"
+      },
+      {
+        "name": "hadoop-20",
+        "topics": [],
+        "language": "Java",
+        "stars": 5,
+        "pushed_at": "2012-08-02T22:59:56Z"
+      },
+      {
+        "name": "photography",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2012-06-29T13:32:05Z"
+      },
+      {
+        "name": "fb-raid-refactoring",
+        "topics": [],
+        "language": "Java",
+        "stars": 2,
+        "pushed_at": "2012-05-23T22:52:47Z"
+      },
+      {
+        "name": "EE579SampleWebsite",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2012-05-03T05:09:28Z"
+      },
+      {
+        "name": "OpenVANETFramework",
+        "topics": [],
+        "language": "Java",
+        "stars": 1,
+        "pushed_at": "2012-03-11T16:51:28Z"
+      },
+      {
+        "name": "TestText",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2012-03-04T17:40:41Z"
+      },
+      {
+        "name": "EE579DiagnosticSample",
+        "topics": [],
+        "language": "Java",
+        "stars": 1,
+        "pushed_at": "2012-01-13T22:44:50Z"
+      },
+      {
+        "name": "ANRG-Website",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2011-12-09T20:48:52Z"
+      },
+      {
+        "name": "bootstrap",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2011-11-17T09:28:48Z"
+      },
+      {
+        "name": "Processing",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2011-11-15T04:13:14Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://smahesh.com/",
+    "scraped_at": "2026-07-22T23:56:22.399Z",
+    "github_url": "http://github.com/madiator",
+    "substack_url": "https://madiator.substack.com",
+    "twitter_url": "https://twitter.com/madiator",
+    "linkedin_url": "https://www.linkedin.com/in/smaheswaran",
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": "https://www.youtube.com/watch?v=PHEBjgP_k6Y",
+    "other_links": [
+      "https://use.fontawesome.com/releases/v5.3.1/css/all.css",
+      "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "https://cdn.rawgit.com/jpswalsh/academicons/master/css/academicons.min.css",
+      "https://bespokelabs.ai",
+      "https://www.bespokelabs.ai",
+      "https://scholar.google.com/citations?user=HLkvYl0AAAAJ&hl=en",
+      "https://arxiv.org/abs/2305.05065",
+      "https://research.atspotify.com/2025/9/semantic-ids-for-generative-search-and-recommendation",
+      "https://arxiv.org/abs/2506.13695",
+      "https://openthoughts.ai",
+      "https://arxiv.org/pdf/2601.11868",
+      "https://arxiv.org/abs/2506.04178",
+      "https://arxiv.org/abs/2409.15173",
+      "https://arxiv.org/abs/2302.09178",
+      "https://arxiv.org/abs/2305.06474",
+      "https://arxiv.org/abs/2202.00834",
+      "http://www.achowdhery.com",
+      "https://arxiv.org/abs/2106.03760",
+      "https://research.google/pubs/pub49380",
+      "https://drive.google.com/file/d/18KqfX-GUVC-v2OwFhEtE2Y9QeRNZjOi4/view"
+    ],
+    "all_links": [
+      "https://smahesh.com",
+      "https://smahesh.com/page2",
+      "https://smahesh.com/assets/images/apple-touch-icon.png",
+      "https://smahesh.com/assets/images/favicon-32x32.png",
+      "https://smahesh.com/assets/images/favicon-16x16.png",
+      "https://smahesh.com/assets/images/site.webmanifest",
+      "https://use.fontawesome.com/releases/v5.3.1/css/all.css",
+      "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "https://smahesh.com/assets/css/main.css",
+      "https://smahesh.com/assets/css/theme.css",
+      "https://cdn.rawgit.com/jpswalsh/academicons/master/css/academicons.min.css",
+      "https://smahesh.com/index.html",
+      "https://bespokelabs.ai",
+      "https://madiator.substack.com",
+      "http://smarter.substack.com",
+      "https://smahesh.com/art-photo",
+      "https://www.bespokelabs.ai",
+      "https://www.linkedin.com/in/smaheswaran",
+      "https://scholar.google.com/citations?user=HLkvYl0AAAAJ&hl=en",
+      "https://twitter.com/madiator",
+      "http://github.com/madiator",
+      "https://arxiv.org/abs/2305.05065",
+      "https://research.atspotify.com/2025/9/semantic-ids-for-generative-search-and-recommendation",
+      "https://arxiv.org/abs/2506.13695",
+      "https://openthoughts.ai",
+      "https://x.com/madiator/status/1884284103354376283",
+      "https://arxiv.org/pdf/2601.11868",
+      "https://arxiv.org/abs/2506.04178",
+      "https://arxiv.org/abs/2409.15173",
+      "https://arxiv.org/abs/2302.09178",
+      "https://arxiv.org/abs/2305.06474",
+      "https://arxiv.org/abs/2202.00834",
+      "http://www.achowdhery.com",
+      "https://arxiv.org/abs/2106.03760",
+      "https://research.google/pubs/pub49380",
+      "https://drive.google.com/file/d/18KqfX-GUVC-v2OwFhEtE2Y9QeRNZjOi4/view",
+      "https://lossfunk.com",
+      "https://www.youtube.com/watch?v=PHEBjgP_k6Y",
+      "https://code.jquery.com/jquery-3.3.1.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/madiator",
+    "linkedin_url": "https://www.linkedin.com/in/smaheswaran",
+    "personal_website": "https://smahesh.com/",
+    "blog": "smahesh.com",
+    "twitter_url": "https://twitter.com/madiator",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/madiator"
+      }
+    ]
+  },
+  "context_score": 8,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.862Z"
+}

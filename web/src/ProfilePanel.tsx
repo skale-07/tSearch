@@ -1,4 +1,5 @@
 import type { ProfileRecord, TreeNodeSummary } from "./api";
+import { surfaceScoreToCss } from "./surfaceColor";
 
 interface Props {
   profile: ProfileRecord | null;
@@ -31,6 +32,7 @@ export function ProfilePanel({
   if (!profile && !loading && !error) return null;
 
   const hasLinkedIn = !!(
+    node?.has_linkedin ||
     node?.linkedin_url ||
     node?.can_expand ||
     profile?.links?.linkedin_url ||
@@ -42,6 +44,24 @@ export function ProfilePanel({
       (s) => s.provider.toLowerCase() === "linkedin" && s.url
     )
   );
+  const websiteUrl =
+    node?.website_url ||
+    profile?.links?.personal_website ||
+    profile?.website?.url ||
+    undefined;
+  const blogUrl =
+    node?.blog_url ||
+    profile?.links?.blog ||
+    profile?.github?.blog ||
+    undefined;
+  const hasWriting = !!(
+    node?.has_writing_surface ||
+    websiteUrl ||
+    blogUrl
+  );
+  const surfaceScore = node?.surface_score ?? 0;
+  const surfaceMax = node?.surface_score_max ?? 12;
+  const surfaceSignals = node?.surface_signals ?? [];
   const hop = node?.hop ?? profile?.hop ?? (node?.relation === "seed" ? 0 : 1);
   const canExpand =
     !!onExpandBranch &&
@@ -71,6 +91,58 @@ export function ProfilePanel({
               ` · context ${profile.context_score}`}
           </p>
           <h2>{profile.name}</h2>
+
+          <div className="surface-meter" aria-label="Identity surface score">
+            <div className="surface-meter-head">
+              <span
+                className="surface-dot"
+                style={{
+                  background: surfaceScoreToCss(surfaceScore, surfaceMax),
+                }}
+              />
+              <span>
+                Surface {surfaceScore}/{surfaceMax}
+              </span>
+            </div>
+            <div className="surface-meter-track">
+              <div
+                className="surface-meter-fill"
+                style={{
+                  width: `${Math.min(100, (surfaceScore / surfaceMax) * 100)}%`,
+                  background: surfaceScoreToCss(
+                    Math.max(surfaceScore, 0.5),
+                    surfaceMax
+                  ),
+                }}
+              />
+            </div>
+            <p className="muted surface-meter-hint">
+              LinkedIn + site/blog weigh more than X; email is high-value for
+              outreach; GitHub not counted.
+            </p>
+          </div>
+
+          <div className="chips presence-chips" aria-label="Identity surfaces">
+            <span
+              className={`chip ${hasLinkedIn ? "chip-on" : "chip-off"}`}
+              title="LinkedIn (+4)"
+            >
+              LinkedIn
+            </span>
+            <span
+              className={`chip ${hasWriting ? "chip-on" : "chip-off"}`}
+              title="Personal website or blog (+4)"
+            >
+              Website/blog
+            </span>
+            {surfaceSignals
+              .filter((s) => s !== "linkedin" && s !== "writing")
+              .map((s) => (
+                <span key={s} className="chip chip-on" title="Lower weight">
+                  {s}
+                </span>
+              ))}
+          </div>
 
           {canExpand && (
             <button
@@ -110,11 +182,11 @@ export function ProfilePanel({
 
           <div className="plink-row">
             <LinkRow href={profile.links?.github_url} label="GitHub" />
-            <LinkRow href={profile.links?.linkedin_url} label="LinkedIn" />
             <LinkRow
-              href={profile.links?.personal_website || profile.links?.blog}
-              label="Website"
+              href={profile.links?.linkedin_url || node?.linkedin_url}
+              label="LinkedIn"
             />
+            <LinkRow href={websiteUrl || blogUrl} label="Website" />
             <LinkRow href={profile.links?.twitter_url} label="Twitter" />
             {profile.links?.email && (
               <LinkRow

@@ -16,6 +16,13 @@ export interface TreeNodeSummary {
   context_signals: string[];
   photo_url?: string;
   linkedin_url?: string;
+  website_url?: string;
+  blog_url?: string;
+  has_linkedin?: boolean;
+  has_writing_surface?: boolean;
+  surface_score?: number;
+  surface_signals?: string[];
+  surface_score_max?: number;
   can_expand: boolean;
 }
 
@@ -199,9 +206,69 @@ export async function fetchProfile(
 }
 
 export type SseEvent =
-  | { type: "log"; line: string }
-  | { type: "done"; seedSlug: string | null }
-  | { type: "error"; message: string; exitCode?: number };
+  | {
+      type: "log";
+      line: string;
+    }
+  | {
+      type: "done";
+      seedSlug?: string | null;
+      assessmentRunId?: string | null;
+      digestHint?: string | null;
+      exitCode?: number;
+    }
+  | {
+      type: "error";
+      message: string;
+      exitCode?: number;
+      assessmentRunId?: string | null;
+      digestHint?: string | null;
+    };
+
+export interface AssessmentCandidateRow {
+  candidate_id: string;
+  name: string;
+  final_score: number;
+  github_username?: string;
+  website_url?: string;
+  blog_url?: string;
+  has_github: boolean;
+  has_writing_surface: boolean;
+}
+
+export async function fetchCandidates(): Promise<{
+  candidates: AssessmentCandidateRow[];
+  path: string;
+}> {
+  const res = await fetch("/api/candidates");
+  const data = await readApiJson<{
+    candidates?: AssessmentCandidateRow[];
+    path?: string;
+    error?: string;
+  }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return {
+    candidates: data.candidates ?? [],
+    path: data.path ?? "",
+  };
+}
+
+export async function startAssessmentRun(body: {
+  mode: "selected" | "top_n";
+  candidateIds?: string[];
+  limit?: number;
+  mock?: boolean;
+}): Promise<{ runId: string }> {
+  const res = await fetch("/api/assessment/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{ runId?: string; error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!data.runId) throw new Error("API response missing runId");
+  return { runId: data.runId };
+}
 
 export function subscribeRunEvents(
   runId: string,

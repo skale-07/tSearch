@@ -1,0 +1,301 @@
+{
+  "slug": "bgriffen",
+  "name": "Griff",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "bgriffen",
+    "display_name": "Griff",
+    "profile_url": "https://github.com/bgriffen",
+    "bio": "Tech x Bio x Data",
+    "blog": "www.brendangriffen.com",
+    "twitter_username": "brendangriffen",
+    "company": "@dynomics",
+    "location": "San Francisco | Brisbane, AU",
+    "email": null,
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/brendangriffen"
+      }
+    ],
+    "context_score": 8,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "brendangriffen.com",
+        "topics": [],
+        "language": "HTML",
+        "stars": 1,
+        "pushed_at": "2026-06-28T11:06:30Z"
+      },
+      {
+        "name": "bgriffen",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2026-05-04T10:41:29Z"
+      },
+      {
+        "name": "cogstack-nlp",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-07T12:18:44Z"
+      },
+      {
+        "name": "cv",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-02-07T03:01:42Z"
+      },
+      {
+        "name": "ezpubmed",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-01-27T14:35:36Z"
+      },
+      {
+        "name": "betterdoublej",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-01-27T14:12:54Z"
+      },
+      {
+        "name": "easyaasjobs",
+        "topics": [],
+        "language": "Python",
+        "stars": 4,
+        "pushed_at": "2026-01-27T14:10:53Z"
+      },
+      {
+        "name": "gigpy",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-01-27T14:03:16Z"
+      },
+      {
+        "name": "gsd",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-17T08:04:51Z"
+      },
+      {
+        "name": "starter",
+        "topics": [],
+        "language": "MDX",
+        "stars": 0,
+        "pushed_at": "2024-09-14T12:39:32Z"
+      },
+      {
+        "name": "docusaurus-template",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2024-09-14T12:34:45Z"
+      },
+      {
+        "name": "wombat",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2024-05-23T14:17:09Z"
+      },
+      {
+        "name": "Python3GUITemplate",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2023-07-04T09:12:49Z"
+      },
+      {
+        "name": "py-project-template",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-05-16T08:50:51Z"
+      },
+      {
+        "name": "nbdoc-docusaurus",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2022-07-19T15:53:24Z"
+      },
+      {
+        "name": "covalent",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2022-03-16T03:37:33Z"
+      },
+      {
+        "name": "oldwebsite",
+        "topics": [],
+        "language": "Ruby",
+        "stars": 1,
+        "pushed_at": "2022-01-16T08:47:57Z"
+      },
+      {
+        "name": "tectonic-image",
+        "topics": [],
+        "language": "Dockerfile",
+        "stars": 0,
+        "pushed_at": "2021-12-04T15:58:06Z"
+      },
+      {
+        "name": "stackbit-theme-planty",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-10-29T13:59:08Z"
+      },
+      {
+        "name": "hugo-PaperMod",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-10-10T04:55:26Z"
+      },
+      {
+        "name": "hugo-theme-codex",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-07-26T15:46:11Z"
+      },
+      {
+        "name": "NN_genes_expression_classification",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2021-07-11T09:10:47Z"
+      },
+      {
+        "name": "dfm.io",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-07-06T19:46:18Z"
+      },
+      {
+        "name": "indigo",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-06-23T10:02:05Z"
+      },
+      {
+        "name": "MartinHeinz",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-05-15T14:56:45Z"
+      },
+      {
+        "name": "force-push-branch-action",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-02-15T17:48:53Z"
+      },
+      {
+        "name": "realestate-com-au-api",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2020-11-01T21:25:29Z"
+      },
+      {
+        "name": "cme",
+        "topics": [],
+        "language": "Python",
+        "stars": 6,
+        "pushed_at": "2020-07-13T00:55:21Z"
+      },
+      {
+        "name": "fajita",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2019-12-29T01:40:49Z"
+      },
+      {
+        "name": "domain",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2019-09-17T00:25:37Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://www.brendangriffen.com/",
+    "scraped_at": "2026-07-22T23:56:22.997Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": null,
+    "email": "dfbf9a92e0eda8b2c847d25996aa692d@o4509505428062208.ingest.de.sentry.io",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://scholar.google.com.au/citations?user=ndwtPccAAAAJ"
+    ],
+    "all_links": [
+      "https://scholar.google.com.au/citations?user=ndwtPccAAAAJ",
+      "https://brendangriffen.com",
+      "mailto:dfbf9a92e0eda8b2c847d25996aa692d@o4509505428062208.ingest.de.sentry.io",
+      "mailto:contact@grifflabs.dev"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/bgriffen",
+    "personal_website": "https://www.brendangriffen.com/",
+    "blog": "www.brendangriffen.com",
+    "twitter_url": "https://x.com/brendangriffen",
+    "email": "dfbf9a92e0eda8b2c847d25996aa692d@o4509505428062208.ingest.de.sentry.io",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/brendangriffen"
+      }
+    ]
+  },
+  "context_score": 8,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:31.029Z"
+}

@@ -216,6 +216,18 @@ select {
   opacity: 0.75;
 }
 
+.graph-legend .surface-grad {
+  background: linear-gradient(90deg, #e8c56a, #e8873a, #e8453a);
+  width: 1.1rem;
+  border-radius: 3px;
+}
+
+.surface-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 .empty {
   display: grid;
   place-content: center;
@@ -310,6 +322,64 @@ code {
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--muted);
+}
+
+.presence-chips {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.chip-on {
+  color: var(--ink);
+  border-color: rgba(61, 186, 156, 0.45);
+  background: rgba(61, 186, 156, 0.12);
+}
+
+.chip-off {
+  opacity: 0.45;
+}
+
+.chip-strong {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.surface-meter {
+  margin: 0.35rem 0 0.65rem;
+}
+
+.surface-meter-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.35rem;
+}
+
+.surface-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(18, 21, 26, 0.4);
+}
+
+.surface-meter-track {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(250, 246, 237, 0.08);
+  overflow: hidden;
+}
+
+.surface-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0;
+}
+
+.surface-meter-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem !important;
 }
 
 .plink-row {
@@ -416,6 +486,129 @@ code {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+.assess-panel {
+  width: min(420px, 94vw);
+}
+
+.assess-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.assess-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.assess-filter {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0.4rem 0.65rem;
+}
+
+.assess-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.assess-topn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.assess-topn label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.assess-topn input[type="number"] {
+  width: 4rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 0.35rem 0.45rem;
+}
+
+.assess-sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.assess-sort .chip {
+  cursor: pointer;
+  background: transparent;
+  font-family: var(--font-body);
+}
+
+.assess-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.assess-list li {
+  border-bottom: 1px solid var(--line);
+}
+
+.assess-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.45rem 0;
+  cursor: pointer;
+}
+
+.assess-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.assess-name {
+  font-size: 0.9rem;
+}
+
+.assess-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.assess-score {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.15rem;
+}
+
+.assess-digest {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 @media (max-width: 720px) {

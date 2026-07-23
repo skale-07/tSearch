@@ -1,0 +1,310 @@
+{
+  "slug": "kumuji",
+  "name": "Alexey Nekrasov",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "kumuji",
+    "display_name": "Alexey Nekrasov",
+    "profile_url": "https://github.com/kumuji",
+    "bio": "computer vision researcher",
+    "blog": "nekrasov.dev",
+    "twitter_username": "kumuji",
+    "company": "RWTH Aachen University",
+    "location": "Aachen, Germany",
+    "email": "alexey@nekrasov.dev",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/kumuji"
+      }
+    ],
+    "context_score": 11,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "email",
+      "bio",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "Sa2VA-i",
+        "topics": [],
+        "language": "Python",
+        "stars": 16,
+        "pushed_at": "2025-11-25T16:46:06Z"
+      },
+      {
+        "name": "kumuji",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-11-24T20:08:02Z"
+      },
+      {
+        "name": "stu_dataset",
+        "topics": [
+          "anomaly-detection",
+          "cvpr",
+          "cvpr2025",
+          "lidar",
+          "ood-detection",
+          "segmentation"
+        ],
+        "language": "Python",
+        "stars": 47,
+        "pushed_at": "2025-11-20T14:49:48Z"
+      },
+      {
+        "name": "anomaly-benchmark-suite",
+        "topics": [],
+        "language": "Python",
+        "stars": 4,
+        "pushed_at": "2025-07-02T18:35:05Z"
+      },
+      {
+        "name": "volumentations",
+        "topics": [
+          "3d",
+          "albumentations",
+          "data-augmentation",
+          "machine-learning",
+          "mesh",
+          "point-cloud"
+        ],
+        "language": "Python",
+        "stars": 43,
+        "pushed_at": "2025-06-18T10:51:19Z"
+      },
+      {
+        "name": "Sa2VA",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-01-10T15:24:10Z"
+      },
+      {
+        "name": "FilePacker",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2024-11-06T19:38:50Z"
+      },
+      {
+        "name": "ugains",
+        "topics": [
+          "anomaly-detection",
+          "anomaly-segmentation",
+          "computer-vision",
+          "deep-learning",
+          "deep-neural-networks",
+          "instance-segmentation",
+          "pytorch",
+          "segment-anything",
+          "segment-anything-model"
+        ],
+        "language": "Python",
+        "stars": 16,
+        "pushed_at": "2024-07-31T11:51:09Z"
+      },
+      {
+        "name": "oodis_website",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2024-06-18T13:20:25Z"
+      },
+      {
+        "name": "MeViS",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2024-06-10T12:26:28Z"
+      },
+      {
+        "name": "trt_yolo_ros",
+        "topics": [
+          "darknet",
+          "darknet-ros",
+          "jetson",
+          "object-detection",
+          "onnx",
+          "python2",
+          "ros",
+          "tensorrt",
+          "yolov3"
+        ],
+        "language": "Python",
+        "stars": 14,
+        "pushed_at": "2023-01-27T01:11:23Z"
+      },
+      {
+        "name": "mix3d",
+        "topics": [
+          "3d",
+          "3dvision",
+          "augmentation",
+          "point-cloud",
+          "semantic-segmentation"
+        ],
+        "language": "Python",
+        "stars": 251,
+        "pushed_at": "2022-11-27T16:31:03Z"
+      },
+      {
+        "name": "ansible-archlinux",
+        "topics": [],
+        "language": "Jinja",
+        "stars": 1,
+        "pushed_at": "2021-10-14T11:05:21Z"
+      },
+      {
+        "name": "zsh-autosuggestions",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2021-09-18T10:20:49Z"
+      },
+      {
+        "name": "3RScan",
+        "topics": [],
+        "language": "C++",
+        "stars": 0,
+        "pushed_at": "2020-07-18T18:38:37Z"
+      },
+      {
+        "name": "PyViz3D",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2020-06-24T09:49:13Z"
+      },
+      {
+        "name": "pytorch-lightning",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2020-06-08T08:28:07Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://nekrasov.dev/",
+    "scraped_at": "2026-07-22T23:56:17.114Z",
+    "github_url": "https://github.com/kumuji",
+    "substack_url": null,
+    "twitter_url": "https://x.com/kumuji",
+    "linkedin_url": "https://linkedin.com/in/alexey-nekrasov",
+    "email": "nekrasov@vision.rwth-aachen.de",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://scholar.google.com/citations?user=xJW2v3cAAAAJ&hl=en",
+      "https://huggingface.co/kumuji",
+      "https://www.vision.rwth-aachen.de",
+      "https://scholar.google.com/citations?user=ZcULDB0AAAAJ&hl=en",
+      "https://elias-ai.eu/event/fomo-2026",
+      "https://arxiv.org/abs/2509.19082",
+      "https://arxiv.org/abs/2503.16378",
+      "https://vision.rwth-aachen.de/oodis",
+      "https://arxiv.org/abs/2412.09333",
+      "https://www.uslu.tech",
+      "https://dlrl.ca",
+      "https://sites.google.com/view/vand-2-0-cvpr-2024/home",
+      "https://arxiv.org/abs/2306.14845",
+      "https://vision.rwth-aachen.de/ugains",
+      "https://arxiv.org/abs/2505.02148",
+      "https://arxiv.org/abs/2406.11835",
+      "https://arxiv.org/abs/2503.10605",
+      "https://www.dagm-gcpr.de/fileadmin/dagm-gcpr/pictures/2023_Heidelberg/Paper_MainTrack/071.pdf",
+      "https://arxiv.org/abs/2110.02210",
+      "https://arxiv.org/pdf/2309.16133"
+    ],
+    "all_links": [
+      "https://nekrasov.dev/fonts/inter-v20-latin-regular.woff2",
+      "https://nekrasov.dev/fonts/inter-v20-latin-500.woff2",
+      "https://nekrasov.dev/fonts/inter-v20-latin-700.woff2",
+      "https://nekrasov.dev/cdn-cgi/l/email-protection",
+      "https://github.com/kumuji",
+      "https://scholar.google.com/citations?user=xJW2v3cAAAAJ&hl=en",
+      "https://linkedin.com/in/alexey-nekrasov",
+      "https://x.com/kumuji",
+      "https://huggingface.co/kumuji",
+      "https://www.vision.rwth-aachen.de",
+      "https://scholar.google.com/citations?user=ZcULDB0AAAAJ&hl=en",
+      "https://jonasschult.github.io",
+      "https://francisengelmann.github.io",
+      "https://nekrasov.dev/images/Nekrasov_Alexey_CV.pdf",
+      "https://tillbeemelmanns.github.io/query2uncertainty",
+      "https://elias-ai.eu/event/fomo-2026",
+      "https://arxiv.org/abs/2509.19082",
+      "https://github.com/kumuji/stu_dataset",
+      "https://arxiv.org/abs/2503.16378",
+      "https://vision.rwth-aachen.de/oodis",
+      "https://github.com/ika-rwth-aachen/OCCUQ",
+      "https://arxiv.org/abs/2412.09333",
+      "https://www.uslu.tech",
+      "https://dlrl.ca",
+      "https://sites.google.com/view/vand-2-0-cvpr-2024/home",
+      "https://arxiv.org/abs/2306.14845",
+      "https://yilmazkadir.github.io/Mask4Former",
+      "https://amsterdam-fomo.github.io",
+      "https://vision.rwth-aachen.de/ugains",
+      "https://kumuji.github.io/mix3d",
+      "https://github.com/kumuji/Sa2VA-i",
+      "https://arxiv.org/abs/2505.02148",
+      "https://arxiv.org/abs/2406.11835",
+      "https://github.com/kumuji/anomaly-benchmark-suite",
+      "https://arxiv.org/abs/2503.10605",
+      "https://www.dagm-gcpr.de/fileadmin/dagm-gcpr/pictures/2023_Heidelberg/Paper_MainTrack/071.pdf",
+      "https://github.com/kumuji/ugains",
+      "https://arxiv.org/abs/2110.02210",
+      "https://github.com/kumuji/mix3d",
+      "https://arxiv.org/pdf/2309.16133"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/kumuji",
+    "linkedin_url": "https://linkedin.com/in/alexey-nekrasov",
+    "personal_website": "https://nekrasov.dev/",
+    "blog": "nekrasov.dev",
+    "twitter_url": "https://x.com/kumuji",
+    "email": "nekrasov@vision.rwth-aachen.de",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/kumuji"
+      }
+    ]
+  },
+  "context_score": 11,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "email",
+    "bio",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.229Z"
+}

@@ -13,6 +13,7 @@ import {
   type TreeNodeSummary,
   type TreeResponse,
 } from "./api";
+import { AssessPanel } from "./AssessPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { RadialTree } from "./RadialTree";
 import "./App.css";
@@ -37,6 +38,8 @@ export default function App() {
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [assessOpen, setAssessOpen] = useState(false);
+  const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +100,14 @@ export default function App() {
           setLogs((prev) => [...prev, ev.line]);
         } else if (ev.type === "done") {
           setStatus("done");
+          if (ev.digestHint) setAssessmentDigest(ev.digestHint);
+          else if (ev.assessmentRunId) {
+            setAssessmentDigest(
+              `output/assessment-runs/${ev.assessmentRunId}/digest.md`
+            );
+          }
           unsub();
-          resolve(ev.seedSlug);
+          resolve(ev.seedSlug ?? null);
         } else if (ev.type === "error") {
           setStatus("failed");
           setError(ev.message);
@@ -131,6 +140,20 @@ export default function App() {
           prev.includes(slug) ? prev : [...prev, slug]
         );
       }
+    } catch (err) {
+      setStatus("failed");
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const onAssessmentStart = async (runId: string) => {
+    setError(null);
+    setAssessmentDigest(null);
+    setStatus("running");
+    setLogs([]);
+    setLogsOpen(true);
+    try {
+      await watchRun(runId);
     } catch (err) {
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
@@ -291,6 +314,20 @@ export default function App() {
             {status === "running" ? "Running…" : "Run pipeline"}
           </button>
 
+          <button
+            type="button"
+            className="run-btn"
+            onClick={() => {
+              setAssessOpen(true);
+              setPanelProfile(null);
+              setPanelNode(null);
+              setSelectedNodeId(null);
+            }}
+            disabled={status === "running"}
+          >
+            Assess
+          </button>
+
           {profileSeeds.length > 0 && (
             <select
               aria-label="Load existing tree"
@@ -348,6 +385,18 @@ export default function App() {
             setPanelNode(null);
             setSelectedNodeId(null);
             setPanelError(null);
+          }}
+        />
+
+        <AssessPanel
+          open={assessOpen}
+          running={status === "running"}
+          digestHint={assessmentDigest}
+          onClose={() => setAssessOpen(false)}
+          onStartRun={(runId) => void onAssessmentStart(runId)}
+          onError={(message) => {
+            setStatus("failed");
+            setError(message);
           }}
         />
       </main>

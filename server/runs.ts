@@ -20,11 +20,12 @@ export interface RunRecord {
   startedAt: string;
   finishedAt?: string;
   seedSlug?: string;
+  assessmentRunId?: string;
   error?: string;
   logs: string[];
   listeners: Set<(line: string) => void>;
   child?: ChildProcessWithoutNullStreams;
-  kind?: "seed" | "branch";
+  kind?: "seed" | "branch" | "assessment";
 }
 
 const MAX_LOG_LINES = 2000;
@@ -250,6 +251,127 @@ export function startBranchRun(input: {
       notifyDone(run, {
         type: "error",
         message: run.error,
+        exitCode: code,
+      });
+    }
+  });
+
+  return { runId: id };
+}
+
+function extractAssessmentRunId(logs: string[]): string | null {
+  for (let i = logs.length - 1; i >= 0; i--) {
+    const line = logs[i];
+    const m =
+      line.match(/Assessment run completed:\s*(arun_\S+)/) ||
+      line.match(/Artifacts:\s*output\/assessment-runs\/(arun_[^/\s]+)/) ||
+      line.match(/"assessment_run_id"\s*:\s*"(arun_[^"]+)"/);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+export function startAssessmentRun(input: {
+  mode: "selected" | "top_n";
+  candidateIds?: string[];
+  limit?: number;
+  mock?: boolean;
+  inputPath: string;
+}): { runId: string } | { error: string; status: number } {
+  if (activeRunId) {
+    return {
+      error: `A run is already in progress (${activeRunId}). Wait for it to finish.`,
+      status: 409,
+    };
+  }
+
+  if (!fs.existsSync(input.inputPath)) {
+    return {
+      error: `Candidates file not found at ${input.inputPath}. Run discovery first.`,
+      status: 404,
+    };
+  }
+
+  const args = [
+    "tsx",
+    "scripts/assessCandidates.ts",
+    "--input",
+    input.inputPath,
+  ];
+
+  if (input.mode === "selected") {
+    const ids = (input.candidateIds ?? []).map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) {
+      return { error: "mode=selected requires candidateIds", status: 400 };
+    }
+    args.push("--candidates", ids.join(","));
+    args.push("--limit", String(ids.length));
+  } else {
+    const limit = Math.max(1, Math.floor(Number(input.limit ?? 10)));
+    args.push("--limit", String(limit));
+  }
+
+  if (input.mock) {
+    args.push("--mock");
+  }
+
+  const id = crypto.randomBytes(6).toString("hex");
+  const run: RunRecord = {
+    id,
+    name: input.mode === "selected" ? "assessment:selected" : "assessment:top_n",
+    country: "",
+    status: "running",
+    startedAt: new Date().toISOString(),
+    logs: [],
+    listeners: new Set(),
+    kind: "assessment",
+  };
+  runs.set(id, run);
+  activeRunId = id;
+
+  const child = spawn("npx", args, {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      ...(input.mock ? { ASSESSMENT_MOCK_LLM: "1" } : {}),
+    },
+    shell: true,
+  });
+
+  pushLog(
+    run,
+    `[ui] started assessment job ${id} mode=${input.mode} input=${input.inputPath}`
+  );
+  attachChild(run, child, (code) => {
+    const assessmentRunId = extractAssessmentRunId(run.logs);
+    if (assessmentRunId) run.assessmentRunId = assessmentRunId;
+    const digestHint = assessmentRunId
+      ? `output/assessment-runs/${assessmentRunId}/digest.md`
+      : null;
+
+    if (code === 0) {
+      run.status = "done";
+      pushLog(
+        run,
+        `[ui] assessment finished ok${
+          assessmentRunId ? ` assessmentRunId=${assessmentRunId}` : ""
+        }`
+      );
+      notifyDone(run, {
+        type: "done",
+        assessmentRunId: assessmentRunId ?? null,
+        digestHint,
+        exitCode: code,
+      });
+    } else {
+      run.status = "failed";
+      run.error = `Assessment exited with code ${code}`;
+      pushLog(run, `[ui] assessment failed with exit code ${code}`);
+      notifyDone(run, {
+        type: "error",
+        message: run.error,
+        assessmentRunId: assessmentRunId ?? null,
+        digestHint,
         exitCode: code,
       });
     }

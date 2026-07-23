@@ -1,0 +1,341 @@
+{
+  "slug": "gblazex",
+  "name": "Blaze (Balázs Galambosi)",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "gblazex",
+    "display_name": "Blaze (Balázs Galambosi)",
+    "profile_url": "https://github.com/gblazex",
+    "bio": "Dev of SmoothScroll (Chrome & Mac) and Home New Tab Page (Chrome)",
+    "blog": "https://twitter.com/gblazex",
+    "twitter_username": null,
+    "company": null,
+    "location": null,
+    "email": null,
+    "social_accounts": [],
+    "context_score": 5,
+    "context_signals": [
+      "blog",
+      "bio",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "smoothscroll-for-websites",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 875,
+        "pushed_at": "2024-09-14T20:47:10Z"
+      },
+      {
+        "name": "alpaca_eval",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2024-02-13T18:54:14Z"
+      },
+      {
+        "name": "llm-benchmarks",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-11-23T15:35:27Z"
+      },
+      {
+        "name": "BetterChatGPT",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-16T13:25:42Z"
+      },
+      {
+        "name": "gpt4free",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-05-02T13:14:43Z"
+      },
+      {
+        "name": "Swindler",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2022-10-16T23:55:28Z"
+      },
+      {
+        "name": "darkreader",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2021-11-26T18:25:43Z"
+      },
+      {
+        "name": "smoothscroll",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 503,
+        "pushed_at": "2020-03-10T00:52:29Z"
+      },
+      {
+        "name": "XMPPFramework",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 1,
+        "pushed_at": "2016-05-31T18:54:45Z"
+      },
+      {
+        "name": "MacOSX-SDKs",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2016-04-03T10:19:44Z"
+      },
+      {
+        "name": "trymodule",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2016-03-17T18:42:03Z"
+      },
+      {
+        "name": "TTTAttributedLabel",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 1,
+        "pushed_at": "2016-03-09T08:31:25Z"
+      },
+      {
+        "name": "ejabberd",
+        "topics": [],
+        "language": "Erlang",
+        "stars": 1,
+        "pushed_at": "2016-03-07T15:06:19Z"
+      },
+      {
+        "name": "FFGlobalAlertController",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 1,
+        "pushed_at": "2016-02-29T17:25:24Z"
+      },
+      {
+        "name": "telize",
+        "topics": [],
+        "language": "Lua",
+        "stars": 1,
+        "pushed_at": "2016-02-27T21:30:12Z"
+      },
+      {
+        "name": "ec2-expire-snapshots",
+        "topics": [],
+        "language": "Perl",
+        "stars": 1,
+        "pushed_at": "2016-02-25T14:00:20Z"
+      },
+      {
+        "name": "cdnjs",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2015-12-14T16:24:59Z"
+      },
+      {
+        "name": "GammaThingy",
+        "topics": [],
+        "language": "C",
+        "stars": 1,
+        "pushed_at": "2015-10-20T13:28:54Z"
+      },
+      {
+        "name": "node",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2015-10-10T18:23:06Z"
+      },
+      {
+        "name": "node-postgres",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2015-10-10T09:12:55Z"
+      },
+      {
+        "name": "Sparkle",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 1,
+        "pushed_at": "2015-07-11T10:21:06Z"
+      },
+      {
+        "name": "JSQMessagesViewController",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 1,
+        "pushed_at": "2015-06-29T16:49:58Z"
+      },
+      {
+        "name": "websocket-bench",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2015-04-24T14:56:50Z"
+      },
+      {
+        "name": "accidentalbot",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 1,
+        "pushed_at": "2014-06-29T13:33:30Z"
+      },
+      {
+        "name": "Battery-Time-Remaining",
+        "topics": [],
+        "language": "Objective-C",
+        "stars": 2,
+        "pushed_at": "2013-10-25T12:45:51Z"
+      },
+      {
+        "name": "Summarize",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2011-08-11T15:38:49Z"
+      },
+      {
+        "name": "CodeMirror2",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2011-05-31T12:06:07Z"
+      },
+      {
+        "name": "apejs",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2011-05-30T15:03:24Z"
+      },
+      {
+        "name": "appengine",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 2,
+        "pushed_at": "2011-01-08T22:19:07Z"
+      },
+      {
+        "name": "taskspeed",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 3,
+        "pushed_at": "2010-11-27T16:49:06Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://x.com/gblazex",
+    "scraped_at": "2026-07-22T23:54:57.197Z",
+    "github_url": "https://github.com/lucidrains/self-rewarding-lm-pytorch",
+    "substack_url": null,
+    "twitter_url": "https://x.com/favicon.ico",
+    "linkedin_url": null,
+    "email": "inquiries@fireworks.ai",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://abs.twimg.com",
+      "https://api.x.com",
+      "https://pbs.twimg.com",
+      "https://t.co",
+      "https://video.twimg.com",
+      "https://ton.twimg.com",
+      "https://cdn.syndication.twimg.com",
+      "https://pbs.twimg.com/profile_banners/137002698/1494493795/1500x500",
+      "https://abs.twimg.com/x-web/x-web/assets/styles-CICSH6XZ.css",
+      "https://t.co/6b2OzHTvq5",
+      "https://support.x.com/articles/20170514",
+      "https://help.x.com/resources/accessibility",
+      "https://help.x.com/en/rules-and-policies/us-tida",
+      "https://business.x.com/en/help/troubleshooting/how-twitter-ads-work.html?ref=web-twc-ao-gbl-adsinfo&amp;utm_source=twc&amp;utm_medium=web&amp;utm_campaign=ao&amp;utm_content=adsinfo",
+      "https://huggingface.co/papers/2401.10020",
+      "https://www.assemblyai.com/playground",
+      "http://assemblyai.com/research/universal-1",
+      "https://docs.mistral.ai/platform/pricing",
+      "https://arxiv.org/abs/2312.14187",
+      "https://huggingface.co/spaces/Qwen/Qwen1.5-72B-Chat"
+    ],
+    "all_links": [
+      "https://x.com/favicon.ico",
+      "https://x.com/apple-touch-icon.png",
+      "https://x.com/manifest.json",
+      "https://abs.twimg.com",
+      "https://api.x.com",
+      "https://pbs.twimg.com",
+      "https://t.co",
+      "https://video.twimg.com",
+      "https://ton.twimg.com",
+      "https://cdn.syndication.twimg.com",
+      "https://x.com/os-x.xml",
+      "https://x.com/os-grok.xml",
+      "https://x.com/sitemap.xml",
+      "https://x.com/gblazex",
+      "https://x.com/gblazex?lang=ar",
+      "https://x.com/gblazex?lang=ar-x-fm",
+      "https://x.com/gblazex?lang=bg",
+      "https://x.com/gblazex?lang=bn",
+      "https://x.com/gblazex?lang=ca",
+      "https://x.com/gblazex?lang=cs",
+      "https://x.com/gblazex?lang=da",
+      "https://x.com/gblazex?lang=de",
+      "https://x.com/gblazex?lang=el",
+      "https://x.com/gblazex?lang=en",
+      "https://x.com/gblazex?lang=en-GB",
+      "https://x.com/gblazex?lang=es",
+      "https://x.com/gblazex?lang=fa",
+      "https://x.com/gblazex?lang=fi",
+      "https://x.com/gblazex?lang=fil",
+      "https://x.com/gblazex?lang=fr",
+      "https://x.com/gblazex?lang=gu",
+      "https://x.com/gblazex?lang=he",
+      "https://x.com/gblazex?lang=hi",
+      "https://x.com/gblazex?lang=hr",
+      "https://x.com/gblazex?lang=hu",
+      "https://x.com/gblazex?lang=id",
+      "https://x.com/gblazex?lang=it",
+      "https://x.com/gblazex?lang=ja",
+      "https://x.com/gblazex?lang=kn",
+      "https://x.com/gblazex?lang=ko"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/gblazex",
+    "personal_website": "https://x.com/gblazex",
+    "blog": "https://twitter.com/gblazex",
+    "twitter_url": "https://x.com/favicon.ico",
+    "email": "inquiries@fireworks.ai"
+  },
+  "context_score": 5,
+  "context_signals": [
+    "blog",
+    "bio",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.014Z"
+}

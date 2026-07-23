@@ -1,0 +1,19 @@
+bundle_id: rubric-bundle-v1
+version: 1.0.0
+description: Phase B v1 bundle of ownership, technical, writing, cross-artifact, and Cory relevance rubrics.
+rubrics:
+  - rubric_id: ownership-v2
+    version: 2.0.0
+    file: ownership-v2.yaml
+  - rubric_id: technical-repository-v2
+    version: 2.0.0
+    file: technical-repository-v2.yaml
+  - rubric_id: blog-intellectual-depth-v1
+    version: 1.0.0
+    file: blog-intellectual-depth-v1.yaml
+  - rubric_id: cross-artifact-inquiry-v1
+    version: 1.0.0
+    file: cross-artifact-inquiry-v1.yaml
+  - rubric_id: cory-relevance-v1
+    version: 1.0.0
+    file: cory-relevance-v1.yaml

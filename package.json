@@ -7,9 +7,15 @@
     "pipeline": "tsx src/pipeline/runPipeline.ts",
     "login": "tsx src/linkedin/saveSession.ts",
     "seeds": "python olympiad_seeds.py",
-    "dev:api": "tsx server/index.ts",
+    "dev:api": "tsx watch server/index.ts",
     "dev:web": "npm run dev --prefix web",
-    "dev": "concurrently -n api,web -c teal,amber \"npm run dev:api\" \"npm run dev:web\""
+    "dev": "concurrently -n api,web -c teal,amber \"npm run dev:api\" \"npm run dev:web\"",
+    "assess:candidates": "tsx scripts/assessCandidates.ts",
+    "digest:generate": "tsx scripts/generateDigest.ts",
+    "digest:send": "tsx scripts/sendDigest.ts",
+    "test": "vitest run",
+    "test:assessment": "vitest run tests/assessment tests/digest",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -19,14 +25,20 @@
     "concurrently": "^10.0.3",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
+    "openai": "^6.48.0",
     "playwright": "^1.52.0",
-    "xml2js": "^0.6.2"
+    "resend": "^6.18.0",
+    "xml2js": "^0.6.2",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
     "@types/xml2js": "^0.4.14",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

@@ -1,0 +1,326 @@
+{
+  "slug": "ptigas",
+  "name": "Panagiotis Tigas",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "ptigas",
+    "display_name": "Panagiotis Tigas",
+    "profile_url": "https://github.com/ptigas",
+    "bio": "AI/ML Researcher.\r\nPhD from the University of Oxford, @OATML.\r\nex-@microsoft, @autodesk, @brave ",
+    "blog": "http://ptigas.com",
+    "twitter_username": "ptigas",
+    "company": "University of Oxford",
+    "location": "Oxford / London / Earth",
+    "email": "ptigas@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/ptigas"
+      }
+    ],
+    "context_score": 11,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "email",
+      "bio",
+      "company",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "modded-nanogpt",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-04-03T12:05:38Z"
+      },
+      {
+        "name": "chemeleon",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-09-26T17:10:52Z"
+      },
+      {
+        "name": "cgcnn",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-09-15T09:13:34Z"
+      },
+      {
+        "name": "chemeleon-dng",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-09-11T11:08:42Z"
+      },
+      {
+        "name": "ptigas",
+        "topics": [],
+        "language": null,
+        "stars": 2,
+        "pushed_at": "2024-09-03T11:53:13Z"
+      },
+      {
+        "name": "gatsby-remark-bibliography",
+        "topics": [
+          "gatsby",
+          "gatsby-remark-plugin"
+        ],
+        "language": "JavaScript",
+        "stars": 15,
+        "pushed_at": "2024-06-05T02:28:41Z"
+      },
+      {
+        "name": "metastudy",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2022-12-08T10:02:38Z"
+      },
+      {
+        "name": "genedisco",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 1,
+        "pushed_at": "2022-03-27T12:40:21Z"
+      },
+      {
+        "name": "geoeffectivenet",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 4,
+        "pushed_at": "2022-03-16T09:46:19Z"
+      },
+      {
+        "name": "zotion",
+        "topics": [
+          "notion",
+          "notion-api",
+          "productivity",
+          "zotero"
+        ],
+        "language": "JavaScript",
+        "stars": 19,
+        "pushed_at": "2021-09-01T12:54:03Z"
+      },
+      {
+        "name": "tmaze",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2021-05-26T00:26:27Z"
+      },
+      {
+        "name": "oatomobile",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2021-04-27T11:51:42Z"
+      },
+      {
+        "name": "deep-active-inference-mc",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2021-04-12T16:19:15Z"
+      },
+      {
+        "name": "bells",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2020-12-08T12:38:20Z"
+      },
+      {
+        "name": "gcp_resen",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 2,
+        "pushed_at": "2020-06-17T10:50:54Z"
+      },
+      {
+        "name": "EGG",
+        "topics": [],
+        "language": null,
+        "stars": 1,
+        "pushed_at": "2020-04-10T13:44:14Z"
+      },
+      {
+        "name": "multiagent-particle-envs",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2020-03-11T13:43:23Z"
+      },
+      {
+        "name": "readinglist",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2020-01-28T14:52:29Z"
+      },
+      {
+        "name": "spacetelescope_scraper",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2019-10-07T15:53:15Z"
+      },
+      {
+        "name": "pymarl",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2019-08-09T13:08:26Z"
+      },
+      {
+        "name": "15-puzzle",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2019-06-20T17:31:08Z"
+      },
+      {
+        "name": "ESRGAN",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2019-01-15T14:05:57Z"
+      },
+      {
+        "name": "syro.js",
+        "topics": [
+          "javascript",
+          "volca-sample"
+        ],
+        "language": "JavaScript",
+        "stars": 22,
+        "pushed_at": "2019-01-09T15:37:42Z"
+      },
+      {
+        "name": "CPPN",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 1,
+        "pushed_at": "2019-01-03T08:50:09Z"
+      },
+      {
+        "name": "template",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2018-12-28T19:59:10Z"
+      },
+      {
+        "name": "raspberry_streamer",
+        "topics": [],
+        "language": "Dockerfile",
+        "stars": 1,
+        "pushed_at": "2018-12-23T10:29:56Z"
+      },
+      {
+        "name": "xpath_capture",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2018-12-13T17:55:43Z"
+      },
+      {
+        "name": "MaxPrinciple-DeepLearning",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2018-12-13T14:19:26Z"
+      },
+      {
+        "name": "Embedded-Systems-T",
+        "topics": [],
+        "language": "C",
+        "stars": 0,
+        "pushed_at": "2018-11-13T14:25:38Z"
+      },
+      {
+        "name": "brave-core",
+        "topics": [],
+        "language": "C++",
+        "stars": 0,
+        "pushed_at": "2018-09-28T13:53:57Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://ptigas.com/",
+    "scraped_at": "2026-07-22T23:56:14.628Z",
+    "github_url": null,
+    "substack_url": null,
+    "twitter_url": null,
+    "linkedin_url": null,
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap",
+      "https://d3js.org/d3.v4.js"
+    ],
+    "all_links": [
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "https://ptigas.com",
+      "https://ptigas.com/_next/static/css/f5a85b499b23c68d.css",
+      "https://ptigas.com/_next/static/css/87dfb6dd89ee9152.css",
+      "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap",
+      "https://ptigas.com/about",
+      "https://ptigas.com/projects",
+      "https://ptigas.com/publications",
+      "https://ptigas.com/blog",
+      "https://d3js.org/d3.v4.js"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/ptigas",
+    "personal_website": "https://ptigas.com/",
+    "blog": "http://ptigas.com",
+    "twitter_url": "https://x.com/ptigas",
+    "email": "ptigas@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/ptigas"
+      }
+    ]
+  },
+  "context_score": 11,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "email",
+    "bio",
+    "company",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.114Z"
+}

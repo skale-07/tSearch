@@ -1,0 +1,340 @@
+{
+  "slug": "winglian",
+  "name": "Wing Lian",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "winglian",
+    "display_name": "Wing Lian",
+    "profile_url": "https://github.com/winglian",
+    "bio": null,
+    "blog": "https://twitter.com/winglian",
+    "twitter_username": null,
+    "company": null,
+    "location": "Annapolis, MD",
+    "email": null,
+    "social_accounts": [],
+    "context_score": 5,
+    "context_signals": [
+      "blog",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "axolotl-dev",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2026-07-19T00:16:25Z"
+      },
+      {
+        "name": "transformers",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-07-15T14:42:08Z"
+      },
+      {
+        "name": "accelerate",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-10T06:34:42Z"
+      },
+      {
+        "name": "trl",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-07-07T18:43:48Z"
+      },
+      {
+        "name": "kernels-community",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-06-29T15:57:27Z"
+      },
+      {
+        "name": "peft",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-06-09T00:36:02Z"
+      },
+      {
+        "name": "hatchery-zerogpu-spaces",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2026-05-27T20:47:12Z"
+      },
+      {
+        "name": "kernel-support-matrix",
+        "topics": [],
+        "language": "HTML",
+        "stars": 0,
+        "pushed_at": "2026-05-27T20:25:45Z"
+      },
+      {
+        "name": "dflash",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-05-10T04:41:56Z"
+      },
+      {
+        "name": "sglang",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-20T00:11:10Z"
+      },
+      {
+        "name": "hermes-agent",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-04-14T15:38:02Z"
+      },
+      {
+        "name": "distil",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-04-07T22:44:03Z"
+      },
+      {
+        "name": "ao",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-04-02T12:29:15Z"
+      },
+      {
+        "name": "A",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-28T20:21:32Z"
+      },
+      {
+        "name": "parameter-golf",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-03-24T01:25:58Z"
+      },
+      {
+        "name": "modded-nanogpt",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-03-11T08:25:08Z"
+      },
+      {
+        "name": "kernels",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-02-15T17:34:05Z"
+      },
+      {
+        "name": "bitsandbytes",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2026-01-07T15:41:16Z"
+      },
+      {
+        "name": "OpenEnv",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-10-21T17:30:34Z"
+      },
+      {
+        "name": "flash-attention",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-10-21T05:24:39Z"
+      },
+      {
+        "name": "MoMoE-impl",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-07-25T17:32:38Z"
+      },
+      {
+        "name": "ring-flash-attention",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-07-23T11:14:55Z"
+      },
+      {
+        "name": "Liger-Kernel",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-07-02T03:04:33Z"
+      },
+      {
+        "name": "lighteval",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-05-23T23:21:35Z"
+      },
+      {
+        "name": "mamba",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-05-17T02:00:15Z"
+      },
+      {
+        "name": "triton_eval",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-05-15T17:21:20Z"
+      },
+      {
+        "name": "atropos",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-05-08T13:54:50Z"
+      },
+      {
+        "name": "Absolute-Zero-Reasoner",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-05-07T00:55:32Z"
+      },
+      {
+        "name": "ml-cross-entropy",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-04-07T14:55:11Z"
+      },
+      {
+        "name": "KernelBench",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-04-07T12:40:37Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://x.com/winglian",
+    "scraped_at": "2026-07-22T23:54:50.911Z",
+    "github_url": "https://github.com/winglian",
+    "substack_url": null,
+    "twitter_url": "https://x.com/favicon.ico",
+    "linkedin_url": null,
+    "email": null,
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://abs.twimg.com",
+      "https://api.x.com",
+      "https://pbs.twimg.com",
+      "https://t.co",
+      "https://video.twimg.com",
+      "https://ton.twimg.com",
+      "https://cdn.syndication.twimg.com",
+      "https://pbs.twimg.com/profile_banners/24802509/1403302292/1500x500",
+      "https://abs.twimg.com/x-web/x-web/assets/styles-CICSH6XZ.css",
+      "https://t.co/Ym8RB0dslS",
+      "https://support.x.com/articles/20170514",
+      "https://help.x.com/resources/accessibility",
+      "https://help.x.com/en/rules-and-policies/us-tida",
+      "https://business.x.com/en/help/troubleshooting/how-twitter-ads-work.html?ref=web-twc-ao-gbl-adsinfo&amp;utm_source=twc&amp;utm_medium=web&amp;utm_campaign=ao&amp;utm_content=adsinfo",
+      "https://t.co/gkRhORXsV9",
+      "https://huggingface.co/openaccess-ai-collective/mistral-7b-llava-1_5-pretrained-projector",
+      "https://t.co/hCjDR5ibDc",
+      "https://arxiv.org/abs/1503.02531",
+      "https://www.answer.ai/posts/2024-03-06-fsdp-qlora.html",
+      "https://twitter3e4tixl4xyajtrzo62zg5vztmjuricljdp2c5kshju4avyoid.onion"
+    ],
+    "all_links": [
+      "https://x.com/favicon.ico",
+      "https://x.com/apple-touch-icon.png",
+      "https://x.com/manifest.json",
+      "https://abs.twimg.com",
+      "https://api.x.com",
+      "https://pbs.twimg.com",
+      "https://t.co",
+      "https://video.twimg.com",
+      "https://ton.twimg.com",
+      "https://cdn.syndication.twimg.com",
+      "https://x.com/os-x.xml",
+      "https://x.com/os-grok.xml",
+      "https://x.com/sitemap.xml",
+      "https://x.com/winglian",
+      "https://x.com/winglian?lang=ar",
+      "https://x.com/winglian?lang=ar-x-fm",
+      "https://x.com/winglian?lang=bg",
+      "https://x.com/winglian?lang=bn",
+      "https://x.com/winglian?lang=ca",
+      "https://x.com/winglian?lang=cs",
+      "https://x.com/winglian?lang=da",
+      "https://x.com/winglian?lang=de",
+      "https://x.com/winglian?lang=el",
+      "https://x.com/winglian?lang=en",
+      "https://x.com/winglian?lang=en-GB",
+      "https://x.com/winglian?lang=es",
+      "https://x.com/winglian?lang=fa",
+      "https://x.com/winglian?lang=fi",
+      "https://x.com/winglian?lang=fil",
+      "https://x.com/winglian?lang=fr",
+      "https://x.com/winglian?lang=gu",
+      "https://x.com/winglian?lang=he",
+      "https://x.com/winglian?lang=hi",
+      "https://x.com/winglian?lang=hr",
+      "https://x.com/winglian?lang=hu",
+      "https://x.com/winglian?lang=id",
+      "https://x.com/winglian?lang=it",
+      "https://x.com/winglian?lang=ja",
+      "https://x.com/winglian?lang=kn",
+      "https://x.com/winglian?lang=ko"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/winglian",
+    "personal_website": "https://x.com/winglian",
+    "blog": "https://twitter.com/winglian",
+    "twitter_url": "https://x.com/favicon.ico"
+  },
+  "context_score": 5,
+  "context_signals": [
+    "blog",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:29.999Z"
+}

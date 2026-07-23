@@ -1,0 +1,130 @@
+{
+  "slug": "inferllm",
+  "name": "inferLLM",
+  "kind": "neighbor",
+  "relation": "collaborator",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-collaborator:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "inferLLM",
+    "display_name": "inferLLM",
+    "profile_url": "https://github.com/inferLLM",
+    "bio": "Phd Candidate, LLM.",
+    "blog": null,
+    "twitter_username": null,
+    "company": null,
+    "location": "San Francisco",
+    "email": null,
+    "social_accounts": [],
+    "context_score": 2,
+    "context_signals": [
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "repo",
+        "topics": [],
+        "language": "JavaScript",
+        "stars": 0,
+        "pushed_at": "2023-11-26T02:23:47Z"
+      },
+      {
+        "name": "llama",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-09-11T15:15:23Z"
+      },
+      {
+        "name": "alpaca_eval",
+        "topics": [],
+        "language": "Jupyter Notebook",
+        "stars": 0,
+        "pushed_at": "2023-07-18T14:11:03Z"
+      },
+      {
+        "name": "ChatGLM2-6B",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-17T09:06:11Z"
+      },
+      {
+        "name": "inferLLM",
+        "topics": [
+          "config",
+          "github-config"
+        ],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-17T08:35:41Z"
+      },
+      {
+        "name": "transformers",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-17T08:33:06Z"
+      },
+      {
+        "name": "xgboost",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-17T07:45:30Z"
+      },
+      {
+        "name": "FastChat",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-17T05:13:01Z"
+      },
+      {
+        "name": "DALLE2-pytorch",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-15T16:37:39Z"
+      },
+      {
+        "name": "Baichuan-13B",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-07-14T02:04:56Z"
+      },
+      {
+        "name": "stanford_alpaca",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2023-06-07T06:54:43Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "links": {
+    "github_url": "https://github.com/inferLLM"
+  },
+  "context_score": 2,
+  "context_signals": [
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:29.815Z"
+}

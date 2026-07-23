@@ -6,6 +6,7 @@ import ForceGraph2D, {
 } from "react-force-graph-2d";
 import type { TreeEdge, TreeNodeSummary } from "./api";
 import { MIN_TREE_DISPLAY_SCORE } from "./api";
+import { surfaceScoreToCss } from "./surfaceColor";
 
 export interface GraphNode extends NodeObject {
   id: string;
@@ -17,6 +18,13 @@ export interface GraphNode extends NodeObject {
   context_signals: string[];
   photo_url?: string;
   linkedin_url?: string;
+  website_url?: string;
+  blog_url?: string;
+  has_linkedin?: boolean;
+  has_writing_surface?: boolean;
+  surface_score?: number;
+  surface_signals?: string[];
+  surface_score_max?: number;
   can_expand?: boolean;
   fx?: number;
   fy?: number;
@@ -419,6 +427,17 @@ export function RadialTree({
     context_signals: n.context_signals,
     photo_url: n.photo_url,
     linkedin_url: n.linkedin_url,
+    website_url: n.website_url,
+    blog_url: n.blog_url,
+    has_linkedin: !!(n.has_linkedin || n.linkedin_url),
+    has_writing_surface: !!(
+      n.has_writing_surface ||
+      n.website_url ||
+      n.blog_url
+    ),
+    surface_score: n.surface_score ?? 0,
+    surface_signals: n.surface_signals ?? [],
+    surface_score_max: n.surface_score_max ?? 12,
     can_expand: !!n.can_expand || !!n.linkedin_url,
   });
 
@@ -568,6 +587,24 @@ export function RadialTree({
               ctx.stroke();
             }
 
+            // Identity-surface tick: yellow → orange → red by weighted score
+            if (!isSeed) {
+              const sScore = n.surface_score ?? 0;
+              const sMax = n.surface_score_max ?? 10;
+              if (sScore > 0) {
+                const tickR =
+                  Math.max(1.8, 2.4 / globalScale) *
+                  (0.85 + 0.45 * Math.min(1, sScore / sMax));
+                ctx.beginPath();
+                ctx.arc(x + r * 0.72, y - r * 0.72, tickR, 0, 2 * Math.PI);
+                ctx.fillStyle = surfaceScoreToCss(sScore, sMax);
+                ctx.fill();
+                ctx.strokeStyle = "rgba(18, 21, 26, 0.55)";
+                ctx.lineWidth = 0.8 / globalScale;
+                ctx.stroke();
+              }
+            }
+
             // Labels: hop-2 only when that branch is focused (cluster stays clean)
             const showLabel =
               isSeed ||
@@ -576,7 +613,9 @@ export function RadialTree({
             if (showLabel) {
               const label = isSeed
                 ? n.name
-                : `${n.name} · ${n.context_score}`;
+                : (n.surface_score ?? 0) > 0
+                  ? `${n.name} · ctx ${n.context_score} · surf ${n.surface_score}`
+                  : `${n.name} · ${n.context_score}`;
               const fontSize = Math.max(
                 (n.hop === 2 ? 9 : 10) / globalScale,
                 2.2
@@ -615,6 +654,9 @@ export function RadialTree({
         </span>
         <span>
           <i style={{ background: HOP2 }} /> hop-2 cluster
+        </span>
+        <span className="surface-legend" title="Identity surface: LinkedIn + site/blog weigh more than X">
+          <i className="surface-grad" /> surface low→high
         </span>
         <span className="hint">
           click branch to fan · drag pan · scroll zoom · score ≥ 4

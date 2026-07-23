@@ -1,0 +1,396 @@
+{
+  "slug": "blackhc",
+  "name": "Andreas Kirsch",
+  "kind": "neighbor",
+  "relation": "follower",
+  "hop": 2,
+  "seed": "madanva",
+  "discovered_via": [
+    "github-follower:nband"
+  ],
+  "parents": [
+    "madanva",
+    "nband"
+  ],
+  "github": {
+    "username": "BlackHC",
+    "display_name": "Andreas Kirsch",
+    "profile_url": "https://github.com/BlackHC",
+    "bio": "Past:\r\nAIMS DPhil in Oxford at @OATML;\r\nFellow at @nwspk;\r\nRE at DeepMind;\r\nSWE at Google.",
+    "blog": "blackhc.net",
+    "twitter_username": "blackhc",
+    "company": null,
+    "location": "Oxford, UK",
+    "email": "blackhc@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/blackhc"
+      }
+    ],
+    "context_score": 10,
+    "context_signals": [
+      "blog",
+      "twitter",
+      "email",
+      "bio",
+      "location",
+      "repos"
+    ],
+    "repos": [
+      {
+        "name": "continual_learning_iid",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2026-07-22T15:56:00Z"
+      },
+      {
+        "name": "iclr_2024_blog_post",
+        "topics": [],
+        "language": "HTML",
+        "stars": 1,
+        "pushed_at": "2026-07-20T16:45:51Z"
+      },
+      {
+        "name": "BatchBALD",
+        "topics": [
+          "activelearning",
+          "deep-learning",
+          "machine-learning",
+          "reproduction-code"
+        ],
+        "language": "Python",
+        "stars": 250,
+        "pushed_at": "2026-04-13T16:47:37Z"
+      },
+      {
+        "name": "tinker-cookbook",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2026-01-20T17:16:25Z"
+      },
+      {
+        "name": "notebook_setup",
+        "topics": [
+          "jupyter",
+          "jupyter-notebook",
+          "python",
+          "python3"
+        ],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-12-30T23:42:12Z"
+      },
+      {
+        "name": "implicit_lambda",
+        "topics": [
+          "codegen",
+          "lambda",
+          "python",
+          "python3",
+          "python37",
+          "tool"
+        ],
+        "language": "Python",
+        "stars": 3,
+        "pushed_at": "2025-12-26T15:07:19Z"
+      },
+      {
+        "name": "Dayflow",
+        "topics": [],
+        "language": "Swift",
+        "stars": 0,
+        "pushed_at": "2025-11-22T21:20:16Z"
+      },
+      {
+        "name": "modded-nanogpt",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-10-25T12:18:34Z"
+      },
+      {
+        "name": "infer_return_type",
+        "topics": [],
+        "language": "Python",
+        "stars": 3,
+        "pushed_at": "2025-10-25T11:29:10Z"
+      },
+      {
+        "name": "lean-codex-formalization",
+        "topics": [],
+        "language": "Lean",
+        "stars": 2,
+        "pushed_at": "2025-10-02T22:40:29Z"
+      },
+      {
+        "name": "pytorch-lightning",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-09-10T11:41:29Z"
+      },
+      {
+        "name": "gemini-cli",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-08-11T06:17:14Z"
+      },
+      {
+        "name": "mathlib4_docs",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-07-03T07:58:56Z"
+      },
+      {
+        "name": "iot-river-crossing-jules",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-06-16T21:47:12Z"
+      },
+      {
+        "name": "iot-river-crossing-codex",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-06-12T16:18:00Z"
+      },
+      {
+        "name": "fasthtml",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2025-06-07T13:46:52Z"
+      },
+      {
+        "name": "2409.02628",
+        "topics": [],
+        "language": "Python",
+        "stars": 1,
+        "pushed_at": "2025-05-24T13:35:14Z"
+      },
+      {
+        "name": "perplexity-correlations",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2025-03-14T12:56:11Z"
+      },
+      {
+        "name": "llm-strategy",
+        "topics": [
+          "gpt",
+          "langchain",
+          "llm",
+          "openai",
+          "pydantic",
+          "python",
+          "strongly-typed"
+        ],
+        "language": "Python",
+        "stars": 399,
+        "pushed_at": "2025-03-03T20:31:25Z"
+      },
+      {
+        "name": "llmtracer",
+        "topics": [
+          "llm",
+          "llmops",
+          "mlops",
+          "trace",
+          "wandb"
+        ],
+        "language": "Python",
+        "stars": 14,
+        "pushed_at": "2025-02-18T21:26:42Z"
+      },
+      {
+        "name": "vscode-notebook-renderers",
+        "topics": [],
+        "language": "TypeScript",
+        "stars": 0,
+        "pushed_at": "2024-12-18T23:44:28Z"
+      },
+      {
+        "name": "Laplace",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-12-05T08:35:59Z"
+      },
+      {
+        "name": "o1-replication-journey-tree-viewer",
+        "topics": [],
+        "language": "Python",
+        "stars": 2,
+        "pushed_at": "2024-11-19T10:12:56Z"
+      },
+      {
+        "name": "blackhc",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-10-30T21:40:50Z"
+      },
+      {
+        "name": "O1-Journey",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-10-16T00:46:09Z"
+      },
+      {
+        "name": "minp_scripts",
+        "topics": [],
+        "language": "Python",
+        "stars": 0,
+        "pushed_at": "2024-10-05T10:25:01Z"
+      },
+      {
+        "name": "dart_metamath_naive",
+        "topics": [],
+        "language": "Dart",
+        "stars": 2,
+        "pushed_at": "2024-10-03T11:03:09Z"
+      },
+      {
+        "name": "toma",
+        "topics": [
+          "data-science",
+          "gpu",
+          "machine-learning",
+          "python",
+          "pytorch"
+        ],
+        "language": "Python",
+        "stars": 436,
+        "pushed_at": "2024-08-29T14:22:44Z"
+      },
+      {
+        "name": "neural_net_checklist",
+        "topics": [],
+        "language": "Python",
+        "stars": 221,
+        "pushed_at": "2024-08-14T20:10:17Z"
+      },
+      {
+        "name": "xg2xg",
+        "topics": [],
+        "language": null,
+        "stars": 0,
+        "pushed_at": "2024-07-26T22:31:11Z"
+      }
+    ],
+    "contributors": [],
+    "stars": [],
+    "forks": [],
+    "followers": [],
+    "following": [],
+    "recent_commits": 0,
+    "active": true
+  },
+  "website": {
+    "url": "https://www.blackhc.net/",
+    "scraped_at": "2026-07-22T23:56:19.102Z",
+    "github_url": "https://github.com/blackhc",
+    "substack_url": null,
+    "twitter_url": "https://twitter.com/blackhc",
+    "linkedin_url": "https://www.linkedin.com/in/blackhc",
+    "email": "blackhc@gmail.com",
+    "instagram_url": null,
+    "youtube_url": null,
+    "other_links": [
+      "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.19.1/css/mdb.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.0/css/academicons.min.css",
+      "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons",
+      "https://cdn.jsdelivr.net/gh/jwarby/jekyll-pygments-themes@latest/github.css",
+      "https://blog.blackhc.net",
+      "https://www.admonymous.co/blackhc",
+      "http://www.cs.ox.ac.uk/people/yarin.gal/website",
+      "https://oatml.cs.ox.ac.uk",
+      "https://aims.robots.ox.ac.uk",
+      "https://course.mlsafety.org",
+      "https://www.safe.ai",
+      "https://arxiv.org/abs/2401.04305",
+      "https://newspeak.house",
+      "https://scholar.google.com/citations?user=WYQVZpYAAAAJ",
+      "https://medium.com/@BlackHC",
+      "http://arxiv.org/abs/2410.13609",
+      "https://arxiv.org/abs/2410.13609",
+      "https://arxiv.org/pdf/2410.13609"
+    ],
+    "all_links": [
+      "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.19.1/css/mdb.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css",
+      "https://cdnjs.cloudflare.com/ajax/libs/academicons/1.9.0/css/academicons.min.css",
+      "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons",
+      "https://cdn.jsdelivr.net/gh/jwarby/jekyll-pygments-themes@latest/github.css",
+      "https://www.blackhc.net/assets/img/favicon.png",
+      "https://www.blackhc.net/assets/css/main.css",
+      "https://www.blackhc.net",
+      "https://www.blackhc.net/blog",
+      "https://blog.blackhc.net",
+      "https://www.blackhc.net/essays",
+      "https://www.blackhc.net/publications",
+      "mailto:blackhc@gmail.com",
+      "https://www.admonymous.co/blackhc",
+      "http://www.cs.ox.ac.uk/people/yarin.gal/website",
+      "https://oatml.cs.ox.ac.uk",
+      "https://aims.robots.ox.ac.uk",
+      "https://course.mlsafety.org",
+      "https://www.safe.ai",
+      "https://arxiv.org/abs/2401.04305",
+      "https://newspeak.house",
+      "mailto:%62%6C%61%63%6B%68%63@%67%6D%61%69%6C.%63%6F%6D",
+      "https://scholar.google.com/citations?user=WYQVZpYAAAAJ",
+      "https://github.com/blackhc",
+      "https://www.linkedin.com/in/blackhc",
+      "https://twitter.com/blackhc",
+      "https://medium.com/@BlackHC",
+      "http://arxiv.org/abs/2410.13609",
+      "https://arxiv.org/abs/2410.13609",
+      "https://arxiv.org/pdf/2410.13609",
+      "http://arxiv.org/abs/2407.01082",
+      "https://openreview.net/forum?id=FBkpCyujtS",
+      "https://arxiv.org/pdf/2407.01082",
+      "http://arxiv.org/abs/2406.10670",
+      "https://proceedings.neurips.cc/paper_files/paper/2024/hash/b0f25f0a63cc544d506e4c1374a3c807-Abstract-Conference.html",
+      "https://proceedings.neurips.cc/paper_files/paper/2024/file/b0f25f0a63cc544d506e4c1374a3c807-Paper-Conference.pdf",
+      "https://iclr-blogposts.github.io/2024/blog/clml",
+      "https://iclr.cc/media/iclr-2024/Slides/20697.pdf",
+      "https://iclr-blogposts.github.io/2024/blog/dpi-fsvi"
+    ]
+  },
+  "links": {
+    "github_url": "https://github.com/BlackHC",
+    "linkedin_url": "https://www.linkedin.com/in/blackhc",
+    "personal_website": "https://www.blackhc.net/",
+    "blog": "blackhc.net",
+    "twitter_url": "https://twitter.com/blackhc",
+    "email": "blackhc@gmail.com",
+    "social_accounts": [
+      {
+        "provider": "twitter",
+        "url": "https://twitter.com/blackhc"
+      }
+    ]
+  },
+  "context_score": 10,
+  "context_signals": [
+    "blog",
+    "twitter",
+    "email",
+    "bio",
+    "location",
+    "repos"
+  ],
+  "last_updated": "2026-07-22T23:56:30.426Z"
+}

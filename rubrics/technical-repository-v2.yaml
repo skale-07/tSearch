@@ -1,0 +1,318 @@
+rubric_id: technical-repository-v2
+version: 2.0.0
+construct: technical_repository_quality
+description: Score inspectable technical depth of a repository artifact on a 0-5 scale. Do not score
+  candidate ownership here.
+dimensions:
+  - dimension_id: problem_difficulty
+    description: Inherent hardness of the problem being attacked, independent of polish.
+    applicable_artifacts: &a1
+      - github_repository
+    anchors:
+      - score: 0
+        description: No identifiable technical problem.
+      - score: 1
+        description: Trivial or tutorial-level problem.
+      - score: 3
+        description: Non-trivial problem with real constraints or failure modes.
+      - score: 5
+        description: Hard problem with scarce public solutions or severe engineering constraints.
+    strong_evidence_examples:
+      - Clear hard constraint (latency, correctness under adversarial input, distributed consistency)
+      - Problem statement shows why naive approaches fail
+    weak_evidence_examples:
+      - CRUD wrapper around a framework
+      - Reimplementation of a hello-world sample
+    counterevidence_examples:
+      - Marketing claims of difficulty without technical constraints in code/docs
+    prohibited_shortcuts:
+      - Score difficulty from buzzwords or star count
+      - Assume novelty equals difficulty
+  - dimension_id: mechanism_depth
+    description: How deeply the core mechanism is specified and realized beyond surface API usage.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No mechanism visible.
+      - score: 1
+        description: Thin glue over third-party APIs with no internal mechanism.
+      - score: 3
+        description: Identifiable internal mechanism with non-trivial control/data flow.
+      - score: 5
+        description: Deep mechanism with explicit invariants, state transitions, or algorithmic core.
+    strong_evidence_examples:
+      - Core module implements the claimed mechanism with inspectable logic
+      - Comments/docs state invariants that code enforces
+    weak_evidence_examples:
+      - SDK call wrappers only
+      - Config files without logic
+    counterevidence_examples:
+      - README claims a novel engine while code only calls an external service
+    prohibited_shortcuts:
+      - Equate dependency count with mechanism depth
+      - Score from architecture diagrams alone
+  - dimension_id: architecture_depth
+    description: "Quality of system structure: boundaries, interfaces, and composition under constraints."
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No discernible architecture.
+      - score: 1
+        description: Flat script or undifferentiated dump of files.
+      - score: 3
+        description: Clear module boundaries and interfaces matching the problem.
+      - score: 5
+        description: Deliberate architecture with justified boundaries, failure isolation, and extension points.
+    strong_evidence_examples:
+      - Layered or modular boundaries with explicit interfaces
+      - Separation of control plane vs data plane justified in code
+    weak_evidence_examples:
+      - Many folders without real separation of concerns
+    counterevidence_examples:
+      - Copy-pasted microservice layout with no communication design
+    prohibited_shortcuts:
+      - Reward number of directories
+      - Treat Clean Architecture labels as proof
+  - dimension_id: algorithmic_or_methodological_depth
+    description: Presence of non-trivial algorithms, methods, or formal procedures beyond boilerplate.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No algorithmic or methodological content.
+      - score: 1
+        description: Standard library usage only.
+      - score: 3
+        description: Non-trivial method with correctness/complexity considerations.
+      - score: 5
+        description: Sophisticated algorithm/method with analysis, proofs-lite, or careful approximation
+          tradeoffs.
+    strong_evidence_examples:
+      - Custom algorithm with complexity notes or correctness arguments
+      - Methodological pipeline with justified steps
+    weak_evidence_examples:
+      - Sorting a list
+      - Calling a pretrained model without method design
+    counterevidence_examples:
+      - Claims of custom algorithm that is stock library code
+    prohibited_shortcuts:
+      - Score from use of ML keywords
+      - Count lines of math-looking comments
+  - dimension_id: implementation_quality
+    description: "Craft of the implementation: clarity, robustness of interfaces, and absence of
+      reckless shortcuts in core paths."
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Implementation not inspectable.
+      - score: 1
+        description: Fragile, unclear, or obviously broken core paths.
+      - score: 3
+        description: Readable core paths with competent error boundaries and structure.
+      - score: 5
+        description: High-craft implementation with careful APIs, invariants, and maintainable core.
+    strong_evidence_examples:
+      - Core paths handle edge cases deliberately
+      - Types/contracts make illegal states harder
+    weak_evidence_examples:
+      - Works on happy path only
+      - Huge functions with silent catches
+    counterevidence_examples:
+      - Pretty formatting hiding empty stubs
+      - Generated boilerplate mistaken for craft
+    prohibited_shortcuts:
+      - Score from linter badge alone
+      - Penalize unconventional but clear style
+  - dimension_id: evaluation_and_validation
+    description: How the work is tested, measured, or otherwise validated against claims.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No validation artifacts.
+      - score: 1
+        description: Token tests or unverifiable claims.
+      - score: 3
+        description: Meaningful tests/benchmarks tied to core claims.
+      - score: 5
+        description: Rigorous evaluation with baselines, ablations, or adversarial cases where relevant.
+    strong_evidence_examples:
+      - Tests covering core failure modes
+      - Benchmarks with methodology and comparison baseline
+    weak_evidence_examples:
+      - Empty test file
+      - README checklist without runnable validation
+    counterevidence_examples:
+      - High coverage of getters while core algorithm untested
+    prohibited_shortcuts:
+      - Treat presence of /tests as rigor
+      - Score from CI badge alone
+  - dimension_id: failure_handling
+    description: Explicit handling of failures, partial results, retries, and degraded modes.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Failure behavior invisible.
+      - score: 1
+        description: Failures crash or are ignored.
+      - score: 3
+        description: Documented/handled errors on important paths.
+      - score: 5
+        description: Systematic failure taxonomy with recovery, idempotency, or graceful degradation.
+    strong_evidence_examples:
+      - Explicit retry/backoff with bounded failure modes
+      - Partial-result handling and operator-visible errors
+    weak_evidence_examples:
+      - "bare except: pass"
+      - TODO comments about errors
+    counterevidence_examples:
+      - Optimistic happy-path only in distributed/IO heavy code
+    prohibited_shortcuts:
+      - Assume logging equals failure handling
+  - dimension_id: reproducibility
+    description: Ability for a third party to rebuild/run/evaluate from public artifacts.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Cannot reproduce anything.
+      - score: 1
+        description: Vague setup notes; major missing pins or data.
+      - score: 3
+        description: Runnable with pinned deps and clear steps for main path.
+      - score: 5
+        description: "Strong reproducibility: pins, seeds, scripts, and recorded evaluation commands."
+    strong_evidence_examples:
+      - Lockfiles plus runnable scripts for main demo/eval
+      - Documented seeds and data acquisition steps
+    weak_evidence_examples:
+      - README says pip install somehow
+      - Notebooks without kernels/deps
+    counterevidence_examples:
+      - Hidden private data required with no substitute
+      - Undocumented native deps
+    prohibited_shortcuts:
+      - Score from Docker presence alone without working instructions
+  - dimension_id: tradeoff_reasoning
+    description: Evidence the author chose among alternatives with stated costs/benefits.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No tradeoffs visible.
+      - score: 1
+        description: Single path presented as inevitable.
+      - score: 3
+        description: Some alternatives mentioned with partial justification.
+      - score: 5
+        description: Explicit tradeoffs (perf, complexity, correctness) reflected in design choices.
+    strong_evidence_examples:
+      - ADRs or docs comparing rejected approaches
+      - Code comments tying choice to measured constraint
+    weak_evidence_examples:
+      - Generic 'we chose X because modern'
+    counterevidence_examples:
+      - Conflicting choices with no reconciliation
+    prohibited_shortcuts:
+      - Invent tradeoffs not present in artifacts
+  - dimension_id: completion_and_operational_reality
+    description: Whether the artifact reaches a usable completed state beyond a sketch.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Non-functional stub.
+      - score: 1
+        description: Partial sketch with major missing pieces.
+      - score: 3
+        description: Usable main path with known gaps.
+      - score: 5
+        description: "Operationally real: runnable, deployable or clearly production-used, with residual
+          gaps labeled."
+    strong_evidence_examples:
+      - End-to-end runnable path
+      - Deployment/release artifacts matching claimed scope
+    weak_evidence_examples:
+      - Half-finished modules and broken entrypoints
+    counterevidence_examples:
+      - README overclaims completion while main binary fails
+    prohibited_shortcuts:
+      - Equate commit count with completion
+      - Treat UI polish as operational reality
+  - dimension_id: persistence_and_iteration
+    description: Evidence of iterative improvement over time on the same technical problem.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No iteration signal.
+      - score: 1
+        description: Single dump commit or unrevised scaffold.
+      - score: 3
+        description: Multiple iterations refining the same core.
+      - score: 5
+        description: Sustained iteration with visible redesigns, fixes, and learning across versions.
+    strong_evidence_examples:
+      - Version history showing mechanism refactors
+      - Issue/PR trail fixing measured failures
+    weak_evidence_examples:
+      - Many commits that only update deps/lockfiles
+    counterevidence_examples:
+      - Force-pushed single snapshot pretending to be history
+    prohibited_shortcuts:
+      - Use account longevity as persistence
+      - Count churn unrelated to the core problem
+  - dimension_id: unusual_problem_selection
+    description: Whether the chosen problem/approach is atypical in a substantive technical way.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No problem selection signal.
+      - score: 1
+        description: Generic tutorial/clone topic.
+      - score: 3
+        description: Somewhat unusual framing or constraint.
+      - score: 5
+        description: Distinctive hard/unusual problem choice with coherent technical motivation.
+    strong_evidence_examples:
+      - Problem uncommon in public GitHub clones yet clearly motivated
+      - Unusual constraint driving architecture
+    weak_evidence_examples:
+      - Todo app / chat clone / portfolio site
+    counterevidence_examples:
+      - Weird branding without technical unusualness
+    prohibited_shortcuts:
+      - Score unusual from emoji-laden README
+      - Reward obscurity without substance
+prohibited_inferences:
+  - Scoring candidate ownership inside technical dimensions
+  - Claiming broad originality without provenance analysis
+  - Inferring production quality from stars, forks, or README polish alone
+  - Treating framework scaffolds as architectural depth
+  - Assigning high scores when core mechanism files are missing or unreadable
+confidence_caps:
+  - rule: only README/metadata available; no source excerpts
+    max_confidence: 0.35
+  - rule: fork/template/generated provenance dominant
+    max_confidence: 0.4
+  - rule: evaluation claimed but no tests/benchmarks artifacts
+    max_confidence: 0.5
+  - rule: sparse file sample relative to repo size
+    max_confidence: 0.55
+abstention_rules:
+  - condition: insufficient inspectable source for a dimension
+    action: set score null with applicability insufficient_evidence
+  - condition: dimension not meaningful for artifact type (e.g., pure dataset dump)
+    action: mark not_applicable rather than forcing a mid score
+  - condition: claims require private data or closed binaries
+    action: abstain on related dimensions and list missing_information
+evidence_requirements:
+  - when: score >= 4 on any dimension
+    require: strong supporting evidence_ids pointing at inspectable artifacts
+  - when: scoring mechanism_depth or algorithmic_or_methodological_depth highly
+    require: excerpts from core implementation, not README alone
+  - when: scoring evaluation_and_validation highly
+    require: tests, benchmarks, or other runnable validation artifacts
+source_notes:
+  - statement: Public GitHub samples are incomplete views of private engineering quality.
+    status: platform_constraint
+  - statement: 0-5 anchors are provisional pending Cory calibration.
+    status: requires_calibration
+  - statement: Originality is handled via deterministic provenance flags, not this rubric.
+    status: provisional_product_rule
+  - statement: High README polish correlates weakly with mechanism depth in sampled repos.
+    status: empirically_supported
