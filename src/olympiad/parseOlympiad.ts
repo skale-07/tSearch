@@ -111,6 +111,7 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
     const sources = new Set<string>();
     const prizes: string[] = [];
     const countries = new Set<string>();
+    const schools = new Set<string>();
 
     for (const row of personRows) {
       const source = row.source.toUpperCase();
@@ -120,6 +121,8 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
       sources.add(source);
       prizes.push(`${source} ${year} ${medal.label}`);
       if (row.country) countries.add(row.country.trim());
+      const school = (row.school ?? "").trim();
+      if (school) schools.add(school);
 
       olympiadPts = Math.max(olympiadPts, OLY_SCORE[source] ?? 0);
       medalPts = Math.max(medalPts, medal.score);
@@ -135,6 +138,7 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
       sources: [...sources].sort(),
       prizes,
       countries: [...countries],
+      schools: [...schools],
       olympiadScore: olympiadPts + repeatBonus * 0.1,
       medalScore: medalPts,
       recencyScore: recencyPts,

@@ -163,7 +163,15 @@ export function loadProfile(
   return readJson<ProfileRecord>(file);
 }
 
+/** Logins that pollute hop graphs but aren't GitHub Apps/bots. */
+const TREE_EXCLUDED_LOGINS = new Set([
+  "idouble", // "Alp ₿📈🚀🌕" — crypto-spam persona, appears under many seeds
+  "standardgalactic", // "Cogito Ergo Sum" — spam/agent persona across trees
+]);
+
 function isBotLogin(slug: string, name: string): boolean {
+  const login = slug.toLowerCase();
+  if (TREE_EXCLUDED_LOGINS.has(login)) return true;
   const s = `${slug} ${name}`.toLowerCase();
   return (
     /\[bot\]/.test(s) ||

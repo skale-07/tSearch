@@ -114,6 +114,8 @@ export interface OlympiadProfile {
   sources: string[];
   prizes: string[];
   countries: string[];
+  /** High schools / secondary schools from olympiad CSV rows (ISEF etc.). */
+  schools: string[];
   olympiadScore: number;
   medalScore: number;
   recencyScore: number;

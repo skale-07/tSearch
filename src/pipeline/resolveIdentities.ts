@@ -10,6 +10,7 @@ import { openLinkedInSession } from "../linkedin/linkedinBrowser.js";
 import {
   formatSearchQuery,
   searchLinkedInByName,
+  type LinkedInSearchContext,
   type LinkedInSearchHit,
 } from "../linkedin/linkedinSearch.js";
 import {
@@ -21,9 +22,14 @@ import {
   isFullLinkedInProfile,
   githubUsernameFromUrl,
   substackSlugFromUrl,
+  PROFILE_SCRAPE_VERSION,
 } from "../linkedin/linkedinExtract.js";
 import { lookupOlympiad } from "../olympiad/parseOlympiad.js";
-import { olympiadSearchHints } from "../olympiad/searchHints.js";
+import {
+  olympiadHighSchool,
+  olympiadSearchHints,
+  normalizeSchoolForSearch,
+} from "../olympiad/searchHints.js";
 import { footprintCrossCheck } from "./footprintSweep.js";
 import { loadPerson } from "../storage/personStore.js";
 import { readCache, writeCache } from "../storage/jsonStore.js";
@@ -31,7 +37,6 @@ import {
   candidateToResolvedIdentity,
   findScrapedCandidate,
 } from "./candidateLookup.js";
-import { PROFILE_SCRAPE_VERSION } from "../linkedin/linkedinExtract.js";
 import {
   applyWebsiteToLinkedInUrls,
   scrapeWebsite,
@@ -92,57 +97,100 @@ export async function resolveIdentity(
   }
 
   const olympiad_hints = olympiadSearchHints(olympiad);
-  const searchContext = { school, country, olympiad_hints };
-  const searchQuery = formatSearchQuery(queryName, searchContext);
-
-  console.log(`  [linkedin] search: ${searchQuery}`);
-
-  let hits: LinkedInSearchHit[];
-  const cachedSearch = readCache<LinkedInSearchHit[]>(
-    "linkedin-search",
-    searchQuery,
-    LINKEDIN_SEARCH_CACHE_TTL_MS
-  );
-  if (cachedSearch) {
-    hits = cachedSearch.data ?? [];
-    console.log(`  [linkedin] search cache hit (${hits.length} results)`);
-  } else {
-    const session = await getSession();
-    hits = await searchLinkedInByName(session, queryName, searchContext);
-    writeCache("linkedin-search", searchQuery, hits);
-  }
-
-  if (!hits.length) {
-    console.log(`  [linkedin] no results for "${queryName}"`);
-    return { ok: false, reason: "no_results" };
-  }
-
+  const highSchoolRaw = school?.trim() || olympiadHighSchool(olympiad);
+  const highSchool = highSchoolRaw
+    ? normalizeSchoolForSearch(highSchoolRaw) || undefined
+    : undefined;
   const matchCtx = {
     query_name: queryName,
     expected_country: country,
+    school: highSchool,
     olympiad,
     olympiad_hints,
   };
 
-  const picked = pickBestLinkedInHit(hits, matchCtx);
+  // Primary: name + high school. Secondary: original name + olympiad + country.
+  const attempts: { label: string; context: LinkedInSearchContext }[] = [];
+  if (highSchool) {
+    attempts.push({
+      label: "name+school",
+      context: { school: highSchool },
+    });
+  }
+  attempts.push({
+    label: "name+olympiad",
+    context: { country, olympiad_hints },
+  });
 
-  if (!picked) {
+  let hits: LinkedInSearchHit[] = [];
+  let picked: { hit: LinkedInSearchHit; confidence: number } | null = null;
+  let usedLabel = attempts[0]?.label ?? "name+olympiad";
+  let sawHits = false;
+
+  for (let ai = 0; ai < attempts.length; ai++) {
+    const attempt = attempts[ai];
+    const searchQuery = formatSearchQuery(queryName, attempt.context);
+    console.log(`  [linkedin] search (${attempt.label}): ${searchQuery}`);
+
+    const cachedSearch = readCache<LinkedInSearchHit[]>(
+      "linkedin-search",
+      searchQuery,
+      LINKEDIN_SEARCH_CACHE_TTL_MS
+    );
+    if (cachedSearch) {
+      hits = cachedSearch.data ?? [];
+      console.log(`  [linkedin] search cache hit (${hits.length} results)`);
+    } else {
+      const session = await getSession();
+      hits = await searchLinkedInByName(session, queryName, attempt.context);
+      writeCache("linkedin-search", searchQuery, hits);
+    }
+
+    if (!hits.length) {
+      console.log(`  [linkedin] no results for "${queryName}" (${attempt.label})`);
+      continue;
+    }
+    sawHits = true;
+
+    const attemptMatchCtx = {
+      ...matchCtx,
+      school: attempt.label === "name+school" ? highSchool : undefined,
+      expected_country:
+        attempt.label === "name+olympiad" ? country : undefined,
+      olympiad_hints:
+        attempt.label === "name+olympiad" ? olympiad_hints : undefined,
+    };
+    picked = pickBestLinkedInHit(hits, attemptMatchCtx);
+    if (picked) {
+      usedLabel = attempt.label;
+      break;
+    }
+
     console.log(
-      `  [linkedin] top results don't match name "${queryName}"`
+      `  [linkedin] top results don't match name "${queryName}" (${attempt.label})`
     );
     for (const h of hits.slice(0, 3)) {
       console.log(`    ? ${h.title}`);
     }
-    return { ok: false, reason: "no_name_match" };
+    if (ai < attempts.length - 1) {
+      console.log(`  [linkedin] falling back to ${attempts[ai + 1].label}`);
+    }
+  }
+
+  if (!picked) {
+    return { ok: false, reason: sawHits ? "no_name_match" : "no_results" };
   }
 
   console.log(
-    `  [linkedin] top result: ${picked.hit.title}` +
+    `  [linkedin] top result (${usedLabel}): ${picked.hit.title}` +
       (picked.hit.headline ? ` — ${picked.hit.headline}` : "") +
       (picked.hit.location ? ` — ${picked.hit.location}` : "")
   );
 
-  const searchConfirmed = isSearchConfirmed(picked.hit, matchCtx);
+  const searchConfirmed = isSearchConfirmed(picked.hit, {
+    ...matchCtx,
+    school: usedLabel === "name+school" ? highSchool : matchCtx.school,
+  });
   let confidence = picked.confidence;
 
   let linkedin: LinkedInProfile;

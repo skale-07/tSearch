@@ -4,6 +4,7 @@ import type { OlympiadProfile } from "../types.js";
 export interface MatchContext {
   query_name: string;
   expected_country?: string;
+  school?: string;
   olympiad?: OlympiadProfile;
   olympiad_hints?: string[];
 }
@@ -27,9 +28,10 @@ export function nameMatchesQuery(queryName: string, hitTitle: string): boolean {
   return parts.every((p) => title.includes(p));
 }
 
-/** Name + country and/or olympiad hints — LinkedIn ranking is the signal. */
+/** Name + school and/or country and/or olympiad hints — LinkedIn ranking is the signal. */
 export function isTargetedSearch(ctx: MatchContext): boolean {
   return !!(
+    ctx.school ||
     ctx.expected_country ||
     (ctx.olympiad_hints && ctx.olympiad_hints.length > 0)
   );

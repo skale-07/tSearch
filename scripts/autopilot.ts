@@ -47,10 +47,16 @@ function log(msg: string): void {
 
 function run(label: string, args: string[], env?: NodeJS.ProcessEnv): number {
   log(`stage: ${label}`);
+  // Windows: npx is a .cmd — spawnSync without shell:true → ENOENT.
   const res = spawnSync("npx", ["tsx", ...args], {
     stdio: "inherit",
+    shell: process.platform === "win32",
     env: { ...process.env, ...env },
   });
+  if (res.error) {
+    log(`spawn failed (${label}): ${res.error.message}`);
+    return 1;
+  }
   return res.status ?? 1;
 }
 

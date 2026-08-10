@@ -34,6 +34,11 @@ function buildSearchTerms(
   context?: LinkedInSearchContext
 ): string[] {
   const terms = [`"${name}"`];
+  // School-only primary queries stay tight — don't mix olympiad/country terms.
+  if (context?.school && !context.olympiad_hints?.length && !context.country) {
+    terms.push(context.school);
+    return terms;
+  }
   for (const hint of context?.olympiad_hints ?? []) {
     terms.push(hint);
   }

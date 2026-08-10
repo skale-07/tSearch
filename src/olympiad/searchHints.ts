@@ -34,3 +34,25 @@ export function olympiadSearchHints(olympiad?: OlympiadProfile): string[] {
 
   return hints.slice(0, 2);
 }
+
+/** Drop trailing ", CA" / ", FL" state initials — they hurt LinkedIn people search. */
+export function normalizeSchoolForSearch(school: string): string {
+  return school
+    .trim()
+    .replace(/,\s*[A-Za-z]{2}\s*$/u, "")
+    .trim();
+}
+
+/** Prefer a secondary-school-looking entry when multiple schools exist. */
+export function olympiadHighSchool(
+  olympiad?: OlympiadProfile
+): string | undefined {
+  const schools = olympiad?.schools?.map((s) => s.trim()).filter(Boolean) ?? [];
+  if (!schools.length) return undefined;
+  const secondary = schools.find((s) =>
+    /high school|preparatory|prep school|secondary|academy/i.test(s)
+  );
+  const picked = secondary ?? schools[0];
+  const cleaned = normalizeSchoolForSearch(picked);
+  return cleaned || undefined;
+}

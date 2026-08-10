@@ -92,14 +92,20 @@ async function main(): Promise<void> {
       seedsPath,
       batch.map((b) => ({ name: b.name, country: b.country ?? "" }))
     );
+    // Windows: npx is a .cmd — spawnSync without shell:true → ENOENT.
     const res = spawnSync("npx", ["tsx", "src/pipeline/runPipeline.ts"], {
       stdio: "inherit",
+      shell: process.platform === "win32",
       env: {
         ...process.env,
         SEEDS_PATH: seedsPath,
         MAX_IDENTITY_RESOLVES: String(batch.length),
       },
     });
+    if (res.error) {
+      console.error(`[resolve] failed to spawn pipeline: ${res.error.message}`);
+      process.exit(1);
+    }
     process.exit(res.status ?? 1);
   }
 }
