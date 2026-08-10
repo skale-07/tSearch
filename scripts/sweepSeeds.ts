@@ -63,7 +63,10 @@ async function main(): Promise<void> {
     );
   }
 
-  const resolveTop = Number(argValue("--resolve-top") ?? 0);
+  // Flag present without a count (e.g. `npm run resolve`) defaults to 10.
+  const resolveTop = process.argv.includes("--resolve-top")
+    ? Number(argValue("--resolve-top") ?? 10) || 10
+    : 0;
   if (resolveTop > 0) {
     const batch = queue
       .filter((e) => e.footprint_score >= AUTORESOLVE_MIN)
