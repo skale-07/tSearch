@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  fetchAssessed,
   fetchCandidates,
   fetchAssessmentRunCandidates,
   fetchRunCandidateAssessment,
+  generateDigest,
   pollAssessmentRun,
   retryAssessmentCandidate,
   retryFailedAssessment,
@@ -23,7 +25,23 @@ import {
 } from "./assessmentStatus";
 import { AssessmentResultView } from "./AssessmentResultView";
 
-type SortKey = "name" | "final_score";
+type SortKey = "name" | "final_score" | "context";
+type SurfaceFilter = "all" | "both" | "github" | "writing";
+
+/** Assessable context breadth: both surfaces > one > none. */
+function surfaceRank(c: AssessmentCandidateRow): number {
+  return (c.has_github ? 1 : 0) + (c.has_writing_surface ? 1 : 0);
+}
+
+function matchesSurfaceFilter(
+  c: AssessmentCandidateRow,
+  f: SurfaceFilter
+): boolean {
+  if (f === "all") return true;
+  if (f === "both") return c.has_github && c.has_writing_surface;
+  if (f === "github") return c.has_github && !c.has_writing_surface;
+  return c.has_writing_surface && !c.has_github;
+}
 
 interface Props {
   open: boolean;
@@ -59,6 +77,10 @@ export function AssessPanel({
   const [filter, setFilter] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("final_score");
   const [sortDesc, setSortDesc] = useState(true);
+  const [surfaceFilter, setSurfaceFilter] = useState<SurfaceFilter>("all");
+  const [assessedAt, setAssessedAt] = useState<Map<string, string>>(new Map());
+  const [digestBusy, setDigestBusy] = useState(false);
+  const [digestLink, setDigestLink] = useState<{ id: string; url: string } | null>(null);
   const [useMockLlm, setUseMockLlm] = useState(mockLlm);
   const [confirming, setConfirming] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -74,6 +96,14 @@ export function AssessPanel({
     try {
       const data = await fetchCandidates();
       setCandidates(data.candidates);
+      // Existing reports are context, not a blocker — never fail load on them.
+      fetchAssessed()
+        .then((rows) =>
+          setAssessedAt(
+            new Map(rows.map((r) => [r.candidate_id, r.updated_at]))
+          )
+        )
+        .catch(() => {});
       setSelected(
         new Set(
           (preselectCandidateIds ?? []).filter((id) =>
@@ -133,7 +163,7 @@ export function AssessPanel({
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    let rows = candidates;
+    let rows = candidates.filter((c) => matchesSurfaceFilter(c, surfaceFilter));
     if (q) {
       rows = rows.filter(
         (c) =>
@@ -147,10 +177,16 @@ export function AssessPanel({
         const cmp = a.name.localeCompare(b.name);
         return sortDesc ? -cmp : cmp;
       }
+      if (sortKey === "context") {
+        const cmp =
+          surfaceRank(a) - surfaceRank(b) ||
+          (a.final_score ?? 0) - (b.final_score ?? 0);
+        return sortDesc ? -cmp : cmp;
+      }
       const cmp = (a.final_score ?? 0) - (b.final_score ?? 0);
       return sortDesc ? -cmp : cmp;
     });
-  }, [candidates, filter, sortKey, sortDesc]);
+  }, [candidates, filter, sortKey, sortDesc, surfaceFilter]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -284,6 +320,34 @@ export function AssessPanel({
           onChange={(e) => setFilter(e.target.value)}
           disabled={running}
         />
+        <button
+          type="button"
+          className="chip assess-digest-btn"
+          title="Build the email digest (and Learn-more pages) from the latest completed run"
+          disabled={digestBusy || running}
+          onClick={() => {
+            setDigestBusy(true);
+            setDigestLink(null);
+            generateDigest()
+              .then((r) => setDigestLink({ id: r.digest_id, url: r.url }))
+              .catch((err) =>
+                onError(err instanceof Error ? err.message : String(err))
+              )
+              .finally(() => setDigestBusy(false));
+          }}
+        >
+          {digestBusy ? "Building digest…" : "📧 Generate digest"}
+        </button>
+        {digestLink && (
+          <a
+            className="chip chip-strong"
+            href={digestLink.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open {digestLink.id.slice(0, 14)} ↗
+          </a>
+        )}
       </div>
 
       {loadError && <p className="error">{loadError}</p>}
@@ -398,6 +462,17 @@ export function AssessPanel({
             <button
               type="button"
               className="chip"
+              title="Assessable context: both GitHub + writing first, then one surface"
+              onClick={() => {
+                setSortKey("context");
+                setSortDesc((d) => (sortKey === "context" ? !d : true));
+              }}
+            >
+              Context {sortKey === "context" ? (sortDesc ? "↓" : "↑") : ""}
+            </button>
+            <button
+              type="button"
+              className="chip"
               onClick={() => {
                 setSortKey("name");
                 setSortDesc((d) => (sortKey === "name" ? !d : false));
@@ -405,6 +480,17 @@ export function AssessPanel({
             >
               Name {sortKey === "name" ? (sortDesc ? "↓" : "↑") : ""}
             </button>
+            <select
+              aria-label="Filter by available surfaces"
+              className="assess-surface-filter"
+              value={surfaceFilter}
+              onChange={(e) => setSurfaceFilter(e.target.value as SurfaceFilter)}
+            >
+              <option value="all">All surfaces</option>
+              <option value="both">GitHub + blog</option>
+              <option value="github">GitHub only</option>
+              <option value="writing">Blog/site only</option>
+            </select>
             <button type="button" className="chip" onClick={toggleAllVisible}>
               Select visible eligible
             </button>
@@ -428,6 +514,9 @@ export function AssessPanel({
                       </span>
                       <span className={`chip ${assessmentEligibility(c).githubPathAvailable ? "chip-on" : "chip-off"}`}>GitHub path available</span>
                       <span className={`chip ${assessmentEligibility(c).writingEligible ? "chip-on" : "chip-off"}`}>Writing</span>
+                      {assessedAt.has(c.candidate_id) && (
+                        <span className="chip chip-strong" title="A finished report exists — selecting will re-run the judge">📄 report available</span>
+                      )}
                       {!assessmentEligibility(c).eligible && <span className="chip">Insufficient context</span>}
                     </span>
                   </span>
@@ -448,6 +537,17 @@ export function AssessPanel({
           <section className="assess-modal" role="dialog" aria-modal="true" aria-labelledby="assess-confirm-title">
             <h3 id="assess-confirm-title">Confirm assessment run</h3>
             <p>{selected.size} requested · {selected.size} eligible · 0 skipped</p>
+            {(() => {
+              const rerunCount = [...selected].filter((id) => assessedAt.has(id)).length;
+              return rerunCount > 0 ? (
+                <p className="assess-rerun-note">
+                  📄 {rerunCount === selected.size ? (rerunCount === 1 ? "This candidate already has" : "All of these candidates already have") : `${rerunCount} of the selected candidates already have`} a
+                  finished report (viewable under <strong>Reports</strong>).
+                  Running again produces a fresh report; earlier ones stay on
+                  file under their runs.
+                </p>
+              ) : null;
+            })()}
             <ul>
               <li>GitHub and writing paths run only where available.</li>
               <li>Discovery and email collection are off.</li>
@@ -466,7 +566,9 @@ export function AssessPanel({
             <div className="assess-modal-actions">
               <button type="button" className="chip" onClick={() => setConfirming(false)} disabled={starting}>Cancel</button>
               <button type="button" className="run-btn" onClick={() => void assessSelected()} disabled={starting}>
-                {starting ? "Starting…" : `Run ${useMockLlm ? "mock" : "live"} assessment`}
+                {starting
+                  ? "Starting…"
+                  : `${[...selected].some((id) => assessedAt.has(id)) ? "Re-run" : "Run"} ${useMockLlm ? "mock" : "live"} assessment`}
               </button>
             </div>
           </section>

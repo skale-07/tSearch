@@ -431,3 +431,60 @@ export function assertCandidateInRun(
 }
 
 export { isTerminalRunStatus, loadAssessmentRun };
+
+export interface AssessedCandidateRow {
+  candidate_id: string;
+  name: string;
+  priority_score: number;
+  archetype: string;
+  status: string;
+  run_id: string;
+  updated_at: string;
+}
+
+/** Latest assessment per candidate across all runs, newest report first. */
+export function listAssessedCandidates(): AssessedCandidateRow[] {
+  const root = path.resolve(process.cwd(), "output", "assessment-runs");
+  if (!fs.existsSync(root)) return [];
+  const seen = new Set<string>();
+  const rows: AssessedCandidateRow[] = [];
+  const runs = fs
+    .readdirSync(root)
+    .filter((n) => n.startsWith("arun_"))
+    .sort()
+    .reverse();
+  for (const runId of runs) {
+    for (const record of listCandidateAssessments(runId)) {
+      if (seen.has(record.candidate_id)) continue;
+      seen.add(record.candidate_id);
+      rows.push({
+        candidate_id: record.candidate_id,
+        name: record.source_candidate.name,
+        priority_score: record.synthesis.priority_score,
+        archetype: record.synthesis.archetype,
+        status: record.status,
+        run_id: runId,
+        updated_at: record.updated_at,
+      });
+    }
+  }
+  return rows.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+}
+
+/** Newest run that finished (with or without errors) — digest target. */
+export function latestCompletedAssessmentRunId(): string | null {
+  const root = path.resolve(process.cwd(), "output", "assessment-runs");
+  if (!fs.existsSync(root)) return null;
+  const runs = fs
+    .readdirSync(root)
+    .filter((n) => n.startsWith("arun_"))
+    .sort()
+    .reverse();
+  for (const runId of runs) {
+    const run = loadAssessmentRun(runId);
+    if (run && (run.status === "completed" || run.status === "completed_with_errors")) {
+      return runId;
+    }
+  }
+  return null;
+}
