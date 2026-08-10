@@ -1,7 +1,8 @@
 import { TECHNICAL_DIMENSIONS_V2 } from "../../types.js";
 import type { RubricDefinition } from "../../rubrics/types.js";
+import { READER_REGISTER } from "./readerRegister.js";
 
-export const TECHNICAL_PROMPT_VERSION_V2 = "technical-prompt-v2";
+export const TECHNICAL_PROMPT_VERSION_V2 = "technical-prompt-v3";
 export const TECHNICAL_RUBRIC_ID = "technical-repository-v2";
 export const TECHNICAL_RUBRIC_VERSION = "2.0.0";
 
@@ -52,5 +53,5 @@ exceptional | strong | moderate | limited | insufficient_public_evidence
 
 evidence_support must be one of: high | moderate | low
 
-Return a single JSON object matching the schema.${formatRubricAppendix(rubric)}`;
+Return a single JSON object matching the schema.${READER_REGISTER}${formatRubricAppendix(rubric)}`;
 }

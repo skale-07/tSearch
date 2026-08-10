@@ -1,7 +1,8 @@
 import { WRITING_DIMENSIONS } from "../../types.js";
 import type { RubricDefinition } from "../../rubrics/types.js";
+import { READER_REGISTER } from "./readerRegister.js";
 
-export const WRITING_PROMPT_VERSION = "writing-prompt-v1";
+export const WRITING_PROMPT_VERSION = "writing-prompt-v2";
 export const WRITING_RUBRIC_ID = "blog-intellectual-depth-v1";
 export const WRITING_RUBRIC_VERSION = "1.0.0";
 
@@ -40,5 +41,5 @@ exceptional | strong | moderate | limited | insufficient_public_evidence
 
 evidence_support must be one of: high | moderate | low
 
-Return a single JSON object matching the schema.${formatRubricAppendix(rubric)}`;
+Return a single JSON object matching the schema.${READER_REGISTER}${formatRubricAppendix(rubric)}`;
 }
