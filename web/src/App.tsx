@@ -41,6 +41,29 @@ export default function App() {
   const [assessOpen, setAssessOpen] = useState(false);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
   const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const logBodyRef = useRef<HTMLPreElement | null>(null);
+
+  useEffect(() => {
+    if (status !== "running") {
+      setRunStartedAt(null);
+      return;
+    }
+    const started = Date.now();
+    setRunStartedAt(started);
+    setElapsed(0);
+    const t = setInterval(
+      () => setElapsed(Math.floor((Date.now() - started) / 1000)),
+      1000
+    );
+    return () => clearInterval(t);
+  }, [status]);
+
+  useEffect(() => {
+    const el = logBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [logs, logsOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,13 +73,10 @@ export default function App() {
         setSeeds(data.seeds);
         setProfileSeeds(data.profileSeeds);
         if (data.seeds.length) {
-          const preferred =
-            data.seeds.find((s) => s.name === "Varun Madan") ?? data.seeds[0];
+          const preferred = data.seeds[0];
           setSelectedSeed(`${preferred.name}||${preferred.country}`);
         }
-        const slug = data.profileSeeds.includes("madanva")
-          ? "madanva"
-          : data.profileSeeds[0];
+        const slug = data.profileSeeds[0];
         if (slug) {
           try {
             const t = await fetchTree(slug);
@@ -306,7 +326,7 @@ export default function App() {
                 key={`${s.name}-${s.country}`}
                 value={`${s.name}||${s.country}`}
               >
-                {s.name}
+                {s.country ? `${s.name} — ${s.country}` : s.name}
               </option>
             ))}
           </select>
@@ -352,11 +372,27 @@ export default function App() {
             </select>
           )}
 
-          <span className={`status status-${status}`}>{status}</span>
+          <span className={`status status-${status}`} aria-live="polite">
+            {status === "running" && runStartedAt
+              ? `running · ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`
+              : status}
+          </span>
         </div>
       </header>
 
-      {error && <div className="banner error">{error}</div>}
+      {error && (
+        <div className="banner error" role="alert">
+          <span className="banner-text">{error}</span>
+          <button
+            type="button"
+            className="banner-dismiss"
+            aria-label="Dismiss error"
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <main className="stage">
         {tree ? (
@@ -434,7 +470,7 @@ export default function App() {
           Logs {logs.length ? `(${logs.length})` : ""}
         </button>
         {logsOpen && (
-          <pre className="log-body">
+          <pre className="log-body" ref={logBodyRef}>
             {logs.length ? logs.join("\n") : "No logs yet."}
           </pre>
         )}
