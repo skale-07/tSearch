@@ -24,6 +24,8 @@ import {
 } from "../linkedin/linkedinExtract.js";
 import { lookupOlympiad } from "../olympiad/parseOlympiad.js";
 import { olympiadSearchHints } from "../olympiad/searchHints.js";
+import { footprintCrossCheck } from "./footprintSweep.js";
+import { loadPerson } from "../storage/personStore.js";
 import { readCache, writeCache } from "../storage/jsonStore.js";
 import {
   candidateToResolvedIdentity,
@@ -162,6 +164,18 @@ export async function resolveIdentity(
 
   if (searchConfirmed) {
     confidence = Math.min(1, confidence + 0.1);
+  }
+
+  // Cross-source check: LinkedIn-verified GitHub agreeing with the sweep's
+  // independent name-based guess is strong identity evidence.
+  const guess = loadPerson(queryName)?.footprint?.github_login_guess;
+  const verifiedLogin = githubUsernameFromUrl(linkedin.github_url);
+  const crossed = footprintCrossCheck(confidence, guess, verifiedLogin);
+  if (crossed.confirmed) {
+    console.log(
+      `  [verify] footprint guess confirmed by LinkedIn (${verifiedLogin}) — confidence ${confidence.toFixed(2)} → ${crossed.confidence.toFixed(2)}`
+    );
+    confidence = crossed.confidence;
   }
 
   return {

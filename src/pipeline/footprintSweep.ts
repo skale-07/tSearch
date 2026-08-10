@@ -275,3 +275,23 @@ export function refreshSeedQueue(): QueueEntry[] {
 export function loadSeedQueue(): QueueEntry[] {
   return readJson<{ entries: QueueEntry[] }>(SEED_QUEUE_PATH)?.entries ?? [];
 }
+
+/**
+ * Cross-source identity check: the sweep guessed a GitHub login from name
+ * matching; LinkedIn later verified one via profile/website. When two
+ * independent sources agree, identity confidence deserves a bump.
+ */
+export function footprintCrossCheck(
+  confidence: number,
+  guess: string | undefined,
+  verifiedLogin: string | null | undefined
+): { confidence: number; confirmed: boolean } {
+  if (!guess || !verifiedLogin) return { confidence, confirmed: false };
+  if (guess.trim().toLowerCase() !== verifiedLogin.trim().toLowerCase()) {
+    return { confidence, confirmed: false };
+  }
+  return {
+    confidence: Math.min(1, Math.round((confidence + 0.1) * 100) / 100),
+    confirmed: true,
+  };
+}
