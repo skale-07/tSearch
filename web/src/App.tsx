@@ -17,6 +17,7 @@ import {
 } from "./api";
 import { AssessPanel } from "./AssessPanel";
 import { ProfilePanel } from "./ProfilePanel";
+import { ReportsPanel } from "./ReportsPanel";
 import { RadialTree } from "./RadialTree";
 import "./App.css";
 
@@ -42,6 +43,7 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
   const [assessOpen, setAssessOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
   const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
@@ -377,6 +379,17 @@ export default function App() {
             Assess
           </button>
 
+          <button
+            type="button"
+            className="run-btn"
+            onClick={() => {
+              setReportsOpen(true);
+              setAssessOpen(false);
+            }}
+          >
+            Reports
+          </button>
+
           {trees.length > 0 && (
             <select
               aria-label="Load existing tree"
@@ -477,6 +490,8 @@ export default function App() {
             setPanelError(null);
           }}
         />
+
+        <ReportsPanel open={reportsOpen} onClose={() => setReportsOpen(false)} />
 
         <AssessPanel
           open={assessOpen}

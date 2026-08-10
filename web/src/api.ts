@@ -595,3 +595,44 @@ export async function sendCandidateFeedback(body: {
   }
   return data.feedback;
 }
+
+export interface AssessedRow {
+  candidate_id: string;
+  name: string;
+  priority_score: number;
+  archetype: string;
+  status: string;
+  run_id: string;
+  updated_at: string;
+}
+
+export async function fetchAssessed(): Promise<AssessedRow[]> {
+  const res = await fetch("/api/assessed");
+  const data = await readApiJson<{ assessed: AssessedRow[] }>(res);
+  if (!res.ok) throw new Error(res.statusText);
+  return data.assessed;
+}
+
+export function assessedProfileUrl(candidateId: string): string {
+  return `/api/assessed/${encodeURIComponent(candidateId)}/profile.html`;
+}
+
+export async function generateDigest(
+  runId?: string
+): Promise<{ digest_id: string; run_id: string; url: string }> {
+  const res = await fetch("/api/digest/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(runId ? { run_id: runId } : {}),
+  });
+  const data = await readApiJson<{
+    digest_id?: string;
+    run_id?: string;
+    url?: string;
+    error?: string;
+  }>(res);
+  if (!res.ok || !data.digest_id || !data.url) {
+    throw new Error(data.error || res.statusText);
+  }
+  return { digest_id: data.digest_id, run_id: data.run_id ?? "", url: data.url };
+}

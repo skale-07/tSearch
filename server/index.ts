@@ -15,10 +15,20 @@ import {
   findLatestCandidateAssessment,
   getAssessmentRunCandidateRows,
   getAssessmentRunResponse,
+  latestCompletedAssessmentRunId,
+  listAssessedCandidates,
   prepareAssessmentRun,
   reconcileAbandonedAssessmentRuns,
   loadAssessmentRun,
 } from "./assessmentApi.js";
+import path from "path";
+import { assessmentRunDir } from "../src/assessment/storage/assessmentRunStore.js";
+import { getDigestsDir } from "../src/assessment/config.js";
+import { renderDigestForRun } from "../src/assessment/runAssessment.js";
+import { buildDigest } from "../src/digest/buildDigest.js";
+import { renderProfilePage } from "../src/digest/renderProfilePages.js";
+import { readJson } from "../src/storage/jsonStore.js";
+import { loadConvergenceMap } from "../src/pipeline/convergence.js";
 import { loadCandidateAssessment } from "../src/assessment/storage/assessmentRunStore.js";
 import {
   buildTree,
@@ -516,6 +526,77 @@ app.get("/api/trees", (_req, res) => {
 app.get("/api/convergence", (_req, res) => {
   res.json({ bridges: refreshConvergenceStore() });
 });
+
+// --- Assessment reports (digest-style profiles in the UI) ---
+
+app.get("/api/assessed", (_req, res) => {
+  res.json({ assessed: listAssessedCandidates() });
+});
+
+// The same profile page the email digest links to, built on demand from the
+// candidate's latest assessment + that run's frozen source snapshot.
+app.get("/api/assessed/:candidateId/profile.html", (req, res) => {
+  const found = findLatestCandidateAssessment(req.params.candidateId);
+  if (!found) {
+    res.status(404).send("No assessment found for this candidate.");
+    return;
+  }
+  const run = loadAssessmentRun(found.run_id);
+  if (!run) {
+    res.status(404).send("Assessment run not found.");
+    return;
+  }
+  const digest = buildDigest({
+    run,
+    assessments: [found.record],
+    discoveredCandidateCount: 1,
+    minPriority: 0,
+    convergence: loadConvergenceMap(),
+  });
+  const dc = digest.candidates[0];
+  if (!dc) {
+    res
+      .status(422)
+      .send("This assessment has no rankable synthesis to render.");
+    return;
+  }
+  const sources =
+    readJson<Candidate[]>(
+      path.join(assessmentRunDir(found.run_id), "source-candidates.json")
+    ) ?? [];
+  const source = sources.find(
+    (s) => identityFromCandidate(s).candidate_id === req.params.candidateId
+  );
+  res.type("html").send(renderProfilePage(dc, source));
+});
+
+// Digest generation from the UI + static serving so Learn-more links work.
+app.post("/api/digest/generate", (req, res) => {
+  const runId =
+    (typeof req.body?.run_id === "string" && req.body.run_id.trim()) ||
+    latestCompletedAssessmentRunId();
+  if (!runId) {
+    res.status(404).json({
+      error: "No completed assessment run yet — run an assessment first.",
+    });
+    return;
+  }
+  renderDigestForRun(runId)
+    .then((digestId) => {
+      res.json({
+        digest_id: digestId,
+        run_id: runId,
+        url: `/api/digests/${digestId}.html`,
+      });
+    })
+    .catch((err) => {
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) });
+    });
+});
+
+app.use("/api/digests", express.static(getDigestsDir()));
 
 // --- Reviewer feedback (digest Phases 3–4) ---
 

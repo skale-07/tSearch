@@ -1066,3 +1066,61 @@ code {
   font-size: 0.82rem;
   line-height: 1.4;
 }
+
+.assess-surface-filter {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.45rem;
+  min-width: 0;
+  max-width: 10rem;
+}
+
+.assess-rerun-note {
+  border-left: 3px solid var(--accent);
+  padding: 6px 12px;
+  background: rgba(232, 197, 106, 0.06);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.88rem;
+}
+
+.report-list .report-row {
+  width: 100%;
+  text-align: left;
+}
+
+.report-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 12, 16, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+.report-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-elev);
+}
+
+.report-viewer-bar span {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.report-viewer-bar .chip {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.report-viewer iframe {
+  flex: 1;
+  border: 0;
+  width: min(900px, 96vw);
+  margin: 0 auto;
+  background: #12151a;
+}
