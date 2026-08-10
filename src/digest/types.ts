@@ -21,6 +21,12 @@ export interface DigestCandidate {
   evidence_support?: string;
   /** Reviewer feedback applied to this digest (Phase 3/4 loop). */
   reviewer_feedback?: "relevant" | "explore_network";
+  /** Reachable from 2+ seed-set members (the convergence heuristic). */
+  network_bridges?: {
+    seed_count: number;
+    seeds: string[];
+    collaborator_of: string[];
+  };
   why_highlighted: Array<{
     claim: string;
     rationale: string;

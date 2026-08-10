@@ -49,6 +49,15 @@ export function renderMarkdown(digest: DigestDocument): string {
       lines.push(`**Profiles:** ${linkBits.join(" · ")}`);
       lines.push("");
     }
+    if (c.network_bridges) {
+      const viaCollab = c.network_bridges.collaborator_of.length
+        ? ` (co-contributor with ${c.network_bridges.collaborator_of.join(", ")})`
+        : "";
+      lines.push(
+        `**Network bridge:** connected to ${c.network_bridges.seed_count} seed-set members — ${c.network_bridges.seeds.join(", ")}${viaCollab}`
+      );
+      lines.push("");
+    }
     lines.push(
       `**Archetype:** ${c.primary_archetype.replace(/_/g, " ")}` +
         (c.cory_relevance

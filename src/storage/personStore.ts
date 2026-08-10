@@ -57,6 +57,19 @@ export interface PersonRecord {
     discovered_via: string[];
   };
 
+  /**
+   * GitHub-first footprint qualification (coverage sweep). A NOMINATION only:
+   * github_login_guess never becomes links.github_url — that stays reserved
+   * for LinkedIn/website-verified identities.
+   */
+  footprint?: {
+    score: number;
+    github_login_guess?: string;
+    github_confidence: number;
+    signals: string[];
+    checked_at: string;
+  };
+
   scores?: ScoreBreakdown & { final_score: number };
   score_history: { run_at: string; final_score: number }[];
 
@@ -84,6 +97,7 @@ export interface PersonUpdate {
   links?: Partial<PersonRecord["links"]>;
   identity?: Partial<PersonRecord["identity"]>;
   graph?: Partial<PersonRecord["graph"]>;
+  footprint?: PersonRecord["footprint"];
   scores?: ScoreBreakdown & { final_score: number };
   freshness?: Partial<PersonRecord["freshness"]>;
 }
@@ -175,6 +189,8 @@ export function upsertPerson(update: PersonUpdate): PersonRecord {
       ),
     };
   }
+
+  if (update.footprint) record.footprint = update.footprint;
 
   if (update.scores) {
     record.scores = update.scores;

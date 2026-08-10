@@ -24,7 +24,10 @@ function normKey(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function mergeCandidates(raw: RawCandidate[]): Candidate[] {
+export function mergeCandidates(
+  raw: RawCandidate[],
+  convergenceSeedsByKey?: Map<string, number>
+): Candidate[] {
   const map = new Map<string, RawCandidate>();
 
   for (const item of raw) {
@@ -55,17 +58,20 @@ export function mergeCandidates(raw: RawCandidate[]): Candidate[] {
 
   return [...map.values()]
     .map((c) =>
-      scoreCandidate({
-        name: c.name,
-        key: c.key,
-        discovered_via: c.discovered_via,
-        linkedin: c.linkedin,
-        identity_confidence: c.identity_confidence,
-        github: c.github,
-        substack: c.substack,
-        website: c.website,
-        olympiad: c.olympiad,
-      })
+      scoreCandidate(
+        {
+          name: c.name,
+          key: c.key,
+          discovered_via: c.discovered_via,
+          linkedin: c.linkedin,
+          identity_confidence: c.identity_confidence,
+          github: c.github,
+          substack: c.substack,
+          website: c.website,
+          olympiad: c.olympiad,
+        },
+        convergenceSeedsByKey?.get(c.key.toLowerCase()) ?? 0
+      )
     )
     .sort((a, b) => b.final_score - a.final_score);
 }

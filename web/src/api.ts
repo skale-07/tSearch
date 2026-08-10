@@ -24,6 +24,8 @@ export interface TreeNodeSummary {
   surface_signals?: string[];
   surface_score_max?: number;
   can_expand: boolean;
+  bridge_seed_count?: number;
+  bridge_seeds?: string[];
 }
 
 export interface TreeEdge {

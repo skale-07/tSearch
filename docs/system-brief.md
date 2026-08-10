@@ -82,6 +82,8 @@ login (cookies) → resolve LinkedIn + websites → expand GitHub/Substack (hop-
 | `npm run brief` | `tsx scripts/generateSystemBrief.ts` |
 | `npm run oracle` | `tsx src/oracle/mcpServer.ts` |
 | `npm run oracle:ask` | `tsx scripts/oracleAsk.ts` |
+| `npm run sweep` | `tsx scripts/sweepSeeds.ts` |
+| `npm run autopilot` | `tsx scripts/autopilot.ts` |
 
 The coding loop: one change → `npm run typecheck` → scoped
 `npx vitest run tests/<area>` → `npm run verify` green before commit.
@@ -98,7 +100,7 @@ CI (`.github/workflows/ci.yml`) enforces the same gate.
 
 ## Environment variables
 
-`GITHUB_TOKEN` · `OPENAI_API_KEY` · `LLM_API_KEY` · `LLM_MODEL` · `ASSESSMENT_MOCK_LLM` · `ASSESSMENT_FORCE_REFRESH` · `ASSESSMENT_CANDIDATE_LIMIT` · `ASSESSMENT_REPOSITORY_LIMIT` · `ASSESSMENT_PUBLICATION_LIMIT` · `ASSESSMENT_ARTICLE_LIMIT` · `ASSESSMENT_CANDIDATE_CONCURRENCY` · `ASSESSMENT_REPO_FETCH_CONCURRENCY` · `GITHUB_DELAY_MS` · `ASSESSMENT_RUNS_DIR` · `DIGESTS_DIR` · `DIGEST_TOP_N` · `DIGEST_MIN_PRIORITY` · `DIGEST_EMAIL_TO` · `DIGEST_EMAIL_FROM` · `DIGEST_EMAIL_SUBJECT_PREFIX` · `EMAIL_PROVIDER_API_KEY` · `RESEND_API_KEY` · `FEEDBACK_DIR` · `ORACLE_LLM`
+`GITHUB_TOKEN` · `LLM_PROVIDER` · `OPENAI_API_KEY` · `ANTHROPIC_API_KEY` · `LLM_API_KEY` · `LLM_MODEL` · `ASSESSMENT_MOCK_LLM` · `ASSESSMENT_FORCE_REFRESH` · `ASSESSMENT_CANDIDATE_LIMIT` · `ASSESSMENT_REPOSITORY_LIMIT` · `ASSESSMENT_PUBLICATION_LIMIT` · `ASSESSMENT_ARTICLE_LIMIT` · `ASSESSMENT_CANDIDATE_CONCURRENCY` · `ASSESSMENT_REPO_FETCH_CONCURRENCY` · `GITHUB_DELAY_MS` · `ASSESSMENT_RUNS_DIR` · `DIGESTS_DIR` · `DIGEST_TOP_N` · `DIGEST_MIN_PRIORITY` · `DIGEST_EMAIL_TO` · `DIGEST_EMAIL_FROM` · `DIGEST_EMAIL_SUBJECT_PREFIX` · `EMAIL_PROVIDER_API_KEY` · `RESEND_API_KEY` · `FEEDBACK_DIR` · `ORACLE_LLM` · `SWEEP_LIMIT` · `QUEUE_MIN_SCORE` · `AUTOPILOT_SEEDS_PER_RUN` · `AUTOPILOT_SWEEP_LIMIT` · `AUTOPILOT_LIVE_LLM` · `AUTOPILOT_SEND`
 
 ## Current risks (from the scheduled triage routine)
 

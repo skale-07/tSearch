@@ -21,7 +21,9 @@
     "typecheck": "tsc --noEmit",
     "brief": "tsx scripts/generateSystemBrief.ts",
     "oracle": "tsx src/oracle/mcpServer.ts",
-    "oracle:ask": "tsx scripts/oracleAsk.ts"
+    "oracle:ask": "tsx scripts/oracleAsk.ts",
+    "sweep": "tsx scripts/sweepSeeds.ts",
+    "autopilot": "tsx scripts/autopilot.ts"
   },
   "keywords": [],
   "author": "",

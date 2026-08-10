@@ -68,6 +68,16 @@ export const FEEDBACK_DIR = path.resolve(
   process.env.FEEDBACK_DIR ?? "data/feedback"
 );
 
+export const CONVERGENCE_PATH = path.resolve(
+  process.cwd(),
+  process.env.CONVERGENCE_PATH ?? "data/convergence.json"
+);
+
+export const SEED_QUEUE_PATH = path.resolve(
+  process.cwd(),
+  process.env.SEED_QUEUE_PATH ?? "data/seed-queue.json"
+);
+
 /** Flat per-person profile folders: profiles/<slug>/profile.json */
 export const PROFILES_DIR = path.resolve(
   process.cwd(),
