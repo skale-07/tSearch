@@ -94,7 +94,8 @@ import { loadFeedbackMap } from "../digest/feedbackStore.js";
 import { loadConvergenceMap } from "../pipeline/convergence.js";
 import { renderMarkdown } from "../digest/renderMarkdown.js";
 import { renderHtml } from "../digest/renderHtml.js";
-import { writeJsonAtomic } from "../storage/jsonStore.js";
+import { writeDigestProfilePages } from "../digest/renderProfilePages.js";
+import { readJson, writeJsonAtomic } from "../storage/jsonStore.js";
 import { loadRubricBundle } from "./rubrics/loadRubricBundle.js";
 import { rubricBundleVersionLabel } from "./rubrics/rubricCacheIdentity.js";
 import type { LoadedRubricBundle } from "./rubrics/types.js";
@@ -954,7 +955,12 @@ export async function renderDigestForRun(
     convergence: loadConvergenceMap(),
   });
   const md = renderMarkdown(digest);
-  const html = renderHtml(digest);
+  // Learn-more pages live next to the digest; DIGEST_PROFILE_BASE_URL points
+  // the email's buttons at a hosted copy when the folder isn't shipped along.
+  const profileBaseUrl =
+    process.env.DIGEST_PROFILE_BASE_URL?.trim().replace(/\/$/, "") ||
+    undefined;
+  const html = renderHtml(digest, { profileBaseUrl });
   writeRunDigestFiles(runId, digest, md, html);
 
   const digestsDir = getDigestsDir();
@@ -970,6 +976,15 @@ export async function renderDigestForRun(
     html,
     "utf-8"
   );
+
+  const sources =
+    readJson<Candidate[]>(
+      path.join(assessmentRunDir(runId), "source-candidates.json")
+    ) ?? [];
+  const pagesDir = path.join(digestsDir, "profiles", digest.digest_id);
+  const pages = writeDigestProfilePages(digest, sources, pagesDir);
+  logStage(runId, "digest_profile_pages", { pages, dir: pagesDir });
+
   return digest.digest_id;
 }
 

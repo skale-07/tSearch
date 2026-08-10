@@ -51,7 +51,9 @@ export async function sendDigest(opts: {
   const result = await transport.send({
     to,
     from: DIGEST_EMAIL_FROM,
-    subject: `${DIGEST_EMAIL_SUBJECT_PREFIX} ${digest.assessment_run_id}`,
+    subject: `${DIGEST_EMAIL_SUBJECT_PREFIX} ${digest.candidates.length} people worth a look — ${new Date(
+      digest.generated_at
+    ).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     html,
     text,
   });
