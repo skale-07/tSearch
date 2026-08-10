@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import {
@@ -22,6 +23,8 @@ import {
   loadConvergenceMap,
   refreshConvergenceStore,
 } from "./convergence.js";
+import { selectAutoAssess } from "./autoAssess.js";
+import { hasAnyAssessment } from "../assessment/storage/assessmentRunStore.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
 import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
@@ -294,6 +297,36 @@ async function main(): Promise<void> {
     log("converge", `${bridges.length} people reachable from 2+ seeds → ${CONVERGENCE_PATH}`);
     for (const b of bridges.slice(0, 5)) {
       log("converge", `  ${b.login} ← ${b.seeds.join(", ")} (w=${b.weight})`);
+    }
+  }
+
+  // Auto-assess the solid base case: GitHub path + writing surface (and, for
+  // discovered neighbors, enough graph context). Mock LLM unless explicitly
+  // armed — automatic live spend needs AUTO_ASSESS_LIVE=1. AUTO_ASSESS=0 off.
+  if (process.env.AUTO_ASSESS !== "0") {
+    const picks = selectAutoAssess(ranked, { hasReport: hasAnyAssessment });
+    if (picks.length) {
+      const live = process.env.AUTO_ASSESS_LIVE === "1";
+      log(
+        "auto-assess",
+        `${picks.length} candidate(s) meet the base condition (${live ? "LIVE LLM" : "mock"}): ${picks.map((p) => p.name).join(", ")}`
+      );
+      const args = [
+        "tsx",
+        "scripts/assessCandidates.ts",
+        "--candidates",
+        picks.map((p) => p.candidate_id).join(","),
+      ];
+      if (!live) args.push("--mock");
+      const res = spawnSync("npx", args, {
+        stdio: "inherit",
+        shell: process.platform === "win32",
+      });
+      if (res.status !== 0) {
+        log("auto-assess", `assessment exited with ${res.status ?? "spawn error"} (discovery output is unaffected)`);
+      }
+    } else {
+      log("auto-assess", "no new candidates meet the base condition");
     }
   }
 

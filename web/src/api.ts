@@ -636,3 +636,44 @@ export async function generateDigest(
   }
   return { digest_id: data.digest_id, run_id: data.run_id ?? "", url: data.url };
 }
+
+export interface DigestSettings {
+  from: string;
+  to: string;
+  provider_key_present: boolean;
+}
+
+export async function fetchDigestSettings(): Promise<DigestSettings> {
+  const res = await fetch("/api/digest/settings");
+  const data = await readApiJson<DigestSettings>(res);
+  if (!res.ok) throw new Error(res.statusText);
+  return data;
+}
+
+export async function sendDigestEmail(body: {
+  digestId: string;
+  from: string;
+  to: string;
+  dryRun: boolean;
+}): Promise<{ messageId: string; dryRun: boolean; to: string[] }> {
+  const res = await fetch(
+    `/api/digest/${encodeURIComponent(body.digestId)}/send`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: body.from,
+        to: body.to,
+        dry_run: body.dryRun,
+      }),
+    }
+  );
+  const data = await readApiJson<{
+    messageId?: string;
+    dryRun?: boolean;
+    to?: string[];
+    error?: string;
+  }>(res);
+  if (!res.ok || !data.messageId) throw new Error(data.error || res.statusText);
+  return { messageId: data.messageId, dryRun: Boolean(data.dryRun), to: data.to ?? [] };
+}
