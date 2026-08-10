@@ -16,6 +16,7 @@ import {
   type TreeResponse,
 } from "./api";
 import { AssessPanel } from "./AssessPanel";
+import { DigestsPanel } from "./DigestsPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { ReportsPanel } from "./ReportsPanel";
 import { RadialTree } from "./RadialTree";
@@ -44,6 +45,7 @@ export default function App() {
   const [expanding, setExpanding] = useState(false);
   const [assessOpen, setAssessOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(false);
+  const [digestsOpen, setDigestsOpen] = useState(false);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
   const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
@@ -373,6 +375,8 @@ export default function App() {
             onClick={() => {
               setAssessOpen(true);
               setAssessmentPreselect([]);
+              setReportsOpen(false);
+              setDigestsOpen(false);
             }}
             disabled={status === "running"}
           >
@@ -385,9 +389,22 @@ export default function App() {
             onClick={() => {
               setReportsOpen(true);
               setAssessOpen(false);
+              setDigestsOpen(false);
             }}
           >
             Reports
+          </button>
+
+          <button
+            type="button"
+            className="run-btn"
+            onClick={() => {
+              setDigestsOpen(true);
+              setReportsOpen(false);
+              setAssessOpen(false);
+            }}
+          >
+            Digests
           </button>
 
           {trees.length > 0 && (
@@ -492,6 +509,8 @@ export default function App() {
         />
 
         <ReportsPanel open={reportsOpen} onClose={() => setReportsOpen(false)} />
+
+        <DigestsPanel open={digestsOpen} onClose={() => setDigestsOpen(false)} />
 
         <AssessPanel
           open={assessOpen}

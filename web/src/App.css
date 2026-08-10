@@ -1087,6 +1087,23 @@ code {
   text-align: left;
 }
 
+.digest-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.digest-row .report-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.digest-send-chip {
+  align-self: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
 .report-viewer {
   position: fixed;
   inset: 0;

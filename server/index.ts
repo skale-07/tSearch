@@ -33,6 +33,7 @@ import { sendDigest } from "../src/digest/sendDigest.js";
 import { renderDigestForRun } from "../src/assessment/runAssessment.js";
 import { buildDigest } from "../src/digest/buildDigest.js";
 import { renderProfilePage } from "../src/digest/renderProfilePages.js";
+import type { DigestDocument } from "../src/digest/types.js";
 import { readJson } from "../src/storage/jsonStore.js";
 import { loadConvergenceMap } from "../src/pipeline/convergence.js";
 import { loadCandidateAssessment } from "../src/assessment/storage/assessmentRunStore.js";
@@ -600,6 +601,41 @@ app.post("/api/digest/generate", (req, res) => {
         .status(500)
         .json({ error: err instanceof Error ? err.message : String(err) });
     });
+});
+
+app.get("/api/digest/list", (_req, res) => {
+  try {
+    const dir = getDigestsDir();
+    if (!fs.existsSync(dir)) {
+      res.json({ digests: [] });
+      return;
+    }
+    const digests = fs
+      .readdirSync(dir)
+      .filter((f) => /^digest_[a-f0-9]+\.html$/i.test(f))
+      .map((f) => {
+        const digest_id = f.replace(/\.html$/i, "");
+        const htmlPath = path.join(dir, f);
+        const jsonPath = path.join(dir, `${digest_id}.json`);
+        const st = fs.statSync(htmlPath);
+        const doc = readJson<DigestDocument>(jsonPath);
+        return {
+          digest_id,
+          url: `/api/digests/${digest_id}.html`,
+          generated_at: doc?.generated_at ?? st.mtime.toISOString(),
+          assessment_run_id: doc?.assessment_run_id ?? null,
+          candidate_count: doc?.candidates?.length ?? null,
+          assessed_candidate_count:
+            doc?.meta?.assessed_candidate_count ?? null,
+        };
+      })
+      .sort((a, b) => b.generated_at.localeCompare(a.generated_at));
+    res.json({ digests });
+  } catch (err) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 });
 
 app.use("/api/digests", express.static(getDigestsDir()));

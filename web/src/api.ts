@@ -617,6 +617,24 @@ export function assessedProfileUrl(candidateId: string): string {
   return `/api/assessed/${encodeURIComponent(candidateId)}/profile.html`;
 }
 
+export interface DigestListItem {
+  digest_id: string;
+  url: string;
+  generated_at: string;
+  assessment_run_id: string | null;
+  candidate_count: number | null;
+  assessed_candidate_count: number | null;
+}
+
+export async function fetchDigests(): Promise<DigestListItem[]> {
+  const res = await fetch("/api/digest/list");
+  const data = await readApiJson<{ digests: DigestListItem[]; error?: string }>(
+    res
+  );
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data.digests ?? [];
+}
+
 export async function generateDigest(
   runId?: string
 ): Promise<{ digest_id: string; run_id: string; url: string }> {
