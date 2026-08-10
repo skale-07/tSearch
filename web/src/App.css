@@ -1055,3 +1055,14 @@ code {
   margin: 0.4rem 0;
   line-height: 1.45;
 }
+
+.bridge-callout {
+  margin: 0.5rem 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px dashed rgba(232, 197, 106, 0.55);
+  border-radius: 6px;
+  background: rgba(232, 197, 106, 0.08);
+  color: var(--accent);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

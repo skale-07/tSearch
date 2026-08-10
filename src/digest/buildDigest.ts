@@ -5,6 +5,7 @@ import { DIGEST_MIN_PRIORITY, DIGEST_TOP_N } from "../assessment/config.js";
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { DIGEST_SCHEMA_VERSION } from "./types.js";
 import type { FeedbackRecord } from "./feedbackStore.js";
+import type { ConvergenceEntry } from "../pipeline/convergence.js";
 import {
   buildCoryBrief,
   resolveProfileLinks,
@@ -86,6 +87,8 @@ export function buildDigest(input: {
   minPriority?: number;
   /** Reviewer feedback keyed by candidate_id (Phase 4 ranking refinement). */
   feedback?: Map<string, FeedbackRecord>;
+  /** Multi-seed bridges keyed by lowercase github login. */
+  convergence?: Map<string, ConvergenceEntry>;
 }): DigestDocument {
   const topN = clampTopN(input.topN ?? DIGEST_TOP_N);
   const minPriority = input.minPriority ?? DIGEST_MIN_PRIORITY;
@@ -158,8 +161,20 @@ export function buildDigest(input: {
     const writingJudge = a.judge_results.writing;
 
     const reviewerVerdict = verdictOf(a);
+    const bridge = input.convergence?.get(
+      (a.identity.github_username ?? "").toLowerCase()
+    );
 
     return {
+      ...(bridge
+        ? {
+            network_bridges: {
+              seed_count: bridge.seed_count,
+              seeds: bridge.seeds,
+              collaborator_of: bridge.collaborator_of,
+            },
+          }
+        : {}),
       candidate_id: a.candidate_id,
       rank: i + 1,
       name: a.source_candidate.name,

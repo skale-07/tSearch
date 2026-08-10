@@ -35,6 +35,7 @@ import {
 } from "../src/assessment/candidateIdentity.js";
 import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
+import { refreshConvergenceStore } from "../src/pipeline/convergence.js";
 import {
   FEEDBACK_VERDICTS,
   exploreQueue,
@@ -509,6 +510,11 @@ app.get("/api/profile/:seedSlug/:relation/:slug", (req, res) => {
 // Convenience: list known trees for the “load existing” path
 app.get("/api/trees", (_req, res) => {
   res.json({ seeds: listProfileSeeds() });
+});
+
+// People reachable from 2+ seed-set members, best-bridged first.
+app.get("/api/convergence", (_req, res) => {
+  res.json({ bridges: refreshConvergenceStore() });
 });
 
 // --- Reviewer feedback (digest Phases 3–4) ---

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import {
   CACHE_DIR,
+  CONVERGENCE_PATH,
   COOKIES_PATH,
   GITHUB_TOKEN_SOURCE,
   OLYMPIAD_CSV_PATH,
@@ -17,6 +18,10 @@ import { loadOlympiadCsv, lookupOlympiad } from "../olympiad/parseOlympiad.js";
 import { parseSeeds, type SeedQuery } from "../seeds/parseSeeds.js";
 import { upsertPerson } from "../storage/personStore.js";
 import { writeSeedTreeProfiles } from "../storage/profileStore.js";
+import {
+  loadConvergenceMap,
+  refreshConvergenceStore,
+} from "./convergence.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
 import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
@@ -219,11 +224,21 @@ async function main(): Promise<void> {
     neighbors = new Map();
   }
 
+  // Convergence from prior runs' person records boosts this run's ranking;
+  // the store itself is refreshed after persistPeople below.
+  const priorConvergence = loadConvergenceMap();
+  const convergenceSeeds = new Map(
+    [...priorConvergence.values()].map((e) => [e.login, e.seed_count])
+  );
+  if (priorConvergence.size) {
+    log("converge", `${priorConvergence.size} known multi-seed bridges applied to scoring`);
+  }
+
   log("merge", `merging ${pool.size} raw candidates`);
-  const merged = mergeCandidates([
-    ...pool.values(),
-    ...existingCandidates.map(candidateToRaw),
-  ]);
+  const merged = mergeCandidates(
+    [...pool.values(), ...existingCandidates.map(candidateToRaw)],
+    convergenceSeeds
+  );
   const ranked = merged.slice(0, MAX_CANDIDATES);
 
   fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
@@ -273,6 +288,14 @@ async function main(): Promise<void> {
 
   const people = persistPeople(ranked, seeds, failed, neighbors, olympiadIndex);
   log("people", `upserted ${people} person records → ${PEOPLE_DIR}`);
+
+  const bridges = refreshConvergenceStore();
+  if (bridges.length) {
+    log("converge", `${bridges.length} people reachable from 2+ seeds → ${CONVERGENCE_PATH}`);
+    for (const b of bridges.slice(0, 5)) {
+      log("converge", `  ${b.login} ← ${b.seeds.join(", ")} (w=${b.weight})`);
+    }
+  }
 
   console.log("\n=== TOP CANDIDATES ===\n");
   for (const c of ranked.slice(0, 15)) {

@@ -149,4 +149,6 @@ export interface ScoreBreakdown {
   olympiad: number;
   weirdness: number;
   identity: number;
+  /** Bonus for being reachable from 2+ seed-set members (network bridge). */
+  convergence?: number;
 }

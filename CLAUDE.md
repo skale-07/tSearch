@@ -19,6 +19,15 @@ At the start of every session, before taking on the task:
    whether the current task advances or conflicts with any of them, and
    surface anything Critical/High to the user before starting.
 
+## Optional context resources (use if you lack starting context — not required)
+
+- `docs/system-brief.md` — ~2k-token generated overview of the whole system
+  (`npm run brief` regenerates it after structural changes).
+- The `tsearch-oracle` MCP server (registered in `.mcp.json`) — `ask_system` /
+  `search_system` return passages from docs/source with file:line citations.
+  CLI equivalent: `npm run oracle:ask -- "question"`. Read-only; never
+  indexes person data.
+
 ## The coding loop
 
 Work in small verified iterations, not big batches:

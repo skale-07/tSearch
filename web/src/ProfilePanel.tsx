@@ -212,6 +212,13 @@ export function ProfilePanel({
             </p>
           </div>
 
+          {(node?.bridge_seed_count ?? 0) >= 2 && (
+            <p className="bridge-callout">
+              🔗 Network bridge — connected to {node!.bridge_seed_count} seed-set
+              members: {node!.bridge_seeds?.join(", ")}
+            </p>
+          )}
+
           <div className="chips presence-chips" aria-label="Identity surfaces">
             <span
               className={`chip ${hasLinkedIn ? "chip-on" : "chip-off"}`}

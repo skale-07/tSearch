@@ -19,7 +19,8 @@ export function computeScore(
   github?: GitHubProfile,
   substack?: SubstackProfile,
   olympiad?: OlympiadProfile,
-  identityConfidence = 0
+  identityConfidence = 0,
+  convergenceSeedCount = 0
 ): { final_score: number; breakdown: ScoreBreakdown } {
   const repos = github?.repos.length ?? 0;
   const recent = github?.recent_commits ?? 0;
@@ -41,6 +42,9 @@ export function computeScore(
 
   const weirdness = hasWeirdTopics(github) ? 0.3 : 0;
   const identity = identityConfidence * 0.2;
+  // Each seed-set member beyond the first that reaches this person adds
+  // signal; capped so convergence flavors ranking without dominating it.
+  const convergence = Math.min(0.45, Math.max(0, convergenceSeedCount - 1) * 0.15);
 
   const breakdown: ScoreBreakdown = {
     builder: Math.round(builder * 100) / 100,
@@ -48,6 +52,7 @@ export function computeScore(
     olympiad: Math.round(olympiadScore * 100) / 100,
     weirdness: Math.round(weirdness * 100) / 100,
     identity: Math.round(identity * 100) / 100,
+    convergence: Math.round(convergence * 100) / 100,
   };
 
   const final_score =
@@ -56,7 +61,8 @@ export function computeScore(
         breakdown.thinker +
         breakdown.olympiad +
         breakdown.weirdness +
-        breakdown.identity) *
+        breakdown.identity +
+        (breakdown.convergence ?? 0)) *
         100
     ) / 100;
 
@@ -64,13 +70,15 @@ export function computeScore(
 }
 
 export function scoreCandidate(
-  candidate: Omit<Candidate, "final_score" | "score_breakdown">
+  candidate: Omit<Candidate, "final_score" | "score_breakdown">,
+  convergenceSeedCount = 0
 ): Candidate {
   const { final_score, breakdown } = computeScore(
     candidate.github,
     candidate.substack,
     candidate.olympiad,
-    candidate.identity_confidence
+    candidate.identity_confidence,
+    convergenceSeedCount
   );
   return { ...candidate, final_score, score_breakdown: breakdown };
 }

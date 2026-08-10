@@ -91,6 +91,7 @@ import { ASSESSMENT_SCHEMA_VERSION } from "./types.js";
 import type { RepoSelectionMeta } from "./github/collectRepositorySelectionMetadata.js";
 import { buildDigest } from "../digest/buildDigest.js";
 import { loadFeedbackMap } from "../digest/feedbackStore.js";
+import { loadConvergenceMap } from "../pipeline/convergence.js";
 import { renderMarkdown } from "../digest/renderMarkdown.js";
 import { renderHtml } from "../digest/renderHtml.js";
 import { writeJsonAtomic } from "../storage/jsonStore.js";
@@ -950,6 +951,7 @@ export async function renderDigestForRun(
     assessments,
     discoveredCandidateCount: discovered ?? assessments.length,
     feedback: loadFeedbackMap(),
+    convergence: loadConvergenceMap(),
   });
   const md = renderMarkdown(digest);
   const html = renderHtml(digest);

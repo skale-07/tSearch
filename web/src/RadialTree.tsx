@@ -26,6 +26,7 @@ export interface GraphNode extends NodeObject {
   surface_signals?: string[];
   surface_score_max?: number;
   can_expand?: boolean;
+  bridge_seed_count?: number;
   fx?: number;
   fy?: number;
 }
@@ -443,6 +444,7 @@ export function RadialTree({
     surface_signals: n.surface_signals ?? [],
     surface_score_max: n.surface_score_max ?? 12,
     can_expand: !!n.can_expand || !!n.linkedin_url,
+    bridge_seed_count: n.bridge_seed_count,
   });
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -585,6 +587,17 @@ export function RadialTree({
               ctx.strokeStyle = "rgba(232, 197, 106, 0.9)";
               ctx.lineWidth = 2 / globalScale;
               ctx.stroke();
+            }
+
+            // Bridge ring: reachable from 2+ seed-set members
+            if ((n.bridge_seed_count ?? 0) >= 2 && !isSeed) {
+              ctx.beginPath();
+              ctx.arc(x, y, r + 3 / globalScale, 0, 2 * Math.PI);
+              ctx.strokeStyle = "rgba(232, 197, 106, 0.85)";
+              ctx.setLineDash([4 / globalScale, 3 / globalScale]);
+              ctx.lineWidth = 1.6 / globalScale;
+              ctx.stroke();
+              ctx.setLineDash([]);
             }
 
             if (selected) {

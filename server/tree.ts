@@ -14,6 +14,7 @@ import {
   relationDir,
 } from "../src/storage/profileStore.js";
 import { slugify } from "../src/storage/jsonStore.js";
+import { loadConvergenceMap } from "../src/pipeline/convergence.js";
 import {
   computeIdentitySurfaceScore,
   SURFACE_SCORE_MAX,
@@ -38,6 +39,9 @@ export interface TreeNodeSummary {
   surface_signals: string[];
   surface_score_max: number;
   can_expand: boolean;
+  /** Reachable from 2+ seed-set members (convergence heuristic). */
+  bridge_seed_count?: number;
+  bridge_seeds?: string[];
 }
 
 export interface TreeEdge {
@@ -240,6 +244,22 @@ export function buildTree(seedSlug: string): TreeResponse | null {
             hop: 2,
           });
         }
+      }
+    }
+  }
+
+  // Annotate multi-seed bridges (convergence store spans ALL seed trees, so
+  // this is where cross-tree overlap becomes visible inside one tree).
+  const convergence = loadConvergenceMap();
+  if (convergence.size) {
+    for (const node of nodes) {
+      const login = (
+        node.id.includes(":") ? node.id.split(":")[1] : node.id
+      ).toLowerCase();
+      const bridge = convergence.get(login);
+      if (bridge) {
+        node.bridge_seed_count = bridge.seed_count;
+        node.bridge_seeds = bridge.seeds;
       }
     }
   }
