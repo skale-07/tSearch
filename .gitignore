@@ -25,3 +25,6 @@ __pycache__/
 *.pyc
 *.txt
 .env
+# Scraped third-party PII — never commit (see docs/product-vision-and-direction.md §4)
+profiles/
+backup/

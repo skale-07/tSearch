@@ -177,4 +177,37 @@ describe("fixture collector share", () => {
     ).toBeCloseTo(0.1, 5);
     expect(result.detail.ownership.direct_core_contribution_present).toBe(true);
   });
+
+  it("omits share entirely when no unfiltered repository sample exists", () => {
+    // Regression for the triage High finding: a candidate-only commit list
+    // must never become the share denominator (share ≡ 1.0 → false
+    // primary_creator). Missing sample → share omitted, sample count 0.
+    // Non-owner candidate: without the fix, the synthesized candidate-only
+    // sample yielded share 1.0 AND candidate_commits_in_repository_sample=12,
+    // which satisfied the >=3 gate into high_ownership_support.
+    const result = collectRepositoryFromFixture(
+      {
+        owner: "some-org",
+        name: "engine",
+        language: "Rust",
+        tree: [{ path: "src/scheduler.rs", type: "blob", size: 4000 }],
+        files: { "src/scheduler.rs": "pub fn place() {}" },
+        candidate_commits: Array.from({ length: 12 }, (_, i) => ({
+          sha: `c${i}`,
+          message: "work",
+          date: "2024-01-01",
+          url: "u",
+        })),
+        candidate_commit_files: { c0: ["src/scheduler.rs"] },
+      },
+      "jane",
+      "technical_naming"
+    );
+    const metrics = result.detail.ownership.contribution_metrics;
+    expect(metrics.candidate_commit_share).toBeUndefined();
+    expect(metrics.candidate_commits_in_repository_sample).toBe(0);
+    expect(result.detail.ownership.support_class).not.toBe(
+      "high_ownership_support"
+    );
+  });
 });

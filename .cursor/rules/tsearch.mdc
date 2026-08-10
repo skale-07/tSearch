@@ -1,0 +1,43 @@
+---
+description: tSearch house rules — pipeline boundaries, PII safety, coding loop
+alwaysApply: true
+---
+
+# tSearch rules
+
+Unseen-talent discovery: LinkedIn resolve → GitHub/Substack graph expand →
+radial-tree UI → rubric LLM judges → recruiter digest. Architecture in
+`README.md`; living risk/vision doc in `docs/product-vision-and-direction.md`
+(check it — and unmerged `claude/epic-pasteur*` branches — before large changes).
+
+## Coding loop
+
+- Iterate small: one change → `npm run typecheck` → scoped `npx vitest run
+  tests/<area>` → next change.
+- `npm run verify` (typecheck + full vitest) must pass before any commit.
+- Use `npx vitest` watch mode while editing; `npm run dev` for server/web work.
+- Never conclude a change works from typecheck alone.
+
+## Hard boundaries
+
+- **No PII in git.** `profiles/`, `backup/`, `data/`, `cache/`, `output/`,
+  `cookies.json`, `.env` are gitignored — never force-add them. This repo is
+  public; scraped person data must never be committed. New paths holding
+  scraped/derived person data get gitignored in the same commit.
+- **Assessment reads frozen `output/candidates.json` only** — never re-run
+  discovery from assessment code. Keep discovery `final_score` and assessment
+  `priority_score` separate.
+- **Email is gated:** `digest:send` defaults to `--dry-run` everywhere;
+  real sends need explicit human approval.
+- **LinkedIn scraping:** respect `LINKEDIN_DELAY_MS` and the `cache/` layer;
+  no unpaced live loops; no bulk cache bypass. Degrade to cache on failure.
+- **LLM cost:** `ASSESSMENT_MOCK_LLM=1` for tests/iteration; live full-size
+  assessment runs need explicit approval.
+
+## Conventions
+
+- TypeScript strict; internal imports end in `.js` (NodeNext).
+- Config in `src/config.ts` (env-overridable); document new vars in `.env.example`.
+- Persistence via `src/storage/` (atomic JSON, cache envelopes) — no ad-hoc
+  `fs.writeFileSync` JSON stores.
+- Log as `[stage] message`; comments state constraints, not narration.

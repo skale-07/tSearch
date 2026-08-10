@@ -157,6 +157,31 @@ select {
 .banner {
   padding: 0.65rem 1.25rem;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.banner-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.banner-dismiss:hover {
+  background: rgba(255, 123, 114, 0.15);
 }
 
 .banner.error,
@@ -954,4 +979,79 @@ code {
     max-width: none;
     flex: 1;
   }
+}
+
+.feedback-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.35rem 0 0.7rem;
+}
+
+.feedback-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.feedback-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.feedback-btn.active {
+  border-color: var(--accent);
+  background: rgba(240, 200, 105, 0.12);
+  color: var(--ink);
+}
+
+.feedback-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.cancel-btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 123, 114, 0.45);
+  background: rgba(255, 123, 114, 0.12);
+  color: var(--danger);
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 123, 114, 0.22);
+}
+
+.tree-search {
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  z-index: 3;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(26, 31, 39, 0.9);
+  color: var(--ink);
+  padding: 0.4rem 0.65rem;
+  width: 13rem;
+  backdrop-filter: blur(6px);
+}
+
+.tree-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.assess-cost {
+  margin: 0.4rem 0;
+  line-height: 1.45;
 }

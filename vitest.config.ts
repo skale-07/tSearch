@@ -5,6 +5,8 @@ export default defineConfig({
     include: [
       "tests/assessment/**/*.test.ts",
       "tests/digest/**/*.test.ts",
+      "tests/linkedin/**/*.test.ts",
+      "tests/storage/**/*.test.ts",
       "tests/web/**/*.test.ts",
     ],
     environment: "node",

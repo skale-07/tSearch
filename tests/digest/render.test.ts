@@ -220,3 +220,62 @@ describe("digest rendering", () => {
     expect(digest.candidates[0]?.brief_rationale).toMatch(/High/);
   });
 });
+
+describe("digest feedback refinement (Phase 4)", () => {
+  const fb = (
+    candidate_id: string,
+    latest_verdict: "relevant" | "not_relevant" | "explore_network"
+  ) => ({
+    candidate_id,
+    entries: [{ verdict: latest_verdict, at: new Date().toISOString() }],
+    latest_verdict,
+    updated_at: new Date().toISOString(),
+  });
+
+  it("excludes not_relevant candidates and reports the count", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_a", "Alice", 90),
+        assessment("cand_b", "Bob", 80),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 0,
+      feedback: new Map([["cand_a", fb("cand_a", "not_relevant")]]),
+    });
+    expect(digest.candidates.map((c) => c.name)).toEqual(["Bob"]);
+    expect(digest.meta.feedback_excluded_count).toBe(1);
+  });
+
+  it("boosts relevant candidates above higher-priority unmarked ones", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_a", "Alice", 90),
+        assessment("cand_b", "Bob", 40),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 0,
+      feedback: new Map([["cand_b", fb("cand_b", "relevant")]]),
+    });
+    expect(digest.candidates[0]?.name).toBe("Bob");
+    expect(digest.candidates[0]?.reviewer_feedback).toBe("relevant");
+    // priority_score itself is untouched — only ordering changed
+    expect(digest.candidates[0]?.assessment_priority_score).toBe(40);
+    expect(digest.meta.feedback_boosted_count).toBe(1);
+  });
+
+  it("leaves ranking untouched when no feedback exists", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_a", "Alice", 40),
+        assessment("cand_b", "Bob", 90),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 0,
+    });
+    expect(digest.candidates[0]?.name).toBe("Bob");
+    expect(digest.meta.feedback_excluded_count).toBeUndefined();
+  });
+});

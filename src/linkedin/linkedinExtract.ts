@@ -7,7 +7,7 @@ import type {
 } from "../types.js";
 import type { LinkedInSearchHit } from "./linkedinSearch.js";
 import type { LinkedInSession } from "./linkedinBrowser.js";
-import { sleep } from "./linkedinBrowser.js";
+import { assertLinkedInAuth, sleep } from "./linkedinBrowser.js";
 import { LINKEDIN_DELAY_MS } from "../config.js";
 import { countryFromLocation } from "./countryMatch.js";
 import { cleanSearchTitle } from "./linkedinMatch.js";
@@ -444,6 +444,7 @@ async function fetchDetailSectionText(
     waitUntil: "domcontentloaded",
     timeout: 45000,
   });
+  assertLinkedInAuth(page);
   await page.waitForSelector("main", { timeout: 15000 }).catch(() => null);
   await sleep(LINKEDIN_DELAY_MS);
   const main = await page.locator("main").innerText().catch(() => "");
@@ -817,6 +818,7 @@ export async function extractProfileLinksOnly(
 > {
   const { page } = session;
   await page.goto(profileUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+  assertLinkedInAuth(page);
   await page.waitForSelector("main", { timeout: 15000 }).catch(() => null);
   await sleep(600);
 
@@ -849,6 +851,7 @@ export async function extractLinkedInProfile(
   const { page } = session;
 
   await page.goto(hit.url, { waitUntil: "domcontentloaded", timeout: 45000 });
+  assertLinkedInAuth(page);
   await page.waitForSelector("main", { timeout: 15000 }).catch(() => null);
   await sleep(LINKEDIN_DELAY_MS);
 

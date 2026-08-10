@@ -36,6 +36,12 @@ interface Props {
   mockLlm?: boolean;
 }
 
+// Rough live-run cost preview: one call per judge stage, priced per candidate
+// across the plausible model range (mini → frontier). Estimates only.
+const LLM_CALLS_PER_CANDIDATE = 5;
+const COST_PER_CANDIDATE_LOW = 0.02;
+const COST_PER_CANDIDATE_HIGH = 0.25;
+
 export function AssessPanel({
   open,
   running,
@@ -451,6 +457,11 @@ export function AssessPanel({
               <input type="checkbox" checked={!useMockLlm} onChange={(event) => setUseMockLlm(!event.target.checked)} />
               Use live LLM
             </label>
+            <p className="assess-cost muted">
+              {useMockLlm
+                ? `Mock mode: ~${selected.size * LLM_CALLS_PER_CANDIDATE} LLM calls stubbed — no cost, no data leaves this machine.`
+                : `Estimated ~${selected.size * LLM_CALLS_PER_CANDIDATE} live LLM calls (${LLM_CALLS_PER_CANDIDATE}/candidate: technical, writing, cross-artifact, relevance, synthesis) ≈ $${(selected.size * COST_PER_CANDIDATE_LOW).toFixed(2)}–$${(selected.size * COST_PER_CANDIDATE_HIGH).toFixed(2)} depending on the configured model. GitHub/blog fetches also count against rate limits.`}
+            </p>
             {!useMockLlm && <p className="error">Live LLM can incur cost and send selected assessment context to the configured provider.</p>}
             <div className="assess-modal-actions">
               <button type="button" className="chip" onClick={() => setConfirming(false)} disabled={starting}>Cancel</button>

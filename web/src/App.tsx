@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import {
+  cancelRun,
   fetchProfile,
   fetchSeeds,
   fetchTree,
@@ -11,6 +12,7 @@ import {
   type ProfileRelation,
   type SeedOption,
   type TreeNodeSummary,
+  type TreeOption,
   type TreeResponse,
 } from "./api";
 import { AssessPanel } from "./AssessPanel";
@@ -22,7 +24,8 @@ type Status = "idle" | "running" | "done" | "warning" | "failed";
 
 export default function App() {
   const [seeds, setSeeds] = useState<SeedOption[]>([]);
-  const [profileSeeds, setProfileSeeds] = useState<string[]>([]);
+  const [trees, setTrees] = useState<TreeOption[]>([]);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [selectedSeed, setSelectedSeed] = useState<string>("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +44,30 @@ export default function App() {
   const [assessOpen, setAssessOpen] = useState(false);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
   const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [treeSearch, setTreeSearch] = useState("");
+  const logBodyRef = useRef<HTMLPreElement | null>(null);
+
+  useEffect(() => {
+    if (status !== "running") {
+      setRunStartedAt(null);
+      return;
+    }
+    const started = Date.now();
+    setRunStartedAt(started);
+    setElapsed(0);
+    const t = setInterval(
+      () => setElapsed(Math.floor((Date.now() - started) / 1000)),
+      1000
+    );
+    return () => clearInterval(t);
+  }, [status]);
+
+  useEffect(() => {
+    const el = logBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [logs, logsOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,15 +75,14 @@ export default function App() {
       .then(async (data) => {
         if (cancelled) return;
         setSeeds(data.seeds);
-        setProfileSeeds(data.profileSeeds);
+        setTrees(
+          data.trees ?? data.profileSeeds.map((s) => ({ slug: s, name: s }))
+        );
         if (data.seeds.length) {
-          const preferred =
-            data.seeds.find((s) => s.name === "Varun Madan") ?? data.seeds[0];
+          const preferred = data.seeds[0];
           setSelectedSeed(`${preferred.name}||${preferred.country}`);
         }
-        const slug = data.profileSeeds.includes("madanva")
-          ? "madanva"
-          : data.profileSeeds[0];
+        const slug = data.profileSeeds[0];
         if (slug) {
           try {
             const t = await fetchTree(slug);
@@ -138,16 +164,30 @@ export default function App() {
         name: current.name,
         country: current.country,
       });
+      setActiveRunId(runId);
       const slug = await watchRun(runId);
       if (slug) {
         setSeedSlug(slug);
         await loadTree(slug);
-        setProfileSeeds((prev) =>
-          prev.includes(slug) ? prev : [...prev, slug]
+        setTrees((prev) =>
+          prev.some((t) => t.slug === slug)
+            ? prev
+            : [...prev, { slug, name: current.name }]
         );
       }
     } catch (err) {
       setStatus("failed");
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActiveRunId(null);
+    }
+  };
+
+  const onCancelRun = async () => {
+    if (!activeRunId) return;
+    try {
+      await cancelRun(activeRunId);
+    } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
   };
@@ -158,11 +198,14 @@ export default function App() {
     setStatus("running");
     setLogs([]);
     setLogsOpen(true);
+    setActiveRunId(runId);
     try {
       await watchRun(runId);
     } catch (err) {
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActiveRunId(null);
     }
   };
 
@@ -236,6 +279,7 @@ export default function App() {
         parentSlug: slug,
         relation: panelNode.relation,
       });
+      setActiveRunId(runId);
       const resultSlug = await watchRun(runId);
       if (resultSlug) {
         await loadTree(resultSlug);
@@ -245,6 +289,7 @@ export default function App() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setExpanding(false);
+      setActiveRunId(null);
     }
   };
 
@@ -306,7 +351,7 @@ export default function App() {
                 key={`${s.name}-${s.country}`}
                 value={`${s.name}||${s.country}`}
               >
-                {s.name}
+                {s.country ? `${s.name} — ${s.country}` : s.name}
               </option>
             ))}
           </select>
@@ -332,7 +377,7 @@ export default function App() {
             Assess
           </button>
 
-          {profileSeeds.length > 0 && (
+          {trees.length > 0 && (
             <select
               aria-label="Load existing tree"
               value={seedSlug ?? ""}
@@ -344,29 +389,66 @@ export default function App() {
               <option value="" disabled>
                 Load tree…
               </option>
-              {profileSeeds.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {trees.map((t) => (
+                <option key={t.slug} value={t.slug}>
+                  {t.name}
                 </option>
               ))}
             </select>
           )}
 
-          <span className={`status status-${status}`}>{status}</span>
+          {status === "running" && activeRunId && (
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => void onCancelRun()}
+            >
+              Cancel
+            </button>
+          )}
+
+          <span className={`status status-${status}`} aria-live="polite">
+            {status === "running" && runStartedAt
+              ? `running · ${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, "0")}`
+              : status}
+          </span>
         </div>
       </header>
 
-      {error && <div className="banner error">{error}</div>}
+      {error && (
+        <div className="banner error" role="alert">
+          <span className="banner-text">{error}</span>
+          <button
+            type="button"
+            className="banner-dismiss"
+            aria-label="Dismiss error"
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <main className="stage">
         {tree ? (
-          <RadialTree
-            nodes={tree.nodes}
-            edges={tree.edges}
-            seedId={tree.seedSlug}
-            selectedId={selectedNodeId}
-            onSelect={onSelectNode}
-          />
+          <>
+            <input
+              type="search"
+              className="tree-search"
+              placeholder="Search tree…"
+              aria-label="Search tree by name"
+              value={treeSearch}
+              onChange={(e) => setTreeSearch(e.target.value)}
+            />
+            <RadialTree
+              nodes={tree.nodes}
+              edges={tree.edges}
+              seedId={tree.seedSlug}
+              selectedId={selectedNodeId}
+              onSelect={onSelectNode}
+              searchQuery={treeSearch}
+            />
+          </>
         ) : (
           <div className="empty">
             <p>Select a seed and run the pipeline to grow the tree.</p>
@@ -434,7 +516,7 @@ export default function App() {
           Logs {logs.length ? `(${logs.length})` : ""}
         </button>
         {logsOpen && (
-          <pre className="log-body">
+          <pre className="log-body" ref={logBodyRef}>
             {logs.length ? logs.join("\n") : "No logs yet."}
           </pre>
         )}

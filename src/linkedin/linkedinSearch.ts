@@ -1,7 +1,7 @@
 import type { Locator } from "playwright";
 import { LINKEDIN_DELAY_MS, MAX_LINKEDIN_RESULTS } from "../config.js";
 import type { LinkedInSession } from "./linkedinBrowser.js";
-import { sleep } from "./linkedinBrowser.js";
+import { assertLinkedInAuth, sleep } from "./linkedinBrowser.js";
 import { primaryCountrySearchTerm } from "./countryMatch.js";
 
 export interface LinkedInSearchContext {
@@ -174,6 +174,7 @@ export async function searchLinkedInByName(
   const searchUrl = buildSearchUrl(name, context);
 
   await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+  assertLinkedInAuth(page);
   await page.waitForSelector("main", { timeout: 20000 }).catch(() => null);
   await sleep(LINKEDIN_DELAY_MS);
 

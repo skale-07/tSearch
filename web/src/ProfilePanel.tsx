@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   fetchCandidates,
+  fetchCandidateFeedback,
   fetchLatestCandidateAssessment,
+  sendCandidateFeedback,
   type CandidateAssessmentDetail,
+  type FeedbackVerdict,
   type ProfileRecord,
   type TreeNodeSummary,
 } from "./api";
@@ -42,6 +45,36 @@ export function ProfilePanel({
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<CandidateAssessmentDetail | null>(null);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [feedbackVerdict, setFeedbackVerdict] = useState<FeedbackVerdict | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+
+  useEffect(() => {
+    setFeedbackVerdict(null);
+    if (!candidateId) return;
+    let cancelled = false;
+    void fetchCandidateFeedback(candidateId)
+      .then((record) => {
+        if (!cancelled && record) setFeedbackVerdict(record.latest_verdict);
+      })
+      .catch(() => {
+        /* feedback is optional context — never block the panel on it */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateId]);
+
+  const onFeedback = (verdict: FeedbackVerdict) => {
+    if (!candidateId || feedbackBusy) return;
+    setFeedbackBusy(true);
+    void sendCandidateFeedback({
+      candidate_id: candidateId,
+      candidate_name: profile?.name ?? undefined,
+      verdict,
+    })
+      .then((record) => setFeedbackVerdict(record.latest_verdict))
+      .finally(() => setFeedbackBusy(false));
+  };
 
   useEffect(() => {
     const username = profile?.github?.username;
@@ -310,6 +343,28 @@ export function ProfilePanel({
 
           <section className="profile-assessment">
             <h3>Assessment</h3>
+            {candidateId && (
+              <div className="feedback-row" aria-label="Reviewer feedback">
+                {(
+                  [
+                    ["relevant", "👍 Relevant"],
+                    ["not_relevant", "👎 Not relevant"],
+                    ["explore_network", "🕸 Explore network"],
+                  ] as [FeedbackVerdict, string][]
+                ).map(([verdict, label]) => (
+                  <button
+                    key={verdict}
+                    type="button"
+                    className={`feedback-btn ${feedbackVerdict === verdict ? "active" : ""}`}
+                    disabled={feedbackBusy}
+                    onClick={() => onFeedback(verdict)}
+                    title="Feeds future digest ranking (not_relevant hides; relevant boosts)"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {assessmentLoading && <p className="muted">Loading assessment…</p>}
             {!assessmentLoading && !assessment && (
               <>

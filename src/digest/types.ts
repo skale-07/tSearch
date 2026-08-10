@@ -19,6 +19,8 @@ export interface DigestCandidate {
   assessment_confidence: number;
   ownership_support?: OwnershipSupportClass;
   evidence_support?: string;
+  /** Reviewer feedback applied to this digest (Phase 3/4 loop). */
+  reviewer_feedback?: "relevant" | "explore_network";
   why_highlighted: Array<{
     claim: string;
     rationale: string;
@@ -99,6 +101,10 @@ export interface DigestDocument {
     discovered_candidate_count: number;
     assessed_candidate_count: number;
     source_candidates_path: string;
+    /** Candidates hidden because the reviewer marked them not_relevant. */
+    feedback_excluded_count?: number;
+    /** Candidates ranked up because the reviewer marked them relevant. */
+    feedback_boosted_count?: number;
   };
   candidates: DigestCandidate[];
 }

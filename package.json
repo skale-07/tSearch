@@ -14,6 +14,8 @@
     "digest:generate": "tsx scripts/generateDigest.ts",
     "digest:send": "tsx scripts/sendDigest.ts",
     "test": "vitest run",
+    "test:storage": "vitest run tests/storage",
+    "verify": "npm run typecheck && npm run test",
     "test:assessment": "vitest run tests/assessment tests/digest",
     "test:web": "vitest run tests/web",
     "typecheck": "tsc --noEmit"
