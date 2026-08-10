@@ -1,6 +1,12 @@
+import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import type { z } from "zod";
-import { LLM_API_KEY, LLM_MODEL } from "../config.js";
+import {
+  resolveLlmApiKey,
+  resolveLlmModel,
+  resolveLlmProvider,
+  type LlmProvider,
+} from "../config.js";
 import { parseWithSchema } from "../schemas.js";
 import {
   hashPayload,
@@ -18,7 +24,7 @@ export interface LlmJudgeClient {
     systemPrompt: string;
     userPayload: unknown;
     outputSchema: z.ZodType<T>;
-    /** OpenAI strict JSON Schema; when omitted, falls back to json_object */
+    /** Provider JSON Schema; when omitted, falls back to free-form JSON object */
     jsonSchema?: Record<string, unknown>;
     jsonSchemaName?: string;
     model?: string;
@@ -38,6 +44,7 @@ export interface LlmJudgeClient {
 }
 
 const MAX_SCHEMA_RETRIES = 2;
+const ANTHROPIC_MAX_TOKENS = 8192;
 
 function buildCacheKey(input: {
   systemPrompt: string;
@@ -93,6 +100,42 @@ function parseNormalized<T>(
   label: string
 ): T {
   return parseWithSchema(outputSchema, normalizeLlmPayload(raw), label);
+}
+
+function repairNote(
+  attempt: number,
+  lastError: unknown,
+  lastRaw: string | undefined
+): string {
+  if (attempt === 0) return "";
+  return `\n\nPrevious response failed schema validation. Return corrected JSON only.\nError: ${
+    lastError instanceof Error ? lastError.message : String(lastError)
+  }\nInvalid response excerpt: ${(lastRaw ?? "").slice(0, 500)}`;
+}
+
+/**
+ * Anthropic tool input_schema is JSON Schema-like but rejects some OpenAI
+ * strict-mode keywords. Strip only those that break tool registration.
+ */
+export function toAnthropicInputSchema(
+  schema: Record<string, unknown>
+): Anthropic.Tool.InputSchema {
+  const strip = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(strip);
+    if (!node || typeof node !== "object") return node;
+    const obj = node as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === "$schema" || key === "strict") continue;
+      out[key] = strip(value);
+    }
+    return out;
+  };
+  const cleaned = strip(schema) as Record<string, unknown>;
+  if (cleaned.type !== "object") {
+    throw new Error("Anthropic tool input_schema must be a top-level object");
+  }
+  return cleaned as Anthropic.Tool.InputSchema;
 }
 
 export class MockLlmJudgeClient implements LlmJudgeClient {
@@ -164,7 +207,10 @@ export class MockLlmJudgeClient implements LlmJudgeClient {
 export class OpenAiJudgeClient implements LlmJudgeClient {
   private client: OpenAI;
 
-  constructor(apiKey = LLM_API_KEY, private defaultModel = LLM_MODEL) {
+  constructor(
+    apiKey = resolveLlmApiKey("openai"),
+    private defaultModel = resolveLlmModel("openai")
+  ) {
     if (!apiKey) {
       throw new Error(
         "OPENAI_API_KEY or LLM_API_KEY is required for OpenAiJudgeClient"
@@ -205,13 +251,6 @@ export class OpenAiJudgeClient implements LlmJudgeClient {
 
     for (let attempt = 0; attempt <= MAX_SCHEMA_RETRIES; attempt++) {
       try {
-        const repairNote =
-          attempt === 0
-            ? ""
-            : `\n\nPrevious response failed schema validation. Return corrected JSON only.\nError: ${
-                lastError instanceof Error ? lastError.message : String(lastError)
-              }\nInvalid response excerpt: ${(lastRaw ?? "").slice(0, 500)}`;
-
         const responseFormat = input.jsonSchema
           ? {
               type: "json_schema" as const,
@@ -228,7 +267,11 @@ export class OpenAiJudgeClient implements LlmJudgeClient {
           temperature: input.temperature ?? 0.1,
           response_format: responseFormat,
           messages: [
-            { role: "system", content: input.systemPrompt + repairNote },
+            {
+              role: "system",
+              content:
+                input.systemPrompt + repairNote(attempt, lastError, lastRaw),
+            },
             {
               role: "user",
               content: JSON.stringify({
@@ -263,6 +306,188 @@ export class OpenAiJudgeClient implements LlmJudgeClient {
   }
 }
 
+/** Narrow Messages.create surface for tests (no live SDK required). */
+export type AnthropicMessagesCreate = (params: {
+  model: string;
+  max_tokens: number;
+  temperature?: number;
+  system: string;
+  messages: Array<{ role: "user"; content: string }>;
+  tools?: Array<{
+    name: string;
+    description: string;
+    input_schema: Anthropic.Tool.InputSchema;
+  }>;
+  tool_choice?: { type: "tool"; name: string };
+}) => Promise<{
+  id: string;
+  content: Array<
+    | { type: "tool_use"; id?: string; name: string; input: unknown }
+    | { type: "text"; text: string }
+  >;
+  usage?: { input_tokens?: number; output_tokens?: number };
+}>;
+
+export class AnthropicJudgeClient implements LlmJudgeClient {
+  private client: Anthropic | null;
+
+  constructor(
+    apiKey = resolveLlmApiKey("anthropic"),
+    private defaultModel = resolveLlmModel("anthropic"),
+    /** Injectable for tests — Messages API subset. */
+    private readonly messagesCreate?: AnthropicMessagesCreate
+  ) {
+    if (!apiKey && !messagesCreate) {
+      throw new Error(
+        "ANTHROPIC_API_KEY or LLM_API_KEY is required for AnthropicJudgeClient"
+      );
+    }
+    this.client = messagesCreate
+      ? null
+      : new Anthropic({ apiKey: apiKey as string });
+  }
+
+  async generateStructured<T>(input: {
+    systemPrompt: string;
+    userPayload: unknown;
+    outputSchema: z.ZodType<T>;
+    jsonSchema?: Record<string, unknown>;
+    jsonSchemaName?: string;
+    model?: string;
+    temperature?: number;
+    cacheNamespace?: string;
+    judgeSchemaVersion?: string;
+    rubricBundleVersion?: string;
+    judgeImplementationVersion?: string;
+  }): Promise<{
+    value: T;
+    model: string;
+    rawResponseId?: string;
+    usage?: { inputTokens?: number; outputTokens?: number };
+    input_hash: string;
+    from_cache: boolean;
+  }> {
+    const model = input.model ?? this.defaultModel;
+    const { cacheKey, input_hash } = buildCacheKey({ ...input, model });
+    const cached = tryReadValidatedCache(cacheKey, input.outputSchema);
+    if (cached) {
+      return { value: cached, model, input_hash, from_cache: true };
+    }
+
+    const create: AnthropicMessagesCreate =
+      this.messagesCreate ??
+      ((params) =>
+        this.client!.messages.create(
+          params as Parameters<Anthropic["messages"]["create"]>[0]
+        ) as ReturnType<AnthropicMessagesCreate>);
+    let lastError: unknown;
+    let lastRaw: string | undefined;
+    const toolName = input.jsonSchemaName ?? "judge_output";
+
+    for (let attempt = 0; attempt <= MAX_SCHEMA_RETRIES; attempt++) {
+      try {
+        const system =
+          input.systemPrompt + repairNote(attempt, lastError, lastRaw);
+        const userContent = JSON.stringify({ payload: input.userPayload });
+
+        const response = input.jsonSchema
+          ? await create({
+              model,
+              max_tokens: ANTHROPIC_MAX_TOKENS,
+              temperature: input.temperature ?? 0.1,
+              system,
+              messages: [{ role: "user", content: userContent }],
+              tools: [
+                {
+                  name: toolName,
+                  description:
+                    "Return the structured judge assessment for this candidate artifact.",
+                  input_schema: toAnthropicInputSchema(input.jsonSchema),
+                },
+              ],
+              tool_choice: { type: "tool", name: toolName },
+            })
+          : await create({
+              model,
+              max_tokens: ANTHROPIC_MAX_TOKENS,
+              temperature: input.temperature ?? 0.1,
+              system:
+                system +
+                "\n\nRespond with a single JSON object only. No markdown fences.",
+              messages: [{ role: "user", content: userContent }],
+            });
+
+        let parsed: unknown;
+        if (input.jsonSchema) {
+          const toolBlock = response.content.find(
+            (block) => block.type === "tool_use" && block.name === toolName
+          );
+          if (!toolBlock || toolBlock.type !== "tool_use") {
+            lastRaw = JSON.stringify(response.content);
+            throw new Error("Anthropic response missing expected tool_use block");
+          }
+          parsed = toolBlock.input;
+          lastRaw = JSON.stringify(parsed);
+        } else {
+          const text = response.content
+            .filter((block) => block.type === "text")
+            .map((block) => (block.type === "text" ? block.text : ""))
+            .join("")
+            .trim();
+          lastRaw = text;
+          parsed = JSON.parse(text);
+        }
+
+        const value = parseNormalized(
+          input.outputSchema,
+          parsed,
+          "anthropic-llm"
+        );
+        writeJudgeCache(cacheKey, value);
+        return {
+          value,
+          model,
+          input_hash,
+          from_cache: false,
+          rawResponseId: response.id,
+          usage: {
+            inputTokens: response.usage?.input_tokens,
+            outputTokens: response.usage?.output_tokens,
+          },
+        };
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(String(lastError));
+  }
+}
+
+export function createLlmJudgeClient(opts?: {
+  mock?: boolean;
+  mockResponder?: (input: {
+    systemPrompt: string;
+    userPayload: unknown;
+    attempt: number;
+  }) => unknown;
+  provider?: LlmProvider;
+}): LlmJudgeClient {
+  if (opts?.mock) {
+    if (!opts.mockResponder) {
+      throw new Error("mockResponder required when mock=true");
+    }
+    return new MockLlmJudgeClient(opts.mockResponder);
+  }
+  const provider = opts?.provider ?? resolveLlmProvider();
+  if (provider === "anthropic") {
+    return new AnthropicJudgeClient();
+  }
+  return new OpenAiJudgeClient();
+}
+
+/** @deprecated use createLlmJudgeClient */
 export function createLlmClient(opts?: {
   mock?: boolean;
   mockResponder?: (input: {
@@ -271,11 +496,5 @@ export function createLlmClient(opts?: {
     attempt: number;
   }) => unknown;
 }): LlmJudgeClient {
-  if (opts?.mock) {
-    if (!opts.mockResponder) {
-      throw new Error("mockResponder required when mock=true");
-    }
-    return new MockLlmJudgeClient(opts.mockResponder);
-  }
-  return new OpenAiJudgeClient();
+  return createLlmJudgeClient(opts);
 }

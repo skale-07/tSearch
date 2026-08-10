@@ -24,7 +24,7 @@ import { deterministicTechnicalJudgeV2, runTechnicalJudgeV2 } from "./judges/tec
 import { deterministicWritingJudge, runWritingJudge, type WritingArtifactInput } from "./judges/writingJudge.js";
 import { deterministicCrossArtifactJudge, runCrossArtifactJudge } from "./judges/crossArtifactJudge.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
-import { OpenAiJudgeClient } from "./judges/llmClient.js";
+import { createLlmJudgeClient } from "./judges/llmClient.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
 import { filterValidRelationships } from "./relationships/validateRelationships.js";
 import type { ArtifactRelationship, ArtifactUrlRef } from "./relationships/types.js";
@@ -213,7 +213,8 @@ export async function assessCandidate(input: {
   }
 
   const mockLlm = opts.mockLlm ?? LLM_USE_MOCK;
-  const llmClient = opts.llmClient ?? (!mockLlm ? new OpenAiJudgeClient() : undefined);
+  const llmClient =
+    opts.llmClient ?? (!mockLlm ? createLlmJudgeClient() : undefined);
   let relationships: ArtifactRelationship[] = record.relationships ?? [];
 
   if (!reusing) {

@@ -2,7 +2,13 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MockLlmJudgeClient } from "../../src/assessment/judges/llmClient.js";
+import {
+  AnthropicJudgeClient,
+  MockLlmJudgeClient,
+  OpenAiJudgeClient,
+  createLlmJudgeClient,
+  toAnthropicInputSchema,
+} from "../../src/assessment/judges/llmClient.js";
 import {
   writeJudgeCache,
   hashPayload,
@@ -171,8 +177,161 @@ describe("mock LLM client cache", () => {
   });
 });
 
+describe("AnthropicJudgeClient", () => {
+  const prevForce = process.env.ASSESSMENT_FORCE_REFRESH;
+
+  beforeEach(() => {
+    delete process.env.ASSESSMENT_FORCE_REFRESH;
+    ensureAssessmentCacheDirs();
+  });
+
+  afterEach(() => {
+    if (prevForce === undefined) delete process.env.ASSESSMENT_FORCE_REFRESH;
+    else process.env.ASSESSMENT_FORCE_REFRESH = prevForce;
+  });
+
+  it("parses forced tool_use input as structured output", async () => {
+    let calls = 0;
+    const client = new AnthropicJudgeClient("test-key", "claude-test", async () => {
+      calls++;
+      return {
+        id: "msg_1",
+        content: [
+          {
+            type: "tool_use",
+            id: "tool_1",
+            name: "judge_output",
+            input: { summary: "claude-ok", score: 4 },
+          },
+        ],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      };
+    });
+
+    const result = await client.generateStructured({
+      systemPrompt: "sys",
+      userPayload: { x: 1 },
+      outputSchema: schema,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          summary: { type: "string" },
+          score: { type: "number" },
+        },
+        required: ["summary", "score"],
+      },
+      cacheNamespace: `test-anthropic-${Date.now()}`,
+    });
+
+    expect(result.value.summary).toBe("claude-ok");
+    expect(result.value.score).toBe(4);
+    expect(result.from_cache).toBe(false);
+    expect(result.usage?.inputTokens).toBe(10);
+    expect(calls).toBe(1);
+  });
+
+  it("retries when tool payload fails schema then succeeds", async () => {
+    let calls = 0;
+    const client = new AnthropicJudgeClient("test-key", "claude-test", async () => {
+      calls++;
+      if (calls === 1) {
+        return {
+          id: "msg_bad",
+          content: [
+            {
+              type: "tool_use",
+              name: "judge_output",
+              input: { bad: true },
+            },
+          ],
+        };
+      }
+      return {
+        id: "msg_ok",
+        content: [
+          {
+            type: "tool_use",
+            name: "judge_output",
+            input: { summary: "repaired", score: 2 },
+          },
+        ],
+      };
+    });
+
+    const result = await client.generateStructured({
+      systemPrompt: "sys",
+      userPayload: { y: 2 },
+      outputSchema: schema,
+      jsonSchema: {
+        type: "object",
+        properties: {
+          summary: { type: "string" },
+          score: { type: "number" },
+        },
+        required: ["summary", "score"],
+      },
+      cacheNamespace: `test-anthropic-repair-${Date.now()}`,
+    });
+
+    expect(result.value.summary).toBe("repaired");
+    expect(calls).toBe(2);
+  });
+
+  it("strips OpenAI-only keywords from tool schemas", () => {
+    const cleaned = toAnthropicInputSchema({
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      strict: true,
+      type: "object",
+      properties: { summary: { type: "string" } },
+      required: ["summary"],
+    });
+    expect(cleaned).toEqual({
+      type: "object",
+      properties: { summary: { type: "string" } },
+      required: ["summary"],
+    });
+  });
+});
+
+describe("createLlmJudgeClient provider selection", () => {
+  const prev = {
+    provider: process.env.LLM_PROVIDER,
+    openai: process.env.OPENAI_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    shared: process.env.LLM_API_KEY,
+  };
+
+  afterEach(() => {
+    for (const [key, value] of Object.entries(prev)) {
+      const envKey =
+        key === "provider"
+          ? "LLM_PROVIDER"
+          : key === "openai"
+            ? "OPENAI_API_KEY"
+            : key === "anthropic"
+              ? "ANTHROPIC_API_KEY"
+              : "LLM_API_KEY";
+      if (value === undefined) delete process.env[envKey];
+      else process.env[envKey] = value;
+    }
+  });
+
+  it("returns OpenAiJudgeClient for openai provider", () => {
+    process.env.LLM_PROVIDER = "openai";
+    process.env.OPENAI_API_KEY = "sk-test";
+    const client = createLlmJudgeClient({ provider: "openai" });
+    expect(client).toBeInstanceOf(OpenAiJudgeClient);
+  });
+
+  it("returns AnthropicJudgeClient for anthropic provider", () => {
+    process.env.LLM_PROVIDER = "anthropic";
+    process.env.ANTHROPIC_API_KEY = "sk-ant-test";
+    const client = createLlmJudgeClient({ provider: "anthropic" });
+    expect(client).toBeInstanceOf(AnthropicJudgeClient);
+  });
+});
+
 void crypto;
 void fs;
 void path;
-void afterEach;
 void vi;

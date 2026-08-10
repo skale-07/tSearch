@@ -247,7 +247,7 @@ Per candidate (see [`assessCandidate.ts`](src/assessment/assessCandidate.ts)):
 
 **Eligibility:** GitHub username and/or writing surface already on the candidate record.
 
-**Speed:** `ASSESSMENT_CANDIDATE_CONCURRENCY`, `ASSESSMENT_REPO_FETCH_CONCURRENCY`, `GITHUB_DELAY_MS`, `ASSESSMENT_REPOSITORY_LIMIT`. Live judges need `OPENAI_API_KEY`; `ASSESSMENT_MOCK_LLM=1` for deterministic offline.
+**Speed:** `ASSESSMENT_CANDIDATE_CONCURRENCY`, `ASSESSMENT_REPO_FETCH_CONCURRENCY`, `GITHUB_DELAY_MS`, `ASSESSMENT_REPOSITORY_LIMIT`. Live judges need `LLM_PROVIDER` (`openai` default, or `anthropic`) plus the matching API key (`OPENAI_API_KEY` / `ANTHROPIC_API_KEY`); `ASSESSMENT_MOCK_LLM=1` for deterministic offline.
 
 Judges coerce scored dimensions missing evidence IDs (demote / backfill) rather than always failing closed.
 

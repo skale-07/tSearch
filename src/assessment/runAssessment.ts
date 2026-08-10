@@ -8,6 +8,7 @@ import {
   ASSESSMENT_PUBLICATION_LIMIT,
   ASSESSMENT_ARTICLE_LIMIT,
   LLM_MODEL,
+  LLM_PROVIDER,
   LLM_USE_MOCK,
   PRIORITY_WEIGHT_VERSION,
   PROMPT_VERSIONS,
@@ -76,7 +77,6 @@ import {
   runCoryRelevanceJudge,
 } from "./judges/coryRelevanceJudge.js";
 import type { LlmJudgeClient } from "./judges/llmClient.js";
-import { OpenAiJudgeClient } from "./judges/llmClient.js";
 import { synthesizeCandidate } from "./scoring/synthesizeCandidate.js";
 import type {
   AssessmentRunError,
@@ -815,6 +815,7 @@ export async function runAssessment(
         publication_limit: ASSESSMENT_PUBLICATION_LIMIT,
         article_limit: ASSESSMENT_ARTICLE_LIMIT,
         model: mockLlm ? "mock/deterministic" : LLM_MODEL,
+        llm_provider: mockLlm ? "mock" : LLM_PROVIDER,
         prompt_versions: { ...PROMPT_VERSIONS },
         weight_version: PRIORITY_WEIGHT_VERSION,
         mock_llm: mockLlm,

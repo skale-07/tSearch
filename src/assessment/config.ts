@@ -60,13 +60,50 @@ export const ASSESSMENT_ARTICLE_LIMIT = Number(
   process.env.ASSESSMENT_ARTICLE_LIMIT ?? 3
 );
 
-export const LLM_API_KEY =
-  process.env.OPENAI_API_KEY?.trim() ||
-  process.env.LLM_API_KEY?.trim() ||
-  "";
-export const LLM_MODEL = process.env.LLM_MODEL?.trim() || "gpt-4o-mini";
-export const LLM_USE_MOCK =
-  process.env.ASSESSMENT_MOCK_LLM === "1" || !LLM_API_KEY;
+export type LlmProvider = "openai" | "anthropic";
+
+const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
+
+/** Fail closed on unknown providers. Prefer resolveLlmProvider() in new code. */
+export function resolveLlmProvider(): LlmProvider {
+  const raw = (process.env.LLM_PROVIDER ?? "openai").trim().toLowerCase();
+  if (raw === "openai" || raw === "anthropic") return raw;
+  throw new Error(
+    `Invalid LLM_PROVIDER="${process.env.LLM_PROVIDER ?? ""}". Use openai or anthropic.`
+  );
+}
+
+export function resolveLlmApiKey(
+  provider: LlmProvider = resolveLlmProvider()
+): string {
+  const shared = process.env.LLM_API_KEY?.trim() || "";
+  if (provider === "anthropic") {
+    return process.env.ANTHROPIC_API_KEY?.trim() || shared || "";
+  }
+  return process.env.OPENAI_API_KEY?.trim() || shared || "";
+}
+
+export function resolveLlmModel(
+  provider: LlmProvider = resolveLlmProvider()
+): string {
+  const explicit = process.env.LLM_MODEL?.trim();
+  if (explicit) return explicit;
+  return provider === "anthropic"
+    ? DEFAULT_ANTHROPIC_MODEL
+    : DEFAULT_OPENAI_MODEL;
+}
+
+/** True when mock is forced or the selected provider has no API key. */
+export function llmUseMock(): boolean {
+  return process.env.ASSESSMENT_MOCK_LLM === "1" || !resolveLlmApiKey();
+}
+
+export const LLM_PROVIDER = resolveLlmProvider();
+/** API key for the selected LLM_PROVIDER (not necessarily OpenAI). */
+export const LLM_API_KEY = resolveLlmApiKey();
+export const LLM_MODEL = resolveLlmModel();
+export const LLM_USE_MOCK = llmUseMock();
 
 export const PROMPT_VERSIONS = {
   technical: "technical-prompt-v2",

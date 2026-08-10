@@ -449,6 +449,8 @@ export interface AssessmentRun {
     publication_limit: number;
     article_limit: number;
     model?: string;
+    /** openai | anthropic | mock — which live judge backend was selected */
+    llm_provider?: string;
     prompt_versions: Record<string, string>;
     weight_version: string;
     mock_llm: boolean;
