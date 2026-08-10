@@ -10,6 +10,29 @@ export interface LinkedInSession {
 let activeBrowser: Browser | null = null;
 let activeContext: BrowserContext | null = null;
 
+export class LinkedInAuthError extends Error {
+  constructor(currentUrl: string) {
+    super(
+      `LinkedIn session expired mid-run — redirected to ${currentUrl}. ` +
+        `Run "npm run login" to refresh ${COOKIES_PATH}; cached work is preserved.`
+    );
+    this.name = "LinkedInAuthError";
+  }
+}
+
+const AUTH_WALL_RE = /linkedin\.com\/(login|checkpoint|authwall|uas\/login)/i;
+
+/**
+ * A session that expires mid-run gets redirected to a login/checkpoint wall;
+ * without this check every subsequent extraction silently returns empty
+ * garbage that would enter the candidate graph as real data.
+ */
+export function assertLinkedInAuth(page: Page): void {
+  if (AUTH_WALL_RE.test(page.url())) {
+    throw new LinkedInAuthError(page.url());
+  }
+}
+
 export function requireCookies(): void {
   if (!fs.existsSync(COOKIES_PATH)) {
     throw new Error(

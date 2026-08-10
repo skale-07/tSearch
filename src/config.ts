@@ -63,6 +63,11 @@ export const PEOPLE_DIR = path.resolve(
   process.env.PEOPLE_DIR ?? "data/people"
 );
 
+export const FEEDBACK_DIR = path.resolve(
+  process.cwd(),
+  process.env.FEEDBACK_DIR ?? "data/feedback"
+);
+
 /** Flat per-person profile folders: profiles/<slug>/profile.json */
 export const PROFILES_DIR = path.resolve(
   process.cwd(),

@@ -211,21 +211,13 @@ export function collectRepositoryFromFixture(
   );
   const prs = (fixture.candidate_prs ?? []).slice(0, CANDIDATE_PR_MAX);
 
-  // Build unfiltered sample: explicit or synthesize from candidate list WITHOUT using it as share numerator incorrectly
+  // Share denominator must be a genuine unfiltered repository sample. A
+  // candidate-only commit list would make share ≡ 1.0 (denominator = the
+  // candidate's own commits) and fabricate primary_creator support, so when
+  // no unfiltered sample exists the share is omitted — missing evidence maps
+  // to insufficient support, never to an inflated number.
   const sample: FixtureCommitSampleEntry[] =
-    fixture.repository_commit_sample ??
-    // If only candidate commits provided, pad with non-matching placeholders so share ≠ 1.0 by default
-    [
-      ...commits.map((c) => ({
-        sha: c.sha,
-        message: c.message,
-        date: c.date,
-        url: c.url,
-        author_login: candidateUsername,
-        committer_login: candidateUsername,
-        files_changed: fixture.candidate_commit_files?.[c.sha],
-      })),
-    ];
+    fixture.repository_commit_sample ?? [];
 
   const share = computeShareFromSample(sample, candidateUsername);
 

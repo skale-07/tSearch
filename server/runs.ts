@@ -28,6 +28,7 @@ export interface RunRecord {
   listeners: Set<(line: string) => void>;
   child?: ChildProcessWithoutNullStreams;
   kind?: "seed" | "branch" | "assessment";
+  cancelRequested?: boolean;
 }
 
 const MAX_LOG_LINES = 2000;
@@ -81,8 +82,29 @@ function attachChild(
   child.on("close", (code) => {
     run.finishedAt = new Date().toISOString();
     activeRunId = null;
+    if (run.cancelRequested) {
+      run.status = "failed";
+      run.error = "Cancelled by user";
+      pushLog(run, "[ui] run cancelled by user");
+      notifyDone(run, { type: "error", message: "Cancelled by user" });
+      return;
+    }
     onDone(code);
   });
+}
+
+export function cancelRun(
+  id: string
+): { ok: true } | { error: string; status: number } {
+  const run = runs.get(id);
+  if (!run) return { error: "Run not found", status: 404 };
+  if (run.status !== "running" || !run.child) {
+    return { error: "Run is not running", status: 409 };
+  }
+  run.cancelRequested = true;
+  // SIGTERM lets the pipeline's finally blocks close the Chromium session.
+  run.child.kill("SIGTERM");
+  return { ok: true };
 }
 
 export function startRun(input: {

@@ -4,6 +4,7 @@ import type { AssessmentRun, ArtifactKind } from "../assessment/types.js";
 import { DIGEST_MIN_PRIORITY, DIGEST_TOP_N } from "../assessment/config.js";
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { DIGEST_SCHEMA_VERSION } from "./types.js";
+import type { FeedbackRecord } from "./feedbackStore.js";
 import {
   buildCoryBrief,
   resolveProfileLinks,
@@ -83,11 +84,26 @@ export function buildDigest(input: {
   discoveredCandidateCount: number;
   topN?: number;
   minPriority?: number;
+  /** Reviewer feedback keyed by candidate_id (Phase 4 ranking refinement). */
+  feedback?: Map<string, FeedbackRecord>;
 }): DigestDocument {
   const topN = clampTopN(input.topN ?? DIGEST_TOP_N);
   const minPriority = input.minPriority ?? DIGEST_MIN_PRIORITY;
+  const feedback = input.feedback ?? new Map<string, FeedbackRecord>();
 
-  const ranked = [...input.assessments]
+  const verdictOf = (a: CandidateAssessmentRecord) =>
+    feedback.get(a.candidate_id)?.latest_verdict;
+  // Feedback refines digest ordering/filtering only — priority_score itself
+  // is never rewritten, so assessment stays reproducible and auditable.
+  const notRejected = (a: CandidateAssessmentRecord) =>
+    verdictOf(a) !== "not_relevant";
+  const feedbackBoost = (a: CandidateAssessmentRecord) =>
+    verdictOf(a) === "relevant" ? 1 : 0;
+
+  const pool = input.assessments.filter(notRejected);
+  const feedback_excluded_count = input.assessments.length - pool.length;
+
+  const ranked = [...pool]
     .filter((a) => isDigestEligible(a, minPriority))
     .sort((a, b) => {
       const coryRank = (r?: string) =>
@@ -95,6 +111,7 @@ export function buildDigest(input: {
       const ca = coryRank(a.judge_results.cory?.relevance);
       const cb = coryRank(b.judge_results.cory?.relevance);
       return (
+        feedbackBoost(b) - feedbackBoost(a) ||
         b.synthesis.priority_score - a.synthesis.priority_score ||
         cb - ca ||
         a.source_candidate.name.localeCompare(b.source_candidate.name)
@@ -107,14 +124,19 @@ export function buildDigest(input: {
   const selected =
     ranked.length > 0
       ? ranked
-      : [...input.assessments]
+      : [...pool]
           .filter((a) => a.synthesis.priority_score > 0)
           .sort(
             (a, b) =>
+              feedbackBoost(b) - feedbackBoost(a) ||
               b.synthesis.priority_score - a.synthesis.priority_score ||
               a.source_candidate.name.localeCompare(b.source_candidate.name)
           )
           .slice(0, topN);
+
+  const feedback_boosted_count = selected.filter(
+    (a) => feedbackBoost(a) === 1
+  ).length;
 
   const candidates: DigestCandidate[] = selected.map((a, i) => {
     const brief = buildCoryBrief(a);
@@ -135,10 +157,16 @@ export function buildDigest(input: {
     const assignment = a.synthesis.archetype_assignment;
     const writingJudge = a.judge_results.writing;
 
+    const reviewerVerdict = verdictOf(a);
+
     return {
       candidate_id: a.candidate_id,
       rank: i + 1,
       name: a.source_candidate.name,
+      ...(reviewerVerdict === "relevant" ||
+      reviewerVerdict === "explore_network"
+        ? { reviewer_feedback: reviewerVerdict }
+        : {}),
       archetype: a.synthesis.archetype,
       primary_archetype: assignment?.primary ?? a.synthesis.archetype,
       secondary_archetypes: assignment?.secondary?.slice(0, 2) ?? [],
@@ -279,6 +307,9 @@ export function buildDigest(input: {
       discovered_candidate_count: input.discoveredCandidateCount,
       assessed_candidate_count: input.assessments.length,
       source_candidates_path: input.run.source.candidates_path,
+      ...(feedback.size
+        ? { feedback_excluded_count, feedback_boosted_count }
+        : {}),
     },
     candidates,
   };

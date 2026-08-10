@@ -279,6 +279,8 @@ interface Props {
   seedId: string;
   selectedId: string | null;
   onSelect: (node: TreeNodeSummary) => void;
+  /** Case-insensitive name filter: matches glow, everything else dims. */
+  searchQuery?: string;
 }
 
 export function RadialTree({
@@ -287,7 +289,9 @@ export function RadialTree({
   seedId,
   selectedId,
   onSelect,
+  searchQuery,
 }: Props) {
+  const query = (searchQuery ?? "").trim().toLowerCase();
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(
     undefined
   );
@@ -561,6 +565,9 @@ export function RadialTree({
                 ? 4 + Math.min(5, n.context_score / 2)
                 : 7 + Math.min(8, n.context_score);
 
+            const searchMatch =
+              !query || n.name.toLowerCase().includes(query);
+
             ctx.beginPath();
             ctx.arc(x, y, r, 0, 2 * Math.PI);
             ctx.fillStyle = base;
@@ -570,8 +577,15 @@ export function RadialTree({
                 : n.hop === 2 && n.parentId !== branchFocusId
                   ? 0.75
                   : 1;
+            if (query && !searchMatch) ctx.globalAlpha *= 0.15;
             ctx.fill();
             ctx.globalAlpha = 1;
+
+            if (query && searchMatch && !isSeed) {
+              ctx.strokeStyle = "rgba(232, 197, 106, 0.9)";
+              ctx.lineWidth = 2 / globalScale;
+              ctx.stroke();
+            }
 
             if (selected) {
               ctx.strokeStyle = "#fff8e7";
@@ -607,9 +621,10 @@ export function RadialTree({
 
             // Labels: hop-2 only when that branch is focused (cluster stays clean)
             const showLabel =
-              isSeed ||
-              n.hop === 1 ||
-              (n.hop === 2 && n.parentId === branchFocusId);
+              (isSeed ||
+                n.hop === 1 ||
+                (n.hop === 2 && n.parentId === branchFocusId)) &&
+              (!query || searchMatch || isSeed);
             if (showLabel) {
               const label = isSeed
                 ? n.name

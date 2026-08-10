@@ -118,13 +118,29 @@ export function sanitizeTree(tree: TreeResponse): TreeResponse {
   return { ...tree, nodes, edges };
 }
 
+export interface TreeOption {
+  slug: string;
+  name: string;
+}
+
 export async function fetchSeeds(): Promise<{
   seeds: SeedOption[];
   profileSeeds: string[];
+  trees?: TreeOption[];
 }> {
   const res = await fetch("/api/seeds");
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function cancelRun(runId: string): Promise<void> {
+  const res = await fetch(`/api/runs/${encodeURIComponent(runId)}/cancel`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const data = await readApiJson<{ error?: string }>(res);
+    throw new Error(data.error || res.statusText);
+  }
 }
 
 async function readApiJson<T>(res: Response): Promise<T> {
@@ -536,4 +552,44 @@ export function parseNodeId(id: string): { slug: string; parentSlug?: string } {
   const idx = id.indexOf(":");
   if (idx === -1) return { slug: id };
   return { parentSlug: id.slice(0, idx), slug: id.slice(idx + 1) };
+}
+
+export type FeedbackVerdict = "relevant" | "not_relevant" | "explore_network";
+
+export interface FeedbackRecord {
+  candidate_id: string;
+  candidate_name?: string;
+  latest_verdict: FeedbackVerdict;
+  updated_at: string;
+}
+
+export async function fetchCandidateFeedback(
+  candidateId: string
+): Promise<FeedbackRecord | null> {
+  const res = await fetch(
+    `/api/feedback/candidate/${encodeURIComponent(candidateId)}`
+  );
+  const data = await readApiJson<{ feedback: FeedbackRecord | null }>(res);
+  if (!res.ok) throw new Error(res.statusText);
+  return data.feedback;
+}
+
+export async function sendCandidateFeedback(body: {
+  candidate_id: string;
+  candidate_name?: string;
+  verdict: FeedbackVerdict;
+  note?: string;
+}): Promise<FeedbackRecord> {
+  const res = await fetch("/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{ feedback?: FeedbackRecord; error?: string }>(
+    res
+  );
+  if (!res.ok || !data.feedback) {
+    throw new Error(data.error || res.statusText);
+  }
+  return data.feedback;
 }

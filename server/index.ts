@@ -2,6 +2,7 @@ import express from "express";
 import fs from "fs";
 import { COOKIES_PATH, OUTPUT_PATH, PROFILES_DIR } from "../src/config.js";
 import {
+  cancelRun,
   getActiveRunId,
   getRun,
   startAssessmentRun,
@@ -34,6 +35,13 @@ import {
 } from "../src/assessment/candidateIdentity.js";
 import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
+import {
+  FEEDBACK_VERDICTS,
+  exploreQueue,
+  loadAllFeedback,
+  loadFeedback,
+  recordFeedback,
+} from "../src/digest/feedbackStore.js";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
 
@@ -62,6 +70,11 @@ app.get("/api/seeds", (_req, res) => {
         ),
       })),
       profileSeeds: [...available],
+      // Display names for the load-tree picker (slug stays the identifier).
+      trees: [...available].map((slug) => ({
+        slug,
+        name: loadProfile(slug, "seed")?.name ?? slug,
+      })),
     });
   } catch (err) {
     res.status(500).json({
@@ -85,6 +98,15 @@ app.post("/api/runs", (req, res) => {
     return;
   }
   res.status(202).json({ runId: result.runId });
+});
+
+app.post("/api/runs/:id/cancel", (req, res) => {
+  const result = cancelRun(req.params.id);
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json({ ok: true });
 });
 
 app.post("/api/runs/branch", (req, res) => {
@@ -487,6 +509,56 @@ app.get("/api/profile/:seedSlug/:relation/:slug", (req, res) => {
 // Convenience: list known trees for the “load existing” path
 app.get("/api/trees", (_req, res) => {
   res.json({ seeds: listProfileSeeds() });
+});
+
+// --- Reviewer feedback (digest Phases 3–4) ---
+
+app.post("/api/feedback", (req, res) => {
+  const candidate_id =
+    typeof req.body?.candidate_id === "string"
+      ? req.body.candidate_id.trim()
+      : "";
+  const verdict =
+    typeof req.body?.verdict === "string" ? req.body.verdict : "";
+  if (
+    !candidate_id ||
+    !(FEEDBACK_VERDICTS as readonly string[]).includes(verdict)
+  ) {
+    res.status(400).json({
+      error: `Body requires { candidate_id, verdict: ${FEEDBACK_VERDICTS.join("|")} }`,
+    });
+    return;
+  }
+  try {
+    const record = recordFeedback({
+      candidate_id,
+      candidate_name:
+        typeof req.body?.candidate_name === "string"
+          ? req.body.candidate_name
+          : undefined,
+      verdict: verdict as (typeof FEEDBACK_VERDICTS)[number],
+      note: typeof req.body?.note === "string" ? req.body.note : undefined,
+    });
+    res.status(201).json({ feedback: record });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.get("/api/feedback", (_req, res) => {
+  res.json({ feedback: loadAllFeedback() });
+});
+
+app.get("/api/feedback/candidate/:candidateId", (req, res) => {
+  const record = loadFeedback(req.params.candidateId);
+  res.json({ feedback: record });
+});
+
+// Candidates the reviewer marked explore_network — input for branch expands.
+app.get("/api/feedback/explore-queue", (_req, res) => {
+  res.json({ queue: exploreQueue() });
 });
 
 app.listen(PORT, () => {
