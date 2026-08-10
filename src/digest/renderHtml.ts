@@ -1,4 +1,11 @@
-import type { DigestDocument } from "./types.js";
+import type { DigestCandidate, DigestDocument } from "./types.js";
+import { profileFileName } from "./renderProfilePages.js";
+
+/**
+ * The digest email. Design goals: card-per-person, minimal prose (depth lives
+ * on the Learn-more profile pages), no internal jargon in front of the
+ * recipient — inline styles throughout for email-client compatibility.
+ */
 
 function esc(s: string): string {
   return s
@@ -11,104 +18,143 @@ function esc(s: string): string {
 function safeHref(url: string | undefined): string | null {
   if (!url) return null;
   try {
-    const u = new URL(url);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    return u.toString();
+    const u = new URL(url, "https://local.invalid");
+    if (u.protocol !== "http:" && u.protocol !== "https:" && !url.startsWith("./"))
+      return null;
+    return url;
   } catch {
     return null;
   }
 }
 
-export function renderHtml(digest: DigestDocument): string {
-  const cards = digest.candidates
-    .map((c) => {
-      const tech = c.technical_summary
-        ? `<p style="margin:8px 0;"><strong>Technical:</strong> ${esc(String(c.technical_summary.score))}/5 avg (confidence ${esc(String(c.technical_summary.confidence))})</p>
-           <p style="margin:8px 0;color:#333;">${esc(c.technical_summary.rationale.slice(0, 700))}</p>`
-        : "";
-      const writing =
-        c.writing_summary?.available && c.writing_summary.rationale
-          ? `<p style="margin:8px 0;"><strong>Writing:</strong> ${esc(c.writing_summary.rationale.slice(0, 500))}</p>`
-          : "";
-      const artifacts = c.strongest_artifacts
-        .map((a) => {
-          const href = safeHref(a.url);
-          return href
-            ? `<li><a href="${esc(href)}">${esc(a.title)}</a></li>`
-            : `<li>${esc(a.title)}</li>`;
-        })
-        .join("");
-      const links = [
-        ["GitHub", c.links.github],
-        ["LinkedIn", c.links.linkedin],
-        ["Website", c.links.website],
-        ["Blog", c.links.blog],
-      ]
-        .map(([label, url]) => {
-          const href = safeHref(url);
-          return href
-            ? `<a href="${esc(href)}" style="margin-right:14px;font-weight:600;">${esc(String(label))}</a>`
-            : "";
-        })
-        .join("");
-      const brief = esc(
-        (c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline).slice(
-          0,
-          900
-        )
-      );
-      const cory = c.cory_relevance
-        ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #ccc;border-radius:999px;font-size:12px;">Cory: ${esc(c.cory_relevance)}</span>`
-        : "";
+const AVATAR_COLORS = ["#e8c56a", "#3dba9c", "#e07a5f", "#8fa8e0", "#c58fe0"];
 
-      return `
-      <section style="border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0;">
-        <h2 style="margin:0 0 8px;font-size:18px;">${esc(String(c.rank))}. ${esc(c.name)}</h2>
-        <p style="margin:0 0 8px;">${links || "<span style='color:#888;'>No profile links</span>"}</p>
-        <p style="margin:0;color:#555;font-size:13px;">${esc(c.primary_archetype.replace(/_/g, " "))}${cory}</p>
-        <p style="margin:8px 0 12px;">${esc(c.headline)}</p>
-        <p style="margin:4px 0;font-size:13px;">Assessment priority: <strong>${esc(String(c.assessment_priority_score))}/100</strong> · Discovery score: <strong>${esc(String(c.discovery_score))}</strong></p>
-        <h3 style="font-size:14px;margin:12px 0 4px;">Why send to Cory</h3>
-        <p style="margin:4px 0;color:#222;">${brief}</p>
-        <h3 style="font-size:14px;margin:12px 0 4px;">Specific work to inspect</h3>
-        <ul style="margin:0;padding-left:18px;">${artifacts || "<li><em>None retained</em></li>"}</ul>
-        ${tech}
-        ${writing}
-        <h3 style="font-size:14px;margin:12px 0 4px;">Caveats</h3>
-        <ul style="margin:0;padding-left:18px;">${c.important_uncertainties
-          .map((u) => `<li>${esc(u)}</li>`)
-          .join("")}</ul>
-        <p style="margin:12px 0 4px;"><strong>Next:</strong> ${esc(c.next_review_step)}</p>
-      </section>`;
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function humanize(s: string): string {
+  return s.replace(/_/g, " ");
+}
+
+function chipHtml(label: string, strong = false): string {
+  const border = strong ? "#d9b24a" : "#e3ddd0";
+  const color = strong ? "#8a6d1c" : "#6b6558";
+  const bg = strong ? "#faf3dd" : "#f7f5ef";
+  return `<span style="display:inline-block;font-size:11px;padding:2px 9px;border:1px solid ${border};border-radius:999px;color:${color};background:${bg};margin:0 5px 5px 0;">${label}</span>`;
+}
+
+function card(
+  c: DigestCandidate,
+  i: number,
+  profileBaseUrl: string
+): string {
+  const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+  const brief = esc(
+    (c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline).slice(
+      0,
+      260
+    )
+  );
+
+  const chips = [
+    chipHtml(esc(humanize(c.primary_archetype)), true),
+    c.network_bridges
+      ? chipHtml(`🔗 knows ${c.network_bridges.seed_count} of your seed set`)
+      : "",
+    c.reviewer_feedback === "relevant" ? chipHtml("✓ you flagged relevant") : "",
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const works = c.strongest_artifacts
+    .slice(0, 2)
+    .map((a) => {
+      const href = safeHref(a.url);
+      return href
+        ? `<a href="${esc(href)}" style="color:#1a1408;text-decoration:underline;">${esc(a.title.slice(0, 60))}</a>`
+        : esc(a.title.slice(0, 60));
     })
+    .join(" &nbsp;·&nbsp; ");
+
+  const profileHref = `${profileBaseUrl}/${profileFileName(c)}`;
+  const github = safeHref(c.links.github);
+
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #eae6dc;border-radius:12px;margin:0 0 14px;">
+    <tr>
+      <td style="padding:18px 20px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td width="52" valign="top">
+              <div style="width:44px;height:44px;border-radius:50%;background:${color};color:#1a1408;font-weight:700;font-size:17px;text-align:center;line-height:44px;font-family:Georgia,serif;">${esc(initials(c.name))}</div>
+            </td>
+            <td valign="top" style="padding-left:6px;">
+              <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;">${esc(c.name)}</div>
+              <div style="font-size:13px;color:#6b6558;margin:2px 0 7px;">${esc(c.headline.slice(0, 110))}</div>
+              <div>${chips}</div>
+            </td>
+            <td valign="top" align="right" style="white-space:nowrap;">
+              <span style="font-family:Georgia,serif;font-size:22px;color:#b98f1e;">${esc(String(c.assessment_priority_score))}</span><span style="font-size:11px;color:#a49e90;">/100</span>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:12px 0 10px;font-size:14px;line-height:1.55;color:#3b372e;">${brief}</p>
+        ${works ? `<p style="margin:0 0 14px;font-size:13px;color:#6b6558;">Worth a look: ${works}</p>` : ""}
+        <a href="${esc(profileHref)}" style="display:inline-block;background:#e8c56a;color:#1a1408;font-weight:700;font-size:13px;padding:9px 20px;border-radius:8px;text-decoration:none;">Learn more →</a>
+        ${github ? `&nbsp;&nbsp;<a href="${esc(github)}" style="display:inline-block;border:1px solid #d9d4c7;color:#3b372e;font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;text-decoration:none;">GitHub</a>` : ""}
+      </td>
+    </tr>
+  </table>`;
+}
+
+export function renderHtml(
+  digest: DigestDocument,
+  opts?: { profileBaseUrl?: string }
+): string {
+  const profileBaseUrl =
+    opts?.profileBaseUrl ?? `./profiles/${digest.digest_id}`;
+  const date = new Date(digest.generated_at).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const cards = digest.candidates
+    .map((c, i) => card(c, i, profileBaseUrl))
     .join("\n");
 
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>tSearch Digest ${esc(digest.digest_id)}</title>
+  <title>tSearch Talent Digest — ${esc(date)}</title>
 </head>
-<body style="font-family:Georgia,serif;line-height:1.45;color:#111;max-width:720px;margin:0 auto;padding:16px;">
-  <h1 style="font-size:22px;">tSearch → Cory: Candidate Digest</h1>
-  <p style="color:#555;font-size:13px;">
-    Run <code>${esc(digest.assessment_run_id)}</code> ·
-    Digest <code>${esc(digest.digest_id)}</code> ·
-    ${esc(digest.generated_at)}
-  </p>
-  <p>${esc(digest.criteria_summary.purpose)}</p>
-  <p style="font-size:13px;">
-    Discovered ${esc(String(digest.meta.discovered_candidate_count))} ·
-    Assessed ${esc(String(digest.meta.assessed_candidate_count))} ·
-    Included ${esc(String(digest.candidates.length))}
-  </p>
-  <h2 style="font-size:16px;">Not treated as proof</h2>
-  <ul>${digest.criteria_summary.important_non_signals
-    .map((n) => `<li>${esc(n)}</li>`)
-    .join("")}</ul>
-  ${cards}
-  <p style="font-size:12px;color:#777;margin-top:24px;">Generated from persisted assessment snapshots. This email did not call an LLM.</p>
+<body style="margin:0;padding:0;background:#f4f1e9;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1e9;">
+    <tr><td align="center" style="padding:28px 14px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;font-family:'Avenir Next','Segoe UI',system-ui,sans-serif;">
+        <tr><td style="padding:0 4px 18px;">
+          <span style="font-family:Georgia,serif;font-size:24px;font-weight:700;color:#1a1408;">tSearch</span>
+          <span style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a49e90;">&nbsp;talent digest</span>
+          <div style="font-size:13px;color:#6b6558;margin-top:6px;">${esc(date)} · ${esc(String(digest.candidates.length))} people surfaced from public building &amp; writing evidence</div>
+        </td></tr>
+        <tr><td>
+          ${cards}
+        </td></tr>
+        <tr><td style="padding:12px 4px 0;font-size:11px;line-height:1.6;color:#a49e90;">
+          Found by expanding real collaboration graphs from olympiad-level seeds, then assessing each person's public repositories and writing.
+          Missing evidence never counts against anyone. Reply with a name to see more like them — or say "not relevant" and they won't reappear.<br/>
+          <span style="color:#c4beb0;">digest ${esc(digest.digest_id)} · ${esc(String(digest.meta.discovered_candidate_count))} discovered · ${esc(String(digest.meta.assessed_candidate_count))} assessed</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>`;
 }
