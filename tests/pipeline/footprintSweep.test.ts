@@ -132,3 +132,21 @@ describe("seed queue", () => {
     expect(sweep.loadSeedQueue().map((q) => q.name)).toEqual(["Queue High"]);
   });
 });
+
+describe("footprintCrossCheck", () => {
+  it("bumps confidence when LinkedIn-verified login matches the sweep guess", async () => {
+    const { footprintCrossCheck } = sweep;
+    expect(footprintCrossCheck(0.7, "MiraChen", "mirachen")).toEqual({
+      confidence: 0.8,
+      confirmed: true,
+    });
+    expect(footprintCrossCheck(0.95, "x", "x").confidence).toBe(1);
+  });
+
+  it("does nothing on mismatch or missing sides", () => {
+    const { footprintCrossCheck } = sweep;
+    expect(footprintCrossCheck(0.7, "alice", "bob").confirmed).toBe(false);
+    expect(footprintCrossCheck(0.7, undefined, "bob").confidence).toBe(0.7);
+    expect(footprintCrossCheck(0.7, "alice", null).confirmed).toBe(false);
+  });
+});
