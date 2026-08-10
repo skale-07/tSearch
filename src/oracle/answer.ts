@@ -1,4 +1,4 @@
-import { LLM_API_KEY, LLM_MODEL } from "../assessment/config.js";
+import { LLM_API_KEY, LLM_MODEL, LLM_PROVIDER } from "../assessment/config.js";
 import { searchIndex, type OracleHit, type OracleIndex } from "./index.js";
 
 /**
@@ -64,13 +64,39 @@ function extractiveAnswer(question: string, hits: OracleHit[]): OracleAnswer {
   };
 }
 
+const SYNTHESIS_SYSTEM_PROMPT =
+  "You answer technical/product questions about the tSearch codebase using ONLY the numbered passages provided. Cite every claim with its passage's file:line reference (e.g. src/pipeline/runPipeline.ts:58-150). If the passages do not cover the question, say so plainly instead of guessing — never invent behavior. Be concise and concrete.";
+
+async function completeText(user: string): Promise<string | undefined> {
+  // Honors LLM_PROVIDER from assessment config (openai | anthropic).
+  if (LLM_PROVIDER === "anthropic") {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey: LLM_API_KEY });
+    const res = await client.messages.create({
+      model: LLM_MODEL,
+      max_tokens: 1500,
+      system: SYNTHESIS_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: user }],
+    });
+    const block = res.content.find((b) => b.type === "text");
+    return block && block.type === "text" ? block.text.trim() : undefined;
+  }
+  const { default: OpenAI } = await import("openai");
+  const client = new OpenAI({ apiKey: LLM_API_KEY });
+  const res = await client.chat.completions.create({
+    model: LLM_MODEL,
+    messages: [
+      { role: "system", content: SYNTHESIS_SYSTEM_PROMPT },
+      { role: "user", content: user },
+    ],
+  });
+  return res.choices[0]?.message?.content?.trim();
+}
+
 async function llmAnswer(
   question: string,
   hits: OracleHit[]
 ): Promise<OracleAnswer> {
-  const { default: OpenAI } = await import("openai");
-  const client = new OpenAI({ apiKey: LLM_API_KEY });
-
   const passages = hits
     .map(
       (h, i) =>
@@ -78,22 +104,9 @@ async function llmAnswer(
     )
     .join("\n\n");
 
-  const res = await client.chat.completions.create({
-    model: LLM_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You answer technical/product questions about the tSearch codebase using ONLY the numbered passages provided. Cite every claim with its passage's file:line reference (e.g. src/pipeline/runPipeline.ts:58-150). If the passages do not cover the question, say so plainly instead of guessing — never invent behavior. Be concise and concrete.",
-      },
-      {
-        role: "user",
-        content: `Question: ${question}\n\nPassages:\n\n${passages}`,
-      },
-    ],
-  });
-
-  const text = res.choices[0]?.message?.content?.trim();
+  const text = await completeText(
+    `Question: ${question}\n\nPassages:\n\n${passages}`
+  );
   if (!text) return extractiveAnswer(question, hits);
   return {
     mode: "llm",
