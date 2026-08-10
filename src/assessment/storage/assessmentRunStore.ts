@@ -426,3 +426,20 @@ export function assertResumeCompatible(
 
 // re-export for callers that used readJson from here historically
 export { readJson };
+
+/** True when any run (any status) holds a persisted assessment for this candidate. */
+export function hasAnyAssessment(candidateId: string): boolean {
+  const root = getAssessmentRunsDir();
+  if (!fs.existsSync(root)) return false;
+  for (const runId of fs.readdirSync(root)) {
+    if (!runId.startsWith("arun_")) continue;
+    if (
+      fs.existsSync(
+        path.join(assessmentRunDir(runId), "assessments", `${candidateId}.json`)
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}

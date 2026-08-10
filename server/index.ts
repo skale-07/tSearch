@@ -23,7 +23,13 @@ import {
 } from "./assessmentApi.js";
 import path from "path";
 import { assessmentRunDir } from "../src/assessment/storage/assessmentRunStore.js";
-import { getDigestsDir } from "../src/assessment/config.js";
+import { EMAIL_PROVIDER_API_KEY, getDigestsDir } from "../src/assessment/config.js";
+import {
+  effectiveDigestSettings,
+  saveDigestSettings,
+  validateSettings,
+} from "../src/digest/digestSettings.js";
+import { sendDigest } from "../src/digest/sendDigest.js";
 import { renderDigestForRun } from "../src/assessment/runAssessment.js";
 import { buildDigest } from "../src/digest/buildDigest.js";
 import { renderProfilePage } from "../src/digest/renderProfilePages.js";
@@ -597,6 +603,52 @@ app.post("/api/digest/generate", (req, res) => {
 });
 
 app.use("/api/digests", express.static(getDigestsDir()));
+
+app.get("/api/digest/settings", (_req, res) => {
+  const effective = effectiveDigestSettings();
+  res.json({
+    from: effective.from,
+    to: effective.to,
+    provider_key_present: Boolean(EMAIL_PROVIDER_API_KEY),
+  });
+});
+
+app.post("/api/digest/settings", (req, res) => {
+  const next = {
+    from: typeof req.body?.from === "string" ? req.body.from : undefined,
+    to: typeof req.body?.to === "string" ? req.body.to : undefined,
+  };
+  const invalid = validateSettings(next);
+  if (invalid) {
+    res.status(400).json({ error: invalid });
+    return;
+  }
+  saveDigestSettings(next);
+  res.json({ ...effectiveDigestSettings(), provider_key_present: Boolean(EMAIL_PROVIDER_API_KEY) });
+});
+
+// Sending from the UI: dry-run unless the request explicitly says otherwise —
+// the UI's confirm dialog is the human go-ahead the house rules require.
+app.post("/api/digest/:digestId/send", (req, res) => {
+  const next = {
+    from: typeof req.body?.from === "string" ? req.body.from : undefined,
+    to: typeof req.body?.to === "string" ? req.body.to : undefined,
+  };
+  const invalid = validateSettings(next);
+  if (invalid) {
+    res.status(400).json({ error: invalid });
+    return;
+  }
+  saveDigestSettings(next);
+  const dryRun = req.body?.dry_run !== false;
+  sendDigest({ digestId: req.params.digestId, dryRun })
+    .then((result) => res.json(result))
+    .catch((err) =>
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
+    );
+});
 
 // --- Reviewer feedback (digest Phases 3–4) ---
 

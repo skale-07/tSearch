@@ -1,12 +1,11 @@
 import fs from "fs";
 import path from "path";
 import {
-  DIGEST_EMAIL_FROM,
   DIGEST_EMAIL_SUBJECT_PREFIX,
-  DIGEST_EMAIL_TO,
   EMAIL_PROVIDER_API_KEY,
   getDigestsDir,
 } from "../assessment/config.js";
+import { effectiveDigestSettings } from "./digestSettings.js";
 import { readJson } from "../storage/jsonStore.js";
 import type { DigestDocument } from "./types.js";
 import {
@@ -19,7 +18,10 @@ export async function sendDigest(opts: {
   digestId: string;
   transport?: EmailTransport;
   dryRun?: boolean;
-}): Promise<{ messageId: string }> {
+  /** Override stored/env recipients for this send. */
+  to?: string;
+  from?: string;
+}): Promise<{ messageId: string; dryRun: boolean; to: string[] }> {
   const digestsDir = getDigestsDir();
   const jsonPath = path.join(digestsDir, `${opts.digestId}.json`);
   const mdPath = path.join(digestsDir, `${opts.digestId}.md`);
@@ -32,14 +34,21 @@ export async function sendDigest(opts: {
   const html = fs.readFileSync(htmlPath, "utf-8");
   const text = fs.readFileSync(mdPath, "utf-8");
 
-  const to = DIGEST_EMAIL_TO.split(",")
+  const settings = effectiveDigestSettings();
+  const to = (opts.to ?? settings.to)
+    .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const from = (opts.from ?? settings.from).trim();
   if (!to.length) {
-    throw new Error("DIGEST_EMAIL_TO is required to send digests");
+    throw new Error(
+      "No recipients configured — set them in the UI send dialog or DIGEST_EMAIL_TO"
+    );
   }
-  if (!DIGEST_EMAIL_FROM) {
-    throw new Error("DIGEST_EMAIL_FROM is required to send digests");
+  if (!from) {
+    throw new Error(
+      "No From address configured — set it in the UI send dialog or DIGEST_EMAIL_FROM"
+    );
   }
 
   const transport =
@@ -48,9 +57,10 @@ export async function sendDigest(opts: {
       ? new TestEmailTransport()
       : new ResendEmailTransport(EMAIL_PROVIDER_API_KEY));
 
+  const wasDryRun = Boolean(opts.dryRun || !EMAIL_PROVIDER_API_KEY);
   const result = await transport.send({
     to,
-    from: DIGEST_EMAIL_FROM,
+    from,
     subject: `${DIGEST_EMAIL_SUBJECT_PREFIX} ${digest.candidates.length} people worth a look — ${new Date(
       digest.generated_at
     ).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
@@ -63,8 +73,8 @@ export async function sendDigest(opts: {
       stage: "email_sent",
       digest_id: opts.digestId,
       messageId: result.messageId,
-      dryRun: opts.dryRun || !EMAIL_PROVIDER_API_KEY,
+      dryRun: wasDryRun,
     })
   );
-  return result;
+  return { messageId: result.messageId, dryRun: wasDryRun, to };
 }

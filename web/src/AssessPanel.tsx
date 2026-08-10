@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchAssessed,
   fetchCandidates,
+  fetchDigestSettings,
+  sendDigestEmail,
   fetchAssessmentRunCandidates,
   fetchRunCandidateAssessment,
   generateDigest,
@@ -81,6 +83,49 @@ export function AssessPanel({
   const [assessedAt, setAssessedAt] = useState<Map<string, string>>(new Map());
   const [digestBusy, setDigestBusy] = useState(false);
   const [digestLink, setDigestLink] = useState<{ id: string; url: string } | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendFrom, setSendFrom] = useState("");
+  const [sendTo, setSendTo] = useState("");
+  const [sendDryRun, setSendDryRun] = useState(true);
+  const [sendKeyPresent, setSendKeyPresent] = useState(false);
+  const [sendBusy, setSendBusy] = useState(false);
+  const [sendResult, setSendResult] = useState<string | null>(null);
+
+  const openSendDialog = () => {
+    setSendResult(null);
+    setSendDryRun(true);
+    setSendOpen(true);
+    fetchDigestSettings()
+      .then((s) => {
+        setSendFrom((prev) => prev || s.from);
+        setSendTo((prev) => prev || s.to);
+        setSendKeyPresent(s.provider_key_present);
+      })
+      .catch(() => {});
+  };
+
+  const doSend = () => {
+    if (!digestLink) return;
+    setSendBusy(true);
+    setSendResult(null);
+    sendDigestEmail({
+      digestId: digestLink.id,
+      from: sendFrom,
+      to: sendTo,
+      dryRun: sendDryRun,
+    })
+      .then((r) =>
+        setSendResult(
+          r.dryRun
+            ? `Dry run OK (${r.messageId}) — nothing was emailed. Recipients would be: ${r.to.join(", ")}`
+            : `✅ Sent to ${r.to.join(", ")} (${r.messageId})`
+        )
+      )
+      .catch((err) =>
+        setSendResult(`❌ ${err instanceof Error ? err.message : String(err)}`)
+      )
+      .finally(() => setSendBusy(false));
+  };
   const [useMockLlm, setUseMockLlm] = useState(mockLlm);
   const [confirming, setConfirming] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -339,16 +384,79 @@ export function AssessPanel({
           {digestBusy ? "Building digest…" : "📧 Generate digest"}
         </button>
         {digestLink && (
-          <a
-            className="chip chip-strong"
-            href={digestLink.url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open {digestLink.id.slice(0, 14)} ↗
-          </a>
+          <>
+            <a
+              className="chip chip-strong"
+              href={digestLink.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open {digestLink.id.slice(0, 14)} ↗
+            </a>
+            <button
+              type="button"
+              className="chip"
+              disabled={sendBusy}
+              onClick={openSendDialog}
+            >
+              ✉️ Send…
+            </button>
+          </>
         )}
       </div>
+
+      {sendOpen && digestLink && (
+        <div className="assess-modal-backdrop" role="presentation">
+          <section className="assess-modal" role="dialog" aria-modal="true" aria-labelledby="send-title">
+            <h3 id="send-title">Send digest {digestLink.id.slice(0, 14)}</h3>
+            <label className="send-field">
+              From
+              <input
+                type="text"
+                value={sendFrom}
+                onChange={(e) => setSendFrom(e.target.value)}
+                placeholder="tSearch <digest@yourdomain.com>"
+              />
+            </label>
+            <label className="send-field">
+              To (comma-separated)
+              <input
+                type="text"
+                value={sendTo}
+                onChange={(e) => setSendTo(e.target.value)}
+                placeholder="cory@example.com"
+              />
+            </label>
+            <label className="assess-live-toggle">
+              <input
+                type="checkbox"
+                checked={!sendDryRun}
+                onChange={(e) => setSendDryRun(!e.target.checked)}
+              />
+              Send for real
+            </label>
+            {!sendDryRun && (
+              <p className="error">
+                This emails the digest to the recipients above via Resend —
+                no further confirmation after you click Send.
+                {!sendKeyPresent && " (No RESEND_API_KEY configured — this will fall back to a dry run.)"}
+              </p>
+            )}
+            {sendDryRun && (
+              <p className="muted">Dry run: validates and logs, sends nothing.</p>
+            )}
+            {sendResult && <p className="assess-rerun-note">{sendResult}</p>}
+            <div className="assess-modal-actions">
+              <button type="button" className="chip" onClick={() => setSendOpen(false)} disabled={sendBusy}>
+                Close
+              </button>
+              <button type="button" className="run-btn" onClick={doSend} disabled={sendBusy || !sendTo.trim() || !sendFrom.trim()}>
+                {sendBusy ? "Sending…" : sendDryRun ? "Run dry-run" : "Send"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {loadError && <p className="error">{loadError}</p>}
 
