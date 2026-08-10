@@ -42,6 +42,21 @@ function humanize(s: string): string {
   return s.replace(/_/g, " ");
 }
 
+/** Hard-cap prose at a word boundary so card copy doesn't die mid-word. */
+export function truncateAtWord(text: string, max: number): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  const slice = t.slice(0, max);
+  const broken = /[\s,.;:!?…]/.test(slice[slice.length - 1] ?? "");
+  let cut = broken
+    ? slice.trimEnd()
+    : slice.replace(/\s+\S*$/, "").trimEnd();
+  if (!cut || cut.length < Math.min(40, Math.floor(max * 0.5))) {
+    cut = slice.trimEnd();
+  }
+  return `${cut.replace(/[.,;:\s]+$/u, "")}…`;
+}
+
 function chipHtml(label: string, strong = false): string {
   const border = strong ? "#d9b24a" : "#e3ddd0";
   const color = strong ? "#8a6d1c" : "#6b6558";
@@ -55,12 +70,9 @@ function card(
   profileBaseUrl: string
 ): string {
   const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
-  const brief = esc(
-    (c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline).slice(
-      0,
-      260
-    )
-  );
+  const briefRaw =
+    c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline;
+  const brief = esc(truncateAtWord(briefRaw, 260));
 
   const chips = [
     chipHtml(esc(humanize(c.primary_archetype)), true),
@@ -76,9 +88,10 @@ function card(
     .slice(0, 2)
     .map((a) => {
       const href = safeHref(a.url);
+      const title = truncateAtWord(a.title, 60);
       return href
-        ? `<a href="${esc(href)}" style="color:#1a1408;text-decoration:underline;">${esc(a.title.slice(0, 60))}</a>`
-        : esc(a.title.slice(0, 60));
+        ? `<a href="${esc(href)}" style="color:#1a1408;text-decoration:underline;">${esc(title)}</a>`
+        : esc(title);
     })
     .join(" &nbsp;·&nbsp; ");
 
@@ -96,7 +109,7 @@ function card(
             </td>
             <td valign="top" style="padding-left:6px;">
               <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;">${esc(c.name)}</div>
-              <div style="font-size:13px;color:#6b6558;margin:2px 0 7px;">${esc(c.headline.slice(0, 110))}</div>
+              <div style="font-size:13px;color:#6b6558;margin:2px 0 7px;">${esc(truncateAtWord(c.headline, 110))}</div>
               <div>${chips}</div>
             </td>
             <td valign="top" align="right" style="white-space:nowrap;">

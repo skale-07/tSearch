@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildDigest } from "../../src/digest/buildDigest.js";
-import { renderHtml } from "../../src/digest/renderHtml.js";
+import { renderHtml, truncateAtWord } from "../../src/digest/renderHtml.js";
 import { renderMarkdown } from "../../src/digest/renderMarkdown.js";
 import type {
   AssessmentRun,
@@ -218,6 +218,32 @@ describe("digest rendering", () => {
     expect(digest.candidates.map((c) => c.name)).toEqual(["High"]);
     expect(digest.candidates[0]?.strongest_artifacts[0]?.title).toMatch(/engine/);
     expect(digest.candidates[0]?.brief_rationale).toMatch(/High/);
+  });
+
+  it("truncates card brief at a word boundary with an ellipsis", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [assessment("cand_t", "Timo", 80)],
+      discoveredCandidateCount: 1,
+      minPriority: 0,
+    });
+    digest.candidates[0]!.brief_rationale = [
+      "demonstrates strong technical execution on hard systems problems",
+      "with clear ownership evidence across multiple repositories",
+      "and sustained iteration through careful tradeoff reasoning",
+      "plus reproducible evaluation that a third party can actually run",
+      "while documenting failure modes and recovery paths in the core modules",
+    ].join(" ");
+    expect(digest.candidates[0]!.brief_rationale!.length).toBeGreaterThan(260);
+    const html = renderHtml(digest);
+    expect(html).toContain("…");
+    expect(html).not.toContain("technical ex<");
+    expect(
+      truncateAtWord(
+        "demonstrates strong technical execution on hard systems",
+        40
+      )
+    ).toBe("demonstrates strong technical execution…");
   });
 });
 
