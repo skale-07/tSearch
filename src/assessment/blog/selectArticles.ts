@@ -10,6 +10,21 @@ function articleLength(a: BlogArticle): number {
   return a.sections.reduce((n, s) => n + s.text.length, 0);
 }
 
+// Conviction markers: the rubric now scores demonstrated conviction, so
+// opinionated pieces must actually reach the judge — without this bonus a
+// short manifesto loses its selection slot to any long neutral tutorial.
+const OPINION_SIGNALS =
+  /\b(wrong|myth|overrated|underrated|overhyped|disagree|contrarian|unpopular opinion|conventional wisdom|hot take|everyone (?:thinks|says|believes)|nobody talks about|i (?:believe|bet|refuse))\b/gi;
+
+function opinionBonus(a: BlogArticle): number {
+  const text = `${a.title} ${a.sections.map((s) => s.text).join(" ")}`.slice(
+    0,
+    8000
+  );
+  const hits = text.match(OPINION_SIGNALS)?.length ?? 0;
+  return Math.min(0.2, hits * 0.05);
+}
+
 function recencyScore(a: BlogArticle, now: Date): number {
   const raw = a.published_at ?? a.modified_at;
   if (!raw) return 0;
@@ -48,7 +63,11 @@ export function selectArticles(
     const revBonus = a.revision_markers.length > 0 ? 0.1 : 0;
     const citeBonus = Math.min(0.15, a.citations.length * 0.03);
     const score =
-      0.45 * lengthScore + 0.4 * recencyScore(a, now) + revBonus + citeBonus;
+      0.45 * lengthScore +
+      0.4 * recencyScore(a, now) +
+      revBonus +
+      citeBonus +
+      opinionBonus(a);
     return { article: a, score };
   });
 
