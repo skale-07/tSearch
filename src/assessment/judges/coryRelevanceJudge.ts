@@ -4,18 +4,21 @@ import { coryRelevanceLlmOutputSchema } from "./schemas/coryRelevanceSchema.js";
 import type {
   CoryRelevanceResult,
   CrossArtifactJudgeResult,
+  ExperienceJudgeResult,
   OwnershipAssessmentV2,
   TechnicalJudgeResultV2,
   WritingJudgeResult,
 } from "../types.js";
 
-export const CORY_CALIBRATION_VERSION = "cory-relevance-v1";
+export const CORY_CALIBRATION_VERSION = "cory-relevance-v1.1";
 
 export interface CoryRelevanceInputs {
   technical?: TechnicalJudgeResultV2;
   ownership?: OwnershipAssessmentV2;
   writing?: WritingJudgeResult;
   crossArtifact?: CrossArtifactJudgeResult;
+  /** Routing booster only — never substitutes for technical/writing signal. */
+  experience?: ExperienceJudgeResult;
   evidenceCompleteness: number;
   evidenceIds?: string[];
   sparseEvidenceUpside?: boolean;
@@ -133,6 +136,21 @@ export function deterministicCoryRelevance(
   if (completeness >= 0.6) {
     score += 1;
     reasons.push("Evidence completeness is adequate.");
+  }
+  // Distinctive-experience booster: capped at +2 and applied only on top of
+  // real artifact signal (the insufficient_evidence gate below ignores it).
+  const expPts = strengthToPoints(input.experience?.overall_distinctiveness);
+  if (expPts >= 3) {
+    score += 2;
+    const hook = input.experience?.hook;
+    reasons.push(
+      hook
+        ? `Distinctive stated experience: ${hook}`
+        : "Distinctive stated experiences on their public path."
+    );
+  } else if (expPts === 2) {
+    score += 1;
+    reasons.push("Somewhat distinctive stated experiences.");
   }
   if (input.sparseEvidenceUpside && techPts >= 2 && completeness < 0.45) {
     score += 1;

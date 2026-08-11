@@ -194,6 +194,9 @@ export function buildDigest(input: {
       cory_relevance: brief.cory_relevance,
       cory_reasons: brief.cory_reasons,
       brief_rationale: brief.rationale,
+      ...(a.judge_results.experience?.hook
+        ? { experience_hook: a.judge_results.experience.hook }
+        : {}),
       why_highlighted: [
         {
           claim: brief.claim,

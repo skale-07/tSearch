@@ -228,6 +228,38 @@ export const writingJudgeJsonSchema: Record<string, unknown> = {
   },
 } as const;
 
+export const experienceJudgeJsonSchema: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "dimensions",
+    "overall_distinctiveness",
+    "evidence_support",
+    "hook",
+    "strongest_evidence_ids",
+    "counterevidence_ids",
+    "missing_information",
+    "summary",
+  ],
+  properties: {
+    dimensions: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: dimensionAssessmentV2JsonSchema,
+    },
+    overall_distinctiveness: overallStrengthBand,
+    evidence_support: evidenceSupportLevel,
+    hook: {
+      anyOf: [{ type: "string", minLength: 1, maxLength: 200 }, { type: "null" }],
+    },
+    strongest_evidence_ids: { type: "array", items: { type: "string" } },
+    counterevidence_ids: { type: "array", items: { type: "string" } },
+    missing_information: { type: "array", items: { type: "string" } },
+    summary: { type: "string", minLength: 1 },
+  },
+} as const;
+
 export const crossArtifactJudgeJsonSchema: Record<string, unknown> = {
   type: "object",
   additionalProperties: false,

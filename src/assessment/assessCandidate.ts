@@ -23,6 +23,13 @@ import {
 import { deterministicTechnicalJudgeV2, runTechnicalJudgeV2 } from "./judges/technicalJudgeV2.js";
 import { deterministicWritingJudge, runWritingJudge, type WritingArtifactInput } from "./judges/writingJudge.js";
 import { deterministicCrossArtifactJudge, runCrossArtifactJudge } from "./judges/crossArtifactJudge.js";
+import {
+  buildExperienceEvidence,
+  deterministicExperienceJudge,
+  hasExperienceContent,
+  runExperienceJudge,
+  type ExperienceProfileInput,
+} from "./judges/experienceJudge.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
 import { createLlmJudgeClient } from "./judges/llmClient.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
@@ -187,7 +194,7 @@ export async function assessCandidate(input: {
       judge,
       retryable: parsed.code === "GITHUB_RATE_LIMIT",
       candidate_id: selected.candidate_id,
-      attempt_count: judge ? record.judge_statuses[judge].attempt_count : undefined,
+      attempt_count: judge ? record.judge_statuses[judge]?.attempt_count : undefined,
     });
     record.errors = [...(record.errors ?? []), error];
     return error;
@@ -311,11 +318,43 @@ export async function assessCandidate(input: {
 
   // GitHub + blog collection are independent — run together
   await Promise.all([collectGithub(), collectBlog()]);
+
+  // Experience input comes from the frozen candidate record — never a fresh scrape.
+  const experienceProfile: ExperienceProfileInput = {
+    headline: selected.candidate.linkedin?.headline ?? null,
+    experience: (selected.candidate.linkedin?.experience ?? []).map((e) => ({
+      title: e.title,
+      company: e.company,
+      dates: e.dates,
+    })),
+    awards: (selected.candidate.linkedin?.awards ?? []).map((a) => ({
+      title: a.title,
+      issuer: a.issuer,
+      date: a.date,
+    })),
+    education: (selected.candidate.linkedin?.education ?? []).map((e) => ({
+      school: e.school,
+      years: e.years,
+    })),
+    olympiad_prizes: selected.candidate.olympiad?.prizes ?? [],
+    linkedin_url: selected.source_snapshot.linkedin_url,
+  };
+  let experienceEvidence = record.artifacts.evidence.filter(
+    (e) => e.source_type === "profile_field"
+  );
+  let experienceArtifactId = experienceEvidence[0]?.artifact_id;
+  if (hasExperienceContent(experienceProfile) && experienceEvidence.length === 0) {
+    const built = buildExperienceEvidence(selected.candidate_id, experienceProfile);
+    record.artifacts.references.push(built.reference);
+    record.artifacts.evidence.push(...built.evidence);
+    experienceEvidence = built.evidence;
+    experienceArtifactId = built.reference.artifact_id;
+  }
   checkpoint();
 
   const shouldRun = (judge: keyof typeof record.judge_statuses) =>
     mode !== "retry_errors" ||
-    ["failed", "pending"].includes(record.judge_statuses[judge].status);
+    ["failed", "pending"].includes(record.judge_statuses[judge]?.status ?? "pending");
   const repoDetails = Object.values(record.artifacts.github_repositories);
   let ownership = repoDetails.length
     ? aggregateCandidateOwnership(repoDetails.map((repo) => repo.ownership))
@@ -423,9 +462,58 @@ export async function assessCandidate(input: {
     }
   };
 
-  // Technical and writing judges do not depend on each other
-  await Promise.all([runTechnical(), runWriting()]);
-  if (willRunTechnical || willRunWriting) checkpoint();
+  const willRunExperience =
+    hasExperienceContent(experienceProfile) &&
+    !!experienceArtifactId &&
+    (mode !== "retry_errors" ||
+      !record.judge_results.experience ||
+      record.judge_statuses.experience?.status === "failed");
+
+  const runExperience = async () => {
+    if (!willRunExperience) return;
+    record.judge_statuses.experience = markJudgeRunning(
+      record.judge_statuses.experience ?? {
+        status: "pending",
+        attempt_count: 0,
+        error_ids: [],
+      }
+    );
+    try {
+      const experience =
+        !mockLlm && llmClient
+          ? await runExperienceJudge({
+              client: llmClient,
+              candidateName: selected.candidate.name,
+              profile: experienceProfile,
+              evidence: experienceEvidence,
+              artifactId: experienceArtifactId!,
+              rubric: rubricById(ctx.rubricBundle, "experience-distinctiveness-v1"),
+              rubricBundleVersion: ctx.rubricBundleVersion,
+            })
+          : deterministicExperienceJudge({
+              profile: experienceProfile,
+              evidence: experienceEvidence,
+              artifactId: experienceArtifactId!,
+            });
+      record.judge_results.experience = experience;
+      record.judge_statuses.experience = markJudgeTerminal(
+        record.judge_statuses.experience!,
+        "completed"
+      );
+      clearJudgeErrors("experience");
+    } catch (err) {
+      const error = addError("experience", err, "experience");
+      record.judge_statuses.experience = markJudgeTerminal(
+        record.judge_statuses.experience!,
+        "failed",
+        error.id
+      );
+    }
+  };
+
+  // Technical, writing, and experience judges do not depend on each other
+  await Promise.all([runTechnical(), runWriting(), runExperience()]);
+  if (willRunTechnical || willRunWriting || willRunExperience) checkpoint();
 
   if (shouldRun("cross_artifact")) {
     record.pipeline_stage = "linking_artifacts";
@@ -469,7 +557,7 @@ export async function assessCandidate(input: {
       record.judge_statuses.cory = markJudgeRunning(record.judge_statuses.cory);
       checkpoint();
       try {
-        const signals = { technical, ownership, writing, crossArtifact: record.judge_results.cross_artifact, evidenceCompleteness: Math.min(1, record.artifacts.evidence.length / 8) };
+        const signals = { technical, ownership, writing, crossArtifact: record.judge_results.cross_artifact, experience: record.judge_results.experience, evidenceCompleteness: Math.min(1, record.artifacts.evidence.length / 8) };
         const cory = !mockLlm && llmClient
           ? await runCoryRelevanceJudge({ client: llmClient, signals, rubricBundleVersion: ctx.rubricBundleVersion })
           : deterministicCoryRelevance(signals);
