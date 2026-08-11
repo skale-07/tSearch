@@ -70,8 +70,6 @@ export function renderMarkdown(digest: DigestDocument): string {
       );
     }
     lines.push("");
-    lines.push(c.headline);
-    lines.push("");
     lines.push(
       `- Assessment priority: **${c.assessment_priority_score}/100** (confidence ${c.assessment_confidence})`
     );

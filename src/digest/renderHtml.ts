@@ -110,8 +110,7 @@ function card(
               <div style="width:44px;height:44px;border-radius:50%;background:${color};color:#1a1408;font-weight:700;font-size:17px;text-align:center;line-height:44px;font-family:Georgia,serif;">${esc(initials(c.name))}</div>
             </td>
             <td valign="top" style="padding-left:6px;">
-              <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;">${esc(c.name)}</div>
-              <div style="font-size:13px;color:#6b6558;margin:2px 0 7px;">${esc(truncateAtWord(c.headline, 110))}</div>
+              <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;margin:0 0 7px;">${esc(c.name)}</div>
               <div>${chips}</div>
             </td>
             <td valign="top" align="right" style="white-space:nowrap;">

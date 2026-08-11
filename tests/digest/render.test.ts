@@ -181,12 +181,14 @@ describe("digest rendering", () => {
       discoveredCandidateCount: 1,
       minPriority: 0,
     });
-    // inject email into headline via mutation for escape test
-    digest.candidates[0]!.headline = `Hello <img src=x onerror=alert(1)> contact me@secret.com`;
+    // inject email into brief via mutation for escape test
+    digest.candidates[0]!.brief_rationale = `Hello <img src=x onerror=alert(1)> contact me@secret.com`;
     const html = renderHtml(digest);
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;img");
     expect(html).not.toMatch(/mailto:/i);
+    // synthesis headline ("Name: independent systems builder") is not shown under the name
+    expect(html).not.toMatch(/: independent systems builder/i);
     const md = renderMarkdown(digest);
     expect(md).toContain("Discovery score");
     expect(md).toContain("Assessment priority");
