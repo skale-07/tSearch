@@ -439,7 +439,7 @@ async function assessOne(
       );
       const writeRubric = rubricById(
         ctx.rubricBundle,
-        "blog-intellectual-depth-v1"
+        "blog-intellectual-depth-v2"
       );
       if (writingArticles.length === 0) {
         writing = deterministicWritingJudge({

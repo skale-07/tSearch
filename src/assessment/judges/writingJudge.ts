@@ -170,9 +170,16 @@ export function deterministicWritingJudge(input: {
   const artifactIds = input.articles.map((a) => a.artifact_id);
   const hasCorpus = input.articles.length > 0;
   const multi = input.articles.length >= 2;
+  const corpusText = input.articles
+    .map((a) => `${a.title} ${a.excerpt}`)
+    .join(" ");
   const mechanistic = /mechanism|tradeoff|limitation|experiment|hypothesis/i.test(
-    input.articles.map((a) => `${a.title} ${a.excerpt}`).join(" ")
+    corpusText
   );
+  const opinionated =
+    /\b(wrong|myth|overrated|disagree|contrarian|conventional wisdom|unpopular opinion)\b/i.test(
+      corpusText
+    );
 
   const dimensions: DimensionAssessmentV2[] = WRITING_DIMENSIONS.map(
     (dimension_id) => {
@@ -200,6 +207,9 @@ export function deterministicWritingJudge(input: {
       }
       if (dimension_id === "original_analysis") {
         score = toDimensionScoreV2(mechanistic ? 3 : 2);
+      }
+      if (dimension_id === "conviction_and_contrarian_insight") {
+        score = toDimensionScoreV2(opinionated ? 3 : 2);
       }
       if (dimension_id === "clarity") score = 3;
       if (score !== null && score >= 5 && strongIds.length === 0) score = 4;

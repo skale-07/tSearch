@@ -505,6 +505,7 @@ export const WRITING_DIMENSIONS = [
   "reasoning_rigor",
   "mechanistic_explanation",
   "original_analysis",
+  "conviction_and_contrarian_insight",
   "cross_domain_synthesis",
   "intellectual_honesty",
   "uncertainty_and_limitations",

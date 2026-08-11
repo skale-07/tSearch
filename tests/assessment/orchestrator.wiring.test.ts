@@ -491,7 +491,7 @@ describe("orchestrator agent wiring", () => {
     const run = loadAssessmentRun(runId)!;
     expect(run.config.rubric_bundle_version).toBeTruthy();
     expect(run.config.rubric_bundle_version).not.toBe("legacy-phase2");
-    expect(run.config.rubric_bundle_version).toMatch(/^1\.0\.0:/);
+    expect(run.config.rubric_bundle_version).toMatch(/^\d+\.\d+\.\d+:/);
   });
 
   it("canonical rubric hash is stable under key reorder; identity changes with hash", () => {
