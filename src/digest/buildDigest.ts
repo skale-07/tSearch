@@ -194,6 +194,19 @@ export function buildDigest(input: {
       cory_relevance: brief.cory_relevance,
       cory_reasons: brief.cory_reasons,
       brief_rationale: brief.rationale,
+      ...(a.judge_results.experience?.hook
+        ? { experience_hook: a.judge_results.experience.hook }
+        : {}),
+      ...(a.synthesis.label_assignment
+        ? {
+            label: {
+              id: a.synthesis.label_assignment.label,
+              display: a.synthesis.label_assignment.display,
+              tier: a.synthesis.label_assignment.tier,
+              rationale: a.synthesis.label_assignment.rationale,
+            },
+          }
+        : {}),
       why_highlighted: [
         {
           claim: brief.claim,

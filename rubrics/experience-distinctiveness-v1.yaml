@@ -1,0 +1,115 @@
+rubric_id: experience-distinctiveness-v1
+version: 1.0.0
+construct: experience_distinctiveness
+description: Routing-only assessment of how rare, costly, and concrete a candidate's publicly
+  stated experiences are. Weird-but-substantive life paths predict outlier people; this rubric
+  scores the stated path, never the person's quality or their work artifacts. It boosts Cory
+  routing and produces a digest hook line — it must never gate or replace technical evidence.
+dimensions:
+  - dimension_id: experience_rarity
+    description: How rare the stated experience is across comparable candidate profiles, weighted
+      toward substantive rarity rather than aesthetic weirdness.
+    applicable_artifacts: &a1
+      - other
+    anchors:
+      - score: 0
+        description: No experience content to assess.
+      - score: 1
+        description: Commonplace path — clubs, hackathons, standard internships, prestige programs
+          most strong candidates also list.
+      - score: 3
+        description: An experience clearly uncommon in the seed set that implies unusual initiative
+          (ran a real business, competed seriously in an obscure discipline, shipped something to
+          real users at unusual age).
+      - score: 5
+        description: An experience essentially never seen on comparable profiles, substantive on
+          its own terms, that a recruiter would retell verbatim.
+    strong_evidence_examples:
+      - Restored and resold vintage synthesizers while competing in national olympiads
+      - Solo-crossed a sea, built farm automation used by an actual farm, ran a repair shop at 15
+    weak_evidence_examples:
+      - Attended a selective summer program many peers also attended
+      - Generic leadership titles in school clubs
+    counterevidence_examples:
+      - Quirky self-description with no underlying activity
+    prohibited_shortcuts:
+      - Score prestige (school, program, employer brand) as rarity
+      - Reward aesthetic weirdness without substance
+  - dimension_id: demonstrated_agency_and_cost
+    description: Whether the experience implies real invested time, effort, or risk — something
+      that cannot be produced by a weekend of profile polishing.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: Nothing stated implies any invested cost.
+      - score: 1
+        description: Aspirational or passive phrasing ("aspiring founder", "passionate about X",
+          member-of listings).
+      - score: 3
+        description: Stated activity with visible cost — built, ran, organized, trained, shipped —
+          sustained over a plausible period.
+      - score: 5
+        description: Multi-year or high-risk commitment the candidate initiated themselves, with
+          concrete outcomes stated.
+    strong_evidence_examples:
+      - Founded and operated something with named outcomes over multiple years
+      - Trained to a national level in a discipline requiring daily practice
+    weak_evidence_examples:
+      - Interest lists and buzzword self-labels
+    counterevidence_examples:
+      - Grand titles ("CEO") on activities with no visible substance or duration
+    prohibited_shortcuts:
+      - Treat titles as cost
+      - Treat enthusiasm adjectives as agency
+  - dimension_id: concreteness_and_verifiability
+    description: Whether stated experiences are specific enough that a human could in principle
+      check them — names, dates, outcomes — versus unfalsifiable self-description.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No checkable content.
+      - score: 1
+        description: Vague, adjective-driven claims with no names, dates, or outcomes.
+      - score: 3
+        description: Specific named activities with dates or outcomes a reviewer could probe in
+          conversation.
+      - score: 5
+        description: Externally anchored specifics (named competitions, dated awards, real
+          organizations) that cross-check against other profile evidence.
+    strong_evidence_examples:
+      - Dated award from a named issuer matching the olympiad record
+      - Named venture with dates and a stated concrete result
+    weak_evidence_examples:
+      - '"Entrepreneurial mindset" and similar unfalsifiable phrasing'
+    counterevidence_examples:
+      - Claims inconsistent with the rest of the profile record
+    prohibited_shortcuts:
+      - Treat confident specificity of tone as verifiability
+prohibited_inferences:
+  - Treating experience distinctiveness as a quality score or letting it substitute for technical evidence
+  - Scoring prestige of schools, employers, or programs as distinctiveness
+  - Inferring life circumstances, background, or protected characteristics — score only what the candidate publicly presents as their activities
+  - Claiming internal motivation as fact from experience listings
+  - Rewarding self-description adjectives without underlying activity
+confidence_caps:
+  - rule: profile text only, no external anchor (award, olympiad record, dated entry)
+    max_confidence: 0.4
+  - rule: single vague experience entry
+    max_confidence: 0.3
+abstention_rules:
+  - condition: no headline, experience, award, or olympiad content in the frozen record
+    action: all dimensions null with insufficient_evidence; band insufficient_public_evidence; hook null
+  - condition: entries present but none concrete
+    action: prefer low scores over abstention; hook null rather than inventing color
+evidence_requirements:
+  - when: score >= 4 on any dimension
+    require: a specific named experience with stated cost or external anchor, cited by evidence_id
+  - when: hook is non-null
+    require: the hook restates a cited experience without embellishment
+source_notes:
+  - statement: Experience text is self-reported; this rubric scores stated paths, not verified facts.
+    status: platform_constraint
+  - statement: Distinctive-experience weighting reflects reviewer preference (Cory), not universal quality.
+    status: provisional_product_rule
+  - statement: Anchor calibration against real seed-set profiles is pending.
+    status: requires_calibration

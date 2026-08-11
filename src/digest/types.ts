@@ -34,6 +34,10 @@ export interface DigestCandidate {
   }>;
   /** Few-sentence Cory brief naming specific works */
   brief_rationale?: string;
+  /** One recruiter-memorable line from the experience judge (self-reported path). */
+  experience_hook?: string;
+  /** Tiered recruiter label (label-judge): e.g. "Garage Builder" tier 1. */
+  label?: { id: string; display: string; tier: number; rationale?: string };
   cory_relevance?: string;
   cory_reasons?: string[];
   technical_summary?: {

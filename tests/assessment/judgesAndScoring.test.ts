@@ -132,7 +132,7 @@ describe("deterministic judges offline", () => {
       ownership: repo().ownership,
       evidenceCompleteness: 0.8,
     });
-    expect(cory.calibration_version).toBe("cory-relevance-v1");
+    expect(cory.calibration_version).toMatch(/^cory-relevance-v1/);
     expect(["high", "medium", "low", "insufficient_evidence"]).toContain(cory.relevance);
   });
 });

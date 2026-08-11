@@ -70,6 +70,8 @@ export interface CandidateJudgeStatuses {
   writing: JudgeExecutionState;
   cross_artifact: JudgeExecutionState;
   cory: JudgeExecutionState;
+  /** Optional: absent on records written before the experience judge existed. */
+  experience?: JudgeExecutionState;
 }
 
 export interface SynthesisExecutionState {
@@ -140,6 +142,7 @@ export interface EvidenceItem {
     | "article_section"
     | "article_reference"
     | "project_page"
+    | "profile_field"
     | "other";
   source_url: string;
   location?: {
@@ -259,10 +262,37 @@ export interface SpecialistJudgeResult {
   created_at: string;
 }
 
+export const CANDIDATE_LABEL_IDS = [
+  "garage_builder",
+  "weird_bet_experimentalist",
+  "conviction_writer",
+  "loop_closer",
+  "wild_card",
+  "quiet_signal",
+] as const;
+
+export type CandidateLabelId = (typeof CANDIDATE_LABEL_IDS)[number];
+
+export type CandidateLabelTier = 1 | 2 | 3;
+
+/** LLM-predicted (or deterministic-fallback) label + tier for recruiter-facing framing. */
+export interface CandidateLabelAssignment {
+  label: CandidateLabelId;
+  display: string;
+  tier: CandidateLabelTier;
+  runner_up: CandidateLabelId | null;
+  /** One sentence naming the concrete evidence behind the call. */
+  rationale: string;
+  source: "llm" | "deterministic";
+  prompt_version: string;
+}
+
 export interface CandidateSynthesis {
   archetype: Archetype;
   /** Multi-label assignment; `archetype` mirrors `primary` for legacy readers. */
   archetype_assignment?: ArchetypeAssignment;
+  /** Tiered recruiter-facing label (label-judge); absent on records assessed before it existed. */
+  label_assignment?: CandidateLabelAssignment;
   axes?: AssessmentAxes;
   headline: string;
   overall_rationale: string;
@@ -350,6 +380,7 @@ export interface CandidateJudgeResults {
   technical?: TechnicalJudgeResultV2;
   writing?: WritingJudgeResult;
   cross_artifact?: CrossArtifactJudgeResult;
+  experience?: ExperienceJudgeResult;
   cory?: CoryRelevanceResult;
   /** Legacy Phase-2 specialist shape retained only for adapters */
   research?: SpecialistJudgeResult;
@@ -403,6 +434,7 @@ export interface AssessmentError {
     | "writing"
     | "relationships"
     | "cross_artifact"
+    | "experience"
     | "cory"
     | "synthesis"
     | "persistence";
@@ -410,7 +442,7 @@ export interface AssessmentError {
   message: string;
   technical_details?: string;
   retryable: boolean;
-  judge?: "technical" | "writing" | "cross_artifact" | "cory";
+  judge?: "technical" | "writing" | "cross_artifact" | "experience" | "cory";
   attempt_count?: number;
   occurred_at: string;
   candidate_id?: string;
@@ -529,6 +561,14 @@ export const CROSS_ARTIFACT_DIMENSIONS = [
 
 export type CrossArtifactDimension = (typeof CROSS_ARTIFACT_DIMENSIONS)[number];
 
+export const EXPERIENCE_DIMENSIONS = [
+  "experience_rarity",
+  "demonstrated_agency_and_cost",
+  "concreteness_and_verifiability",
+] as const;
+
+export type ExperienceDimension = (typeof EXPERIENCE_DIMENSIONS)[number];
+
 export type DimensionScoreV2 = 0 | 1 | 2 | 3 | 4 | 5 | null;
 
 export type DimensionApplicability =
@@ -630,6 +670,25 @@ export interface CrossArtifactJudgeResult {
   dimensions: DimensionAssessmentV2[];
   overall_inquiry_support: OverallStrengthBand;
   evidence_support: EvidenceSupportLevel;
+  strongest_evidence_ids: string[];
+  counterevidence_ids: string[];
+  missing_information: string[];
+  summary: string;
+}
+
+export interface ExperienceJudgeResult {
+  schema_version: "experience-judge-v1";
+  judge_type: "experience";
+  artifact_ids: string[];
+  rubric_id: string;
+  rubric_version: string;
+  prompt_version: string;
+  model: string;
+  dimensions: DimensionAssessmentV2[];
+  overall_distinctiveness: OverallStrengthBand;
+  evidence_support: EvidenceSupportLevel;
+  /** One recruiter-memorable line naming the weirdest concrete experience; null when nothing qualifies. */
+  hook: string | null;
   strongest_evidence_ids: string[];
   counterevidence_ids: string[];
   missing_information: string[];
