@@ -152,30 +152,30 @@ export function buildCoryBrief(record: CandidateAssessmentRecord): {
   const priority = record.synthesis.priority_score;
   const name = record.source_candidate.name;
 
-  const techBit = firstSentence(tech?.summary);
+  // Lead with what the person is actually doing — the judge's own opening
+  // sentences — and keep scores/labels out of the prose entirely (the digest
+  // card and structured fields already carry the numbers).
+  const techBit = firstSentence(tech?.summary, 320);
   const writingBit =
     writing &&
     writing.overall_writing_depth !== "insufficient_public_evidence"
-      ? firstSentence(writing.summary)
+      ? firstSentence(writing.summary, 260)
       : undefined;
 
   const workClause = formatWorkList(works);
   const parts: string[] = [];
 
-  parts.push(
-    `${name} scores ${priority.toFixed(1)}/100 on assessment priority` +
-      (cory?.relevance ? ` with ${cory.relevance} Cory relevance` : "") +
-      `, based primarily on ${workClause}.`
-  );
-
-  if (techBit) {
-    parts.push(techBit);
+  if (techBit) parts.push(techBit);
+  if (writingBit) parts.push(writingBit);
+  if (!parts.length) {
+    parts.push(
+      `${name} surfaced through the collaboration graph; the inspectable evidence is thin, so treat this as a lead rather than a verdict.`
+    );
   }
-  if (writingBit) {
-    parts.push(writingBit);
-  }
-  if (cory?.reasons?.length) {
-    parts.push(`Cory routing notes: ${cory.reasons.slice(0, 2).join(" ")}`);
+  parts.push(`Start with ${workClause}.`);
+  const reason = cory?.reasons?.[0];
+  if (reason && /[a-z]/i.test(reason)) {
+    parts.push(firstSentence(reason, 220)!);
   }
 
   const evidence_ids = [
@@ -187,7 +187,7 @@ export function buildCoryBrief(record: CandidateAssessmentRecord): {
   return {
     claim:
       record.synthesis.primary_strength ||
-      `${name}: priority ${priority.toFixed(1)}`,
+      `${name}: assessed from public work`,
     rationale: parts.join(" ").slice(0, 900),
     evidence_ids: evidence_ids.slice(0, 6),
     works,

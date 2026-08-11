@@ -400,7 +400,7 @@ export async function assessCandidate(input: {
               articles,
               evidence: record.artifacts.evidence,
               references: record.artifacts.references,
-              rubric: rubricById(ctx.rubricBundle, "blog-intellectual-depth-v1"),
+              rubric: rubricById(ctx.rubricBundle, "blog-intellectual-depth-v2"),
               rubricBundleVersion: ctx.rubricBundleVersion,
             })
           : deterministicWritingJudge({

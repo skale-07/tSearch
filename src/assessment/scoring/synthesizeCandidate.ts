@@ -704,14 +704,11 @@ export function synthesizeCandidate(input: {
       input.technical?.summary ??
       input.writing?.summary ??
       "No specialist summary available.",
-    primary_strength:
-      tech01 !== null && tech01 !== undefined
-        ? `Technical strength ~${(tech01 * 10).toFixed(1)}/10 from assessed artifacts.`
-        : writingAvailStrength(axes),
+    primary_strength: primaryStrengthProse(input, tech01, axes),
     reason_to_review:
       input.cory?.human_review_recommended
-        ? "Cory relevance flags human review."
-        : "Review primary artifacts and ownership history.",
+        ? "The relevance judge flagged this person for a human look."
+        : "Open their strongest work first, then check how much of it is really theirs.",
     reason_for_caution:
       input.technical?.missing_information[0] ??
       ownershipV2?.missing_information[0] ??
@@ -747,7 +744,37 @@ function writingAvailStrength(axes: AssessmentAxes): string {
     axes.writing_intellectual_depth?.available &&
     axes.writing_intellectual_depth.score !== null
   ) {
-    return `Writing depth ~${(axes.writing_intellectual_depth.score * 10).toFixed(1)}/10.`;
+    return "Their public writing carries the strongest signal here.";
   }
-  return "No technical domain score available.";
+  return "Not enough inspectable public work for a firm read yet.";
+}
+
+function firstProseSentence(
+  text: string | undefined,
+  max = 220
+): string | undefined {
+  if (!text?.trim()) return undefined;
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  const m = cleaned.match(/^(.{30,320}?[.!?])(\s|$)/);
+  const s = (m?.[1] ?? cleaned).slice(0, max).trim();
+  return /[.!?]$/.test(s) ? s : `${s}.`;
+}
+
+/**
+ * The claim a human sees first. Prefer the judge's own opening sentence —
+ * what the person actually built/wrote — over any score restatement.
+ */
+function primaryStrengthProse(
+  input: { technical?: { summary?: string }; writing?: { summary?: string } },
+  tech01: number | null | undefined,
+  axes: AssessmentAxes
+): string {
+  const prose =
+    firstProseSentence(input.technical?.summary) ??
+    firstProseSentence(input.writing?.summary);
+  if (prose) return prose;
+  if (tech01 !== null && tech01 !== undefined) {
+    return "Assessed on inspectable technical artifacts.";
+  }
+  return writingAvailStrength(axes);
 }

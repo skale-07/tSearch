@@ -1,8 +1,9 @@
-rubric_id: blog-intellectual-depth-v1
-version: 1.0.0
+rubric_id: blog-intellectual-depth-v2
+version: 2.0.0
 construct: writing_intellectual_depth
-description: Assess intellectual depth of technical articles/essays and corpora. Do not reward
-  length, tone, or citation count alone.
+description: Assess intellectual depth and demonstrated conviction of technical articles/essays
+  and corpora. Do not reward length, tone, or citation count alone; conviction counts only when
+  it is demonstrated, never when it is merely performed.
 dimensions:
   - dimension_id: question_quality
     description: Sharpness and productivity of the question the writing pursues.
@@ -137,6 +138,36 @@ dimensions:
     prohibited_shortcuts:
       - Treat first-person voice as originality
       - Score from uniqueness of topic alone
+  - dimension_id: conviction_and_contrarian_insight
+    description: Whether the author commits to a definite position — especially one that rejects
+      a prevailing view — and demonstrates it rather than merely asserting it.
+    applicable_artifacts: *a1
+    anchors:
+      - score: 0
+        description: No position taken anywhere in the corpus; pure survey or summary voice.
+      - score: 1
+        description: Contrarian or confident tone without support; hot takes that never engage
+          the view they reject.
+      - score: 2
+        description: A definite position stated but defended only with generic arguments.
+      - score: 3
+        description: A definite, potentially-wrong position defended against the prevailing
+          view's actual strongest form.
+      - score: 5
+        description: A contrarian claim backed by demonstrated stake — original work, a dated
+          falsifiable prediction, or something the author built to prove the point.
+    strong_evidence_examples:
+      - Names the mainstream position, states why it is wrong, and rebuts its strongest version
+      - Acts on the belief — builds a project, runs an experiment, or publishes a dated prediction
+    weak_evidence_examples:
+      - "'Everyone is wrong about X' framing with no argument beyond tone"
+      - Bold opening claims hedged into vagueness by the end of the piece
+    counterevidence_examples:
+      - Contrarian framing that strawmans the view it attacks
+      - Positions that flip between posts with no acknowledgment of the change
+    prohibited_shortcuts:
+      - Treat confident or contrarian tone as conviction
+      - Reward disagreement with expert consensus as insight by itself
   - dimension_id: cross_domain_synthesis
     description: Quality of connecting ideas across domains when claimed.
     applicable_artifacts: *a1
@@ -267,6 +298,8 @@ dimensions:
       - Reward jargon density
 prohibited_inferences:
   - Scoring article length, vocabulary complexity, or academic tone as depth
+  - Treating contrarian tone or confident prose as demonstrated conviction
+  - Rewarding disagreement with consensus as insight without supporting argument or artifacts
   - Treating citation count or source prestige as sufficient for high scores
   - Inferring stable personality traits from a single article
   - Treating a Limitations heading as proof of intellectual honesty
@@ -290,6 +323,9 @@ abstention_rules:
 evidence_requirements:
   - when: score >= 4 on original_analysis
     require: explicit original analysis artifacts (figures, measurements, derivations, experiments)
+  - when: score >= 4 on conviction_and_contrarian_insight
+    require: a definite stated position plus demonstrated backing (original artifacts, a dated
+      falsifiable claim, or direct rebuttal of a named prevailing view)
   - when: score >= 4 on topic_persistence
     require: multiple dated artifacts with linked questions/themes
   - when: claiming belief revision
