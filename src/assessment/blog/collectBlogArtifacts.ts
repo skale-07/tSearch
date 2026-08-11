@@ -64,6 +64,37 @@ function emptyRobots(): RobotsRules {
   return { disallow: [], allow: [], sitemaps: [] };
 }
 
+// Nav/boilerplate paths that pass looksLikeArticleUrl but are never articles;
+// only applied to the homepage-link fallback, where precision matters most.
+const NAV_PATHS =
+  /\/(about|contact|resume|cv|privacy|terms|subscribe|login|search|projects?)(\/|$)/i;
+
+/**
+ * Fallback article discovery for sites with no feed and no sitemap: pull
+ * same-host hrefs straight out of the homepage HTML. Hand-rolled personal
+ * sites — often the highest-signal ones — frequently expose their writing
+ * only as a plain list of links.
+ */
+function extractHomepageArticleLinks(
+  html: string,
+  baseUrl: string,
+  robots: RobotsRules
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const m of html.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)) {
+    const c = canonicalizeUrl(m[1], baseUrl);
+    if (!c || seen.has(c)) continue;
+    if (!sameRegistrableHost(c, baseUrl)) continue;
+    if (isDisallowed(c, robots)) continue;
+    if (!looksLikeArticleUrl(c)) continue;
+    if (NAV_PATHS.test(new URL(c).pathname)) continue;
+    seen.add(c);
+    out.push(c);
+  }
+  return out;
+}
+
 function looksLikeArticleUrl(url: string): boolean {
   try {
     const u = new URL(url);
@@ -424,6 +455,20 @@ export async function collectBlogArtifacts(
     if (!looksLikeArticleUrl(c)) continue;
     seen.add(c);
     urls.push(c);
+  }
+
+  if (urls.length === 0) {
+    const fallback = extractHomepageArticleLinks(home.body, home.finalUrl, robots);
+    for (const c of fallback) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      urls.push(c);
+    }
+    if (fallback.length > 0) {
+      console.log(
+        `  [assess] blog: no feed/sitemap articles; homepage-link fallback found ${fallback.length}`
+      );
+    }
   }
 
   const pages: BlogFixture["pages"] = [

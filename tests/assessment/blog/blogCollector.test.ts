@@ -8,7 +8,10 @@ import { extractCitations } from "../../../src/assessment/blog/extractCitations.
 import { detectRevisions } from "../../../src/assessment/blog/detectRevisions.js";
 import { buildTopicClusters } from "../../../src/assessment/blog/buildTopicClusters.js";
 import { selectArticles } from "../../../src/assessment/blog/selectArticles.js";
-import { collectBlogArtifactsFromFixture } from "../../../src/assessment/blog/collectBlogArtifacts.js";
+import {
+  collectBlogArtifacts,
+  collectBlogArtifactsFromFixture,
+} from "../../../src/assessment/blog/collectBlogArtifacts.js";
 import type { BlogArticle } from "../../../src/assessment/blog/types.js";
 
 describe("canonicalizeUrl", () => {
@@ -125,6 +128,65 @@ describe("clustering and selection", () => {
     expect(selected).toHaveLength(2);
     const ids = selected.map((a) => a.article_id);
     expect(ids).toContain("a1");
+  });
+
+  it("opinionated short piece outranks longer neutral piece", () => {
+    const neutralText = "the runtime schedules work across threads ".repeat(70);
+    const opinionText =
+      "Conventional wisdom about schedulers is wrong. I disagree with the " +
+      "standard advice — work stealing is overrated for small pools, and " +
+      "the benchmark myth persists. " +
+      "here is the argument in detail ".repeat(40);
+    const articles = [
+      stubArticle("long_neutral", "Scheduler tutorial", neutralText, "2024-06-01"),
+      stubArticle("short_spicy", "Against work stealing", opinionText, "2024-06-01"),
+    ];
+    const selected = selectArticles(articles, [], {
+      maxSelected: 1,
+      now: new Date("2024-07-01"),
+    });
+    expect(selected[0]!.article_id).toBe("short_spicy");
+  });
+});
+
+describe("collectBlogArtifacts homepage-link fallback", () => {
+  it("discovers articles from homepage links when no feed or sitemap exists", async () => {
+    const articleHtml = (title: string) =>
+      `<html><body><article><h1>${title}</h1>
+<p>Long enough body about systems and ${"runtime ".repeat(40)}experimentation.</p>
+</article></body></html>`;
+    const pages: Record<string, string> = {
+      "https://personal.dev": `<html><body>
+<h1>Hi, I build things</h1>
+<ul>
+<li><a href="/posts/scheduler">Scheduler notes</a></li>
+<li><a href="/posts/manifesto">Against conventional wisdom</a></li>
+<li><a href="/about">About</a></li>
+<li><a href="https://github.com/someone">GitHub</a></li>
+</ul></body></html>`,
+      "https://personal.dev/posts/scheduler": articleHtml("Scheduler notes"),
+      "https://personal.dev/posts/manifesto": articleHtml("Against conventional wisdom"),
+    };
+    const fetchImpl = async (input: string | URL): Promise<Response> => {
+      const key = String(input).replace(/\/$/, "");
+      const body = pages[key];
+      return new Response(body ?? "not found", {
+        status: body ? 200 : 404,
+        headers: { "content-type": "text/html" },
+      });
+    };
+
+    const result = await collectBlogArtifacts("https://personal.dev/", {
+      candidate_id: "cand_fallback",
+      fetchImpl,
+    });
+
+    const urls = result.articles.map((a) => a.canonical_url);
+    expect(urls).toContain("https://personal.dev/posts/scheduler");
+    expect(urls).toContain("https://personal.dev/posts/manifesto");
+    expect(urls.some((u) => u.includes("/about"))).toBe(false);
+    expect(urls.some((u) => u.includes("github.com"))).toBe(false);
+    expect(result.selected.length).toBeGreaterThan(0);
   });
 });
 
