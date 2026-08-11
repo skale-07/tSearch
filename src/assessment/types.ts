@@ -262,10 +262,37 @@ export interface SpecialistJudgeResult {
   created_at: string;
 }
 
+export const CANDIDATE_LABEL_IDS = [
+  "garage_builder",
+  "weird_bet_experimentalist",
+  "conviction_writer",
+  "loop_closer",
+  "wild_card",
+  "quiet_signal",
+] as const;
+
+export type CandidateLabelId = (typeof CANDIDATE_LABEL_IDS)[number];
+
+export type CandidateLabelTier = 1 | 2 | 3;
+
+/** LLM-predicted (or deterministic-fallback) label + tier for recruiter-facing framing. */
+export interface CandidateLabelAssignment {
+  label: CandidateLabelId;
+  display: string;
+  tier: CandidateLabelTier;
+  runner_up: CandidateLabelId | null;
+  /** One sentence naming the concrete evidence behind the call. */
+  rationale: string;
+  source: "llm" | "deterministic";
+  prompt_version: string;
+}
+
 export interface CandidateSynthesis {
   archetype: Archetype;
   /** Multi-label assignment; `archetype` mirrors `primary` for legacy readers. */
   archetype_assignment?: ArchetypeAssignment;
+  /** Tiered recruiter-facing label (label-judge); absent on records assessed before it existed. */
+  label_assignment?: CandidateLabelAssignment;
   axes?: AssessmentAxes;
   headline: string;
   overall_rationale: string;

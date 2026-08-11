@@ -30,6 +30,7 @@ import {
   runExperienceJudge,
   type ExperienceProfileInput,
 } from "./judges/experienceJudge.js";
+import { deterministicLabelTier, runLabelJudge } from "./judges/labelJudge.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
 import { createLlmJudgeClient } from "./judges/llmClient.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
@@ -208,6 +209,7 @@ export async function assessCandidate(input: {
     record.judge_results = { ...record.judge_results, cory };
     record.judge_statuses.cory = markJudgeTerminal(record.judge_statuses.cory, "abstained");
     record.synthesis = synthesizeCandidate({ name: selected.candidate.name, discoveryScore: selected.source_snapshot.discovery_score, evidenceCount: 0, cory });
+    record.synthesis.label_assignment = deterministicLabelTier({});
     record.synthesis_state = synthesisCompleted({ valid_for_ranking: false, fallback_used: true });
     record.status = "insufficient_context";
     record.pipeline_stage = "done";
@@ -597,6 +599,29 @@ export async function assessCandidate(input: {
     fallback_used: anyFailed || fallbackOnly,
     partial: anyFailed,
   });
+  // Tiered recruiter label: LLM prediction from judge outputs, deterministic
+  // fallback in mock mode or on any LLM failure. Never blocks the record.
+  const labelInputs = {
+    axes: record.synthesis.axes,
+    ownership,
+    experience: record.judge_results.experience,
+    technicalSummary: record.judge_results.technical?.summary,
+    writingSummary: record.judge_results.writing?.summary,
+    crossSummary: record.judge_results.cross_artifact?.summary,
+  };
+  try {
+    record.synthesis.label_assignment =
+      !mockLlm && llmClient
+        ? await runLabelJudge({
+            client: llmClient,
+            candidateName: selected.candidate.name,
+            inputs: labelInputs,
+            rubricBundleVersion: ctx.rubricBundleVersion,
+          })
+        : deterministicLabelTier(labelInputs);
+  } catch {
+    record.synthesis.label_assignment = deterministicLabelTier(labelInputs);
+  }
   record.status = deriveTerminalCandidateStatus({ errors: record.errors ?? [], judge_statuses: record.judge_statuses });
   record.pipeline_stage = "done";
   const failedJudge = (["technical", "writing", "cross_artifact", "cory"] as const).find((judge) => record.judge_statuses[judge].status === "failed");

@@ -75,7 +75,9 @@ function card(
   const brief = esc(truncateAtWord(briefRaw, 260));
 
   const chips = [
-    chipHtml(esc(humanize(c.primary_archetype)), true),
+    c.label
+      ? chipHtml(`${esc(c.label.display)} · T${c.label.tier}`, true)
+      : chipHtml(esc(humanize(c.primary_archetype)), true),
     c.network_bridges
       ? chipHtml(`🔗 knows ${c.network_bridges.seed_count} of your seed set`)
       : "",
