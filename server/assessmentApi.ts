@@ -440,6 +440,72 @@ export interface AssessedCandidateRow {
   status: string;
   run_id: string;
   updated_at: string;
+  /** Tiered recruiter label, when the record carries one. */
+  label?: { display: string; tier: number };
+  /** Surfacing dials — drive the ranking selector in the UI. */
+  age_relative?: number | null;
+  stage_bucket?: string;
+  estimated_age?: number | null;
+  obscurity?: number | null;
+  upside_score?: number | null;
+}
+
+/** Ranking modes the UI can ask for; "quality" is the historical default. */
+export const ASSESSED_SORTS = [
+  "recent",
+  "quality",
+  "upside",
+  "obscurity",
+  "age_adjusted",
+] as const;
+export type AssessedSort = (typeof ASSESSED_SORTS)[number];
+
+/** Sorts nulls last regardless of direction — unscored never outranks scored. */
+function byNullableDesc(
+  a: number | null | undefined,
+  b: number | null | undefined
+): number {
+  const av = a ?? null;
+  const bv = b ?? null;
+  if (av === null && bv === null) return 0;
+  if (av === null) return 1;
+  if (bv === null) return -1;
+  return bv - av;
+}
+
+export function sortAssessedRows(
+  rows: AssessedCandidateRow[],
+  sort: AssessedSort
+): AssessedCandidateRow[] {
+  const out = [...rows];
+  switch (sort) {
+    case "quality":
+      return out.sort(
+        (a, b) =>
+          b.priority_score - a.priority_score ||
+          b.updated_at.localeCompare(a.updated_at)
+      );
+    case "upside":
+      return out.sort(
+        (a, b) =>
+          byNullableDesc(a.upside_score, b.upside_score) ||
+          b.priority_score - a.priority_score
+      );
+    case "obscurity":
+      return out.sort(
+        (a, b) =>
+          byNullableDesc(a.obscurity, b.obscurity) ||
+          b.priority_score - a.priority_score
+      );
+    case "age_adjusted":
+      return out.sort(
+        (a, b) =>
+          byNullableDesc(a.age_relative, b.age_relative) ||
+          b.priority_score - a.priority_score
+      );
+    default:
+      return out.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  }
 }
 
 /** Latest assessment per candidate across all runs, newest report first. */
@@ -457,6 +523,8 @@ export function listAssessedCandidates(): AssessedCandidateRow[] {
     for (const record of listCandidateAssessments(runId)) {
       if (seen.has(record.candidate_id)) continue;
       seen.add(record.candidate_id);
+      const surfacing = record.synthesis.surfacing;
+      const label = record.synthesis.label_assignment;
       rows.push({
         candidate_id: record.candidate_id,
         name: record.source_candidate.name,
@@ -465,6 +533,16 @@ export function listAssessedCandidates(): AssessedCandidateRow[] {
         status: record.status,
         run_id: runId,
         updated_at: record.updated_at,
+        ...(label ? { label: { display: label.display, tier: label.tier } } : {}),
+        ...(surfacing
+          ? {
+              age_relative: surfacing.age_relative_impressiveness,
+              stage_bucket: surfacing.stage_bucket,
+              estimated_age: surfacing.estimated_age,
+              obscurity: surfacing.obscurity,
+              upside_score: surfacing.upside_score,
+            }
+          : {}),
       });
     }
   }

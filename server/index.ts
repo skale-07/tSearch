@@ -17,6 +17,9 @@ import {
   getAssessmentRunResponse,
   latestCompletedAssessmentRunId,
   listAssessedCandidates,
+  sortAssessedRows,
+  ASSESSED_SORTS,
+  type AssessedSort,
   prepareAssessmentRun,
   reconcileAbandonedAssessmentRuns,
   loadAssessmentRun,
@@ -536,8 +539,16 @@ app.get("/api/convergence", (_req, res) => {
 
 // --- Assessment reports (digest-style profiles in the UI) ---
 
-app.get("/api/assessed", (_req, res) => {
-  res.json({ assessed: listAssessedCandidates() });
+app.get("/api/assessed", (req, res) => {
+  const requested = String(req.query.sort ?? "recent");
+  const sort = (ASSESSED_SORTS as readonly string[]).includes(requested)
+    ? (requested as AssessedSort)
+    : "recent";
+  res.json({
+    assessed: sortAssessedRows(listAssessedCandidates(), sort),
+    sort,
+    available_sorts: ASSESSED_SORTS,
+  });
 });
 
 // The same profile page the email digest links to, built on demand from the

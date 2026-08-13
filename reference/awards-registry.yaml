@@ -1,0 +1,258 @@
+# Prestigious pre-college awards, scholarships, and programs.
+#
+# Reference data only — no PII, safe to track. Three consumers:
+#   1. Seeding      — public winner rosters become named seeds (nomination only).
+#   2. Stage        — a dated award with a known cohort stage implies an age band.
+#   3. Evidence     — a LinkedIn award string matching an entry here stops being
+#                     unverifiable self-report and becomes externally anchored.
+#
+# `winners_per_year` is APPROXIMATE and unverified — it exists to rank
+# selectivity, not to be quoted. Correct freely.
+#
+# cohort_stage: hs_senior | hs_any | undergrad | young_any
+#   drives age derivation; `hs_senior` is the strongest signal (award year ≈ age 18).
+# prestige_tier: 1 (exceptional) | 2 (strong) | 3 (notable)
+# domain_bias: research | building | general
+# roster_public: whether a named winner list is published (drives seeding)
+
+registry_version: 1.0.0
+awards:
+  # ---- Tier 1 --------------------------------------------------------------
+  - award_id: davidson_fellows
+    display_name: Davidson Fellows
+    issuer: Davidson Institute
+    aliases: ["davidson fellow", "davidson fellows", "davidson institute"]
+    cohort_stage: hs_any
+    prestige_tier: 1
+    winners_per_year: 20
+    roster_public: true
+    domain_bias: research
+
+  - award_id: regeneron_sts
+    display_name: Regeneron Science Talent Search
+    issuer: Society for Science
+    aliases:
+      ["regeneron sts", "science talent search", "intel sts", "regeneron finalist", "sts finalist", "sts scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 1
+    winners_per_year: 300
+    roster_public: true
+    domain_bias: research
+
+  - award_id: isef
+    display_name: Regeneron ISEF
+    issuer: Society for Science
+    aliases: ["isef", "international science and engineering fair", "intel isef"]
+    cohort_stage: hs_any
+    prestige_tier: 1
+    winners_per_year: 600
+    roster_public: true
+    domain_bias: research
+
+  - award_id: rsi
+    display_name: Research Science Institute
+    issuer: Center for Excellence in Education / MIT
+    aliases: ["research science institute", "rsi mit", "rsi scholar"]
+    cohort_stage: hs_any
+    prestige_tier: 1
+    winners_per_year: 80
+    roster_public: false
+    domain_bias: research
+
+  - award_id: coolidge_scholars
+    display_name: Coolidge Scholarship
+    issuer: Calvin Coolidge Presidential Foundation
+    aliases: ["coolidge scholar", "coolidge senator", "coolidge scholarship"]
+    cohort_stage: hs_senior
+    prestige_tier: 1
+    roster_public: true
+    domain_bias: general
+
+  # ---- Tier 2 --------------------------------------------------------------
+  - award_id: cameron_impact
+    display_name: Cameron Impact Scholarship
+    issuer: Bryan Cameron Education Foundation
+    aliases: ["cameron impact", "bryan cameron", "cameron impact scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 2
+    winners_per_year: 15
+    roster_public: true
+    domain_bias: general
+
+  - award_id: one_for_two
+    display_name: 1for2 Education Foundation Fellowship
+    issuer: 1for2 Education Foundation
+    aliases: ["1for2", "1for2 education", "one for two education"]
+    cohort_stage: hs_senior
+    prestige_tier: 2
+    roster_public: true
+    domain_bias: general
+
+  - award_id: presidential_scholars
+    display_name: U.S. Presidential Scholars
+    issuer: U.S. Department of Education
+    aliases: ["presidential scholar", "u.s. presidential scholar", "us presidential scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 2
+    winners_per_year: 161
+    roster_public: true
+    domain_bias: general
+
+  - award_id: jack_kent_cooke_college
+    display_name: Jack Kent Cooke College Scholarship
+    issuer: Jack Kent Cooke Foundation
+    aliases: ["jack kent cooke", "jkc scholar", "cooke scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 2
+    winners_per_year: 60
+    roster_public: true
+    domain_bias: general
+
+  - award_id: coca_cola_scholars
+    display_name: Coca-Cola Scholars
+    issuer: Coca-Cola Scholars Foundation
+    aliases: ["coca-cola scholar", "coca cola scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 2
+    winners_per_year: 150
+    roster_public: true
+    domain_bias: general
+
+  - award_id: tasp
+    display_name: Telluride Association Summer Program
+    issuer: Telluride Association
+    aliases: ["telluride association", "tasp", "tass telluride"]
+    cohort_stage: hs_any
+    prestige_tier: 2
+    roster_public: false
+    domain_bias: general
+
+  - award_id: neo_scholars
+    display_name: Neo Scholars
+    issuer: Neo
+    aliases: ["neo scholar", "neo scholars"]
+    cohort_stage: young_any
+    prestige_tier: 2
+    roster_public: true
+    domain_bias: building
+
+  - award_id: thiel_fellowship
+    display_name: Thiel Fellowship
+    issuer: Thiel Foundation
+    aliases: ["thiel fellow", "thiel fellowship"]
+    cohort_stage: young_any
+    prestige_tier: 1
+    winners_per_year: 25
+    roster_public: true
+    domain_bias: building
+
+  - award_id: emergent_ventures
+    display_name: Emergent Ventures Grant
+    issuer: Mercatus Center
+    aliases: ["emergent ventures"]
+    cohort_stage: young_any
+    prestige_tier: 2
+    roster_public: true
+    domain_bias: building
+
+  - award_id: z_fellows
+    display_name: Z Fellows
+    issuer: Z Fellows
+    aliases: ["z fellows", "z fellow"]
+    cohort_stage: young_any
+    prestige_tier: 2
+    roster_public: true
+    domain_bias: building
+
+  # ---- Tier 3 --------------------------------------------------------------
+  - award_id: gates_scholarship
+    display_name: The Gates Scholarship
+    issuer: Bill & Melinda Gates Foundation
+    aliases: ["gates scholarship", "gates scholar", "gates millennium"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    winners_per_year: 300
+    roster_public: false
+    domain_bias: general
+
+  - award_id: questbridge
+    display_name: QuestBridge National College Match
+    issuer: QuestBridge
+    aliases: ["questbridge", "national college match", "questbridge scholar"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    roster_public: false
+    domain_bias: general
+
+  - award_id: stamps_scholars
+    display_name: Stamps Scholars
+    issuer: Stamps Foundation
+    aliases: ["stamps scholar", "stamps scholarship"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: general
+
+  - award_id: national_merit
+    display_name: National Merit
+    issuer: NMSC
+    aliases: ["national merit", "nmsqt semifinalist", "national merit finalist"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    winners_per_year: 16000
+    roster_public: true
+    domain_bias: general
+
+  - award_id: morehead_cain
+    display_name: Morehead-Cain Scholarship
+    issuer: UNC Chapel Hill
+    aliases: ["morehead-cain", "morehead cain"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: general
+
+  - award_id: robertson_scholars
+    display_name: Robertson Scholars
+    issuer: Duke / UNC
+    aliases: ["robertson scholar", "robertson scholars"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: general
+
+  - award_id: jefferson_scholars
+    display_name: Jefferson Scholars
+    issuer: University of Virginia
+    aliases: ["jefferson scholar", "jefferson scholars"]
+    cohort_stage: hs_senior
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: general
+
+  - award_id: pioneer_academics
+    display_name: Pioneer Research Program
+    issuer: Pioneer Academics
+    aliases: ["pioneer academics", "pioneer research program"]
+    cohort_stage: hs_any
+    prestige_tier: 3
+    roster_public: false
+    domain_bias: research
+
+  - award_id: conrad_challenge
+    display_name: Conrad Challenge
+    issuer: Conrad Foundation
+    aliases: ["conrad challenge", "conrad innovator"]
+    cohort_stage: hs_any
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: building
+
+  - award_id: diamond_challenge
+    display_name: Diamond Challenge
+    issuer: University of Delaware
+    aliases: ["diamond challenge"]
+    cohort_stage: hs_any
+    prestige_tier: 3
+    roster_public: true
+    domain_bias: building

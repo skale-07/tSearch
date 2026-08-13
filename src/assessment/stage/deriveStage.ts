@@ -1,3 +1,4 @@
+import { ageFromAwardMatch, matchAwards } from "../../awards/awardRegistry.js";
 import type { LinkedInProfile, OlympiadProfile } from "../../types.js";
 
 /**
@@ -20,6 +21,7 @@ export type StageBucket =
 
 export type StageBasis =
   | "olympiad_age_band"
+  | "award_cohort"
   | "olympiad_year"
   | "linkedin_graduation_year"
   | "none";
@@ -84,7 +86,33 @@ export function deriveStage(input: {
     };
   }
 
-  // 2. LinkedIn graduation year — stated education timeline.
+  // 2. A dated hs_senior award pins the cohort year directly.
+  if (linkedin?.awards?.length) {
+    const matches = matchAwards(
+      linkedin.awards.map((a) => ({
+        title: a.title,
+        issuer: a.issuer,
+        date: a.date,
+      }))
+    );
+    const dated = matches
+      .map((m) => ({ m, age: ageFromAwardMatch(m, currentYear) }))
+      .filter((x): x is { m: typeof matches[number]; age: { age: number; confidence: number } } => !!x.age)
+      // Most recent award year gives the tightest read.
+      .sort((a, b) => (b.m.year ?? 0) - (a.m.year ?? 0));
+    const best = dated[0];
+    if (best) {
+      return {
+        bucket: bucketForAge(best.age.age),
+        estimated_age: best.age.age,
+        confidence: best.age.confidence,
+        basis: "award_cohort",
+        explanation: `${best.m.award.display_name} (${best.m.year}) is awarded to high-school seniors; aged forward to ${currentYear}.`,
+      };
+    }
+  }
+
+  // 3. LinkedIn graduation year — stated education timeline.
   if (linkedin?.graduation_year) {
     const age = TYPICAL_GRADUATION_AGE - (linkedin.graduation_year - currentYear);
     if (age >= 10 && age <= 60) {
@@ -98,7 +126,7 @@ export function deriveStage(input: {
     }
   }
 
-  // 3. Competition year alone — high-school-stage competitions imply a band.
+  // 4. Competition year alone — high-school-stage competitions imply a band.
   if (latestOlympiadYear) {
     const age = TYPICAL_OLYMPIAD_AGE + (currentYear - latestOlympiadYear);
     return {
