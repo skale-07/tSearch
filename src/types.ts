@@ -153,4 +153,12 @@ export interface ScoreBreakdown {
   identity: number;
   /** Bonus for being reachable from 2+ seed-set members (network bridge). */
   convergence?: number;
+  /**
+   * How undiscovered this person's public footprint is (0 = highly visible,
+   * 1 = essentially invisible). Deliberately EXCLUDED from `final_score` — it
+   * is a surfacing lens, not a quality bonus, and rewarding it additively
+   * would put empty profiles on top.
+   */
+  obscurity?: number;
+  obscurity_confidence?: number;
 }

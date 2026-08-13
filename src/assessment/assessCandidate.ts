@@ -31,6 +31,13 @@ import {
   type ExperienceProfileInput,
 } from "./judges/experienceJudge.js";
 import { deterministicLabelTier, runLabelJudge } from "./judges/labelJudge.js";
+import {
+  deterministicAgeRelative,
+  runAgeRelativeJudge,
+  type AgeRelativeInputs,
+} from "./judges/ageRelativeJudge.js";
+import { deriveStage } from "./stage/deriveStage.js";
+import { upsideMultiplier, computeObscurity } from "../scoring/computeObscurity.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
 import { createLlmJudgeClient } from "./judges/llmClient.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
@@ -551,6 +558,35 @@ export async function assessCandidate(input: {
     checkpoint();
   }
 
+  // Age-relative impressiveness runs before Cory routing so its booster is
+  // available there. Stage comes from stated dates only; unknown stays null.
+  const stage = deriveStage({
+    linkedin: selected.candidate.linkedin,
+    olympiad: selected.candidate.olympiad,
+  });
+  const ageInputs: AgeRelativeInputs = {
+    stage,
+    technicalBand: record.judge_results.technical?.overall_technical_strength,
+    writingBand: record.judge_results.writing?.overall_writing_depth,
+    technicalSummary: record.judge_results.technical?.summary,
+    writingSummary: record.judge_results.writing?.summary,
+    experienceHook: record.judge_results.experience?.hook ?? null,
+  };
+  try {
+    record.judge_results.age_relative =
+      !mockLlm && llmClient
+        ? await runAgeRelativeJudge({
+            client: llmClient,
+            candidateName: selected.candidate.name,
+            inputs: ageInputs,
+            rubricBundleVersion: ctx.rubricBundleVersion,
+          })
+        : deterministicAgeRelative(ageInputs);
+  } catch {
+    record.judge_results.age_relative = deterministicAgeRelative(ageInputs);
+  }
+  checkpoint();
+
   if (shouldRun("cory")) {
     record.pipeline_stage = "judging_cory";
     const technical = record.judge_results.technical;
@@ -559,7 +595,7 @@ export async function assessCandidate(input: {
       record.judge_statuses.cory = markJudgeRunning(record.judge_statuses.cory);
       checkpoint();
       try {
-        const signals = { technical, ownership, writing, crossArtifact: record.judge_results.cross_artifact, experience: record.judge_results.experience, evidenceCompleteness: Math.min(1, record.artifacts.evidence.length / 8) };
+        const signals = { technical, ownership, writing, crossArtifact: record.judge_results.cross_artifact, experience: record.judge_results.experience, ageRelative: record.judge_results.age_relative, evidenceCompleteness: Math.min(1, record.artifacts.evidence.length / 8) };
         const cory = !mockLlm && llmClient
           ? await runCoryRelevanceJudge({ client: llmClient, signals, rubricBundleVersion: ctx.rubricBundleVersion })
           : deterministicCoryRelevance(signals);
@@ -599,6 +635,26 @@ export async function assessCandidate(input: {
     fallback_used: anyFailed || fallbackOnly,
     partial: anyFailed,
   });
+  // Obscurity is a discovery-side read of public footprint; recompute here from
+  // the frozen candidate rather than trusting a possibly older breakdown.
+  const obscurityResult = computeObscurity({
+    github: selected.candidate.github,
+    substack: selected.candidate.substack,
+    website: selected.candidate.website,
+  });
+  const multiplier = upsideMultiplier(obscurityResult);
+  const ageScore = record.judge_results.age_relative?.score ?? null;
+  record.synthesis.surfacing = {
+    age_relative_impressiveness: ageScore,
+    stage_bucket: stage.bucket,
+    estimated_age: stage.estimated_age,
+    obscurity: obscurityResult.substance_present ? obscurityResult.obscurity : null,
+    upside_score:
+      ageScore !== null && multiplier !== null
+        ? Math.round((ageScore / 10) * multiplier * 100) / 100
+        : null,
+  };
+
   // Tiered recruiter label: LLM prediction from judge outputs, deterministic
   // fallback in mock mode or on any LLM failure. Never blocks the record.
   const labelInputs = {

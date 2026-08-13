@@ -8,6 +8,7 @@ export default defineConfig({
       "tests/linkedin/**/*.test.ts",
       "tests/oracle/**/*.test.ts",
       "tests/pipeline/**/*.test.ts",
+      "tests/scoring/**/*.test.ts",
       "tests/storage/**/*.test.ts",
       "tests/web/**/*.test.ts",
     ],
