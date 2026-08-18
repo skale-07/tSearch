@@ -1,6 +1,7 @@
 import type { ScoreBreakdown } from "../types.js";
 import type { BlogArticle } from "./blog/types.js";
 import type { ArtifactRelationship } from "./relationships/types.js";
+import type { StageBasis, StageBucket } from "./stage/deriveStage.js";
 
 export const ASSESSMENT_SCHEMA_VERSION = "assessment-record-v2";
 
@@ -293,6 +294,27 @@ export interface CandidateSynthesis {
   archetype_assignment?: ArchetypeAssignment;
   /** Tiered recruiter-facing label (label-judge); absent on records assessed before it existed. */
   label_assignment?: CandidateLabelAssignment;
+  /**
+   * Surfacing dials. Deliberately OUTSIDE `priority_score` so discovery-side
+   * footprint and stage never contaminate the assessment score — they change
+   * what gets surfaced, not how good the work is judged to be.
+   */
+  surfacing?: {
+    /** 1–10 relative to stage norm; null when unscoreable. */
+    age_relative_impressiveness: number | null;
+    stage_bucket: StageBucket;
+    estimated_age: number | null;
+    /** 0..1 from the discovery-side footprint read. */
+    obscurity: number | null;
+    /** Stated LinkedIn connection count when captured. */
+    connections?: number | null;
+    /** 0..1 LLM-judged technical soundness, damped by ownership. */
+    substance?: number | null;
+    /** obscurity × judged substance — undiscovered *and* technically sound. */
+    upside_score: number | null;
+    /** upside further weighted by how impressive the work is for their age. */
+    age_weighted_upside?: number | null;
+  };
   axes?: AssessmentAxes;
   headline: string;
   overall_rationale: string;
@@ -381,6 +403,7 @@ export interface CandidateJudgeResults {
   writing?: WritingJudgeResult;
   cross_artifact?: CrossArtifactJudgeResult;
   experience?: ExperienceJudgeResult;
+  age_relative?: AgeRelativeJudgeResult;
   cory?: CoryRelevanceResult;
   /** Legacy Phase-2 specialist shape retained only for adapters */
   research?: SpecialistJudgeResult;
@@ -693,6 +716,22 @@ export interface ExperienceJudgeResult {
   counterevidence_ids: string[];
   missing_information: string[];
   summary: string;
+}
+
+export interface AgeRelativeJudgeResult {
+  schema_version: "age-relative-judge-v1";
+  judge_type: "age_relative";
+  prompt_version: string;
+  model: string;
+  stage_bucket: StageBucket;
+  estimated_age: number | null;
+  stage_confidence: number;
+  stage_basis: StageBasis;
+  /** 1–10 relative to the stage norm; null when stage or work is insufficient. */
+  score: number | null;
+  applicability: "applicable" | "insufficient_evidence";
+  rationale: string;
+  source: "llm" | "deterministic";
 }
 
 export interface CoryRelevanceResult {

@@ -2,6 +2,7 @@ import type { LlmJudgeClient } from "./llmClient.js";
 import { coryRelevanceJsonSchema } from "./judgeJsonSchemas.js";
 import { coryRelevanceLlmOutputSchema } from "./schemas/coryRelevanceSchema.js";
 import type {
+  AgeRelativeJudgeResult,
   CoryRelevanceResult,
   CrossArtifactJudgeResult,
   ExperienceJudgeResult,
@@ -10,7 +11,7 @@ import type {
   WritingJudgeResult,
 } from "../types.js";
 
-export const CORY_CALIBRATION_VERSION = "cory-relevance-v1.1";
+export const CORY_CALIBRATION_VERSION = "cory-relevance-v1.2";
 
 export interface CoryRelevanceInputs {
   technical?: TechnicalJudgeResultV2;
@@ -19,6 +20,8 @@ export interface CoryRelevanceInputs {
   crossArtifact?: CrossArtifactJudgeResult;
   /** Routing booster only — never substitutes for technical/writing signal. */
   experience?: ExperienceJudgeResult;
+  /** Routing booster only; young-for-the-work is what Cory is hunting. */
+  ageRelative?: AgeRelativeJudgeResult;
   evidenceCompleteness: number;
   evidenceIds?: string[];
   sparseEvidenceUpside?: boolean;
@@ -151,6 +154,19 @@ export function deterministicCoryRelevance(
   } else if (expPts === 2) {
     score += 1;
     reasons.push("Somewhat distinctive stated experiences.");
+  }
+
+  // Age-relative booster: capped, and only meaningful alongside artifact
+  // signal — the insufficient_evidence gate below still governs.
+  const ageScore = input.ageRelative?.score ?? null;
+  if (ageScore !== null && ageScore >= 8) {
+    score += 2;
+    reasons.push(
+      `Exceptional for their stage (${input.ageRelative?.stage_bucket.replace(/_/g, " ")}).`
+    );
+  } else if (ageScore !== null && ageScore >= 6) {
+    score += 1;
+    reasons.push("Above the norm for their stage.");
   }
   if (input.sparseEvidenceUpside && techPts >= 2 && completeness < 0.45) {
     score += 1;

@@ -197,6 +197,7 @@ export function buildDigest(input: {
       ...(a.judge_results.experience?.hook
         ? { experience_hook: a.judge_results.experience.hook }
         : {}),
+      ...(a.synthesis.surfacing ? { surfacing: a.synthesis.surfacing } : {}),
       ...(a.synthesis.label_assignment
         ? {
             label: {

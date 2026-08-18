@@ -38,6 +38,17 @@ export interface DigestCandidate {
   experience_hook?: string;
   /** Tiered recruiter label (label-judge): e.g. "Garage Builder" tier 1. */
   label?: { id: string; display: string; tier: number; rationale?: string };
+  /** Surfacing dials — age-relative impressiveness and footprint obscurity. */
+  surfacing?: {
+    age_relative_impressiveness: number | null;
+    stage_bucket: string;
+    estimated_age: number | null;
+    obscurity: number | null;
+    connections?: number | null;
+    substance?: number | null;
+    upside_score: number | null;
+    age_weighted_upside?: number | null;
+  };
   cory_relevance?: string;
   cory_reasons?: string[];
   technical_summary?: {

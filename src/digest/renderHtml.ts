@@ -64,6 +64,30 @@ function chipHtml(label: string, strong = false): string {
   return `<span style="display:inline-block;font-size:11px;padding:2px 9px;border:1px solid ${border};border-radius:999px;color:${color};background:${bg};margin:0 5px 5px 0;">${label}</span>`;
 }
 
+/** "17 · impressive-for-age 9 · barely visible online" — omitted when unknown. */
+function surfacingLine(c: DigestCandidate): string {
+  const s = c.surfacing;
+  if (!s) return "";
+  const parts: string[] = [];
+  if (s.estimated_age !== null) parts.push(`~${s.estimated_age}`);
+  if (s.age_relative_impressiveness !== null) {
+    parts.push(`impressive-for-age ${s.age_relative_impressiveness}/10`);
+  }
+  if (s.obscurity !== null && s.obscurity >= 0.6) {
+    // The connection count is the most concrete way to say "nobody's found
+    // them yet" — prefer it over the qualitative phrasing when we have it.
+    parts.push(
+      typeof s.connections === "number"
+        ? `${s.connections} LinkedIn connections`
+        : s.obscurity >= 0.8
+          ? "barely visible online"
+          : "low public profile"
+    );
+  }
+  if (!parts.length) return "";
+  return `<p style="margin:0 0 10px;font-size:12px;color:#8a8578;">${esc(parts.join(" · "))}</p>`;
+}
+
 function card(
   c: DigestCandidate,
   i: number,
@@ -120,6 +144,7 @@ function card(
         </table>
         <p style="margin:12px 0 10px;font-size:14px;line-height:1.55;color:#3b372e;">${brief}</p>
         ${c.experience_hook ? `<p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#8a6d1f;font-style:italic;">✦ ${esc(truncateAtWord(c.experience_hook, 130))}</p>` : ""}
+        ${surfacingLine(c)}
         ${works ? `<p style="margin:0 0 14px;font-size:13px;color:#6b6558;">Worth a look: ${works}</p>` : ""}
         <a href="${esc(profileHref)}" style="display:inline-block;background:#e8c56a;color:#1a1408;font-weight:700;font-size:13px;padding:9px 20px;border-radius:8px;text-decoration:none;">Learn more →</a>
         ${github ? `&nbsp;&nbsp;<a href="${esc(github)}" style="display:inline-block;border:1px solid #d9d4c7;color:#3b372e;font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;text-decoration:none;">GitHub</a>` : ""}

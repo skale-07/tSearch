@@ -1,10 +1,13 @@
 import { WEIRD_TOPICS } from "../config.js";
+import { computeObscurity } from "./computeObscurity.js";
 import type {
   Candidate,
   GitHubProfile,
+  LinkedInProfile,
   OlympiadProfile,
   ScoreBreakdown,
   SubstackProfile,
+  WebsiteProfile,
 } from "../types.js";
 
 function hasWeirdTopics(github?: GitHubProfile): boolean {
@@ -20,7 +23,9 @@ export function computeScore(
   substack?: SubstackProfile,
   olympiad?: OlympiadProfile,
   identityConfidence = 0,
-  convergenceSeedCount = 0
+  convergenceSeedCount = 0,
+  website?: WebsiteProfile,
+  linkedin?: LinkedInProfile
 ): { final_score: number; breakdown: ScoreBreakdown } {
   const repos = github?.repos.length ?? 0;
   const recent = github?.recent_commits ?? 0;
@@ -46,6 +51,14 @@ export function computeScore(
   // signal; capped so convergence flavors ranking without dominating it.
   const convergence = Math.min(0.45, Math.max(0, convergenceSeedCount - 1) * 0.15);
 
+  const obscurityResult = computeObscurity({
+    github,
+    substack,
+    website,
+    linkedinConnections: linkedin?.connections ?? null,
+    linkedinConnectionsSaturated: linkedin?.connections_saturated ?? false,
+  });
+
   const breakdown: ScoreBreakdown = {
     builder: Math.round(builder * 100) / 100,
     thinker: Math.round(thinker * 100) / 100,
@@ -53,8 +66,11 @@ export function computeScore(
     weirdness: Math.round(weirdness * 100) / 100,
     identity: Math.round(identity * 100) / 100,
     convergence: Math.round(convergence * 100) / 100,
+    obscurity: obscurityResult.obscurity,
+    obscurity_confidence: obscurityResult.confidence,
   };
 
+  // `obscurity` is intentionally absent from this sum — see ScoreBreakdown.
   const final_score =
     Math.round(
       (breakdown.builder +
@@ -78,7 +94,9 @@ export function scoreCandidate(
     candidate.substack,
     candidate.olympiad,
     candidate.identity_confidence,
-    convergenceSeedCount
+    convergenceSeedCount,
+    candidate.website,
+    candidate.linkedin
   );
   return { ...candidate, final_score, score_breakdown: breakdown };
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  ASSESSED_SORT_LABELS,
   assessedProfileUrl,
   fetchAssessed,
   type AssessedRow,
+  type AssessedSort,
 } from "./api";
 
 interface Props {
@@ -26,13 +28,14 @@ export function ReportsPanel({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<AssessedRow | null>(null);
+  const [sort, setSort] = useState<AssessedSort>("recent");
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchAssessed()
+    fetchAssessed(sort)
       .then((data) => {
         if (!cancelled) setRows(data);
       })
@@ -46,7 +49,7 @@ export function ReportsPanel({ open, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, sort]);
 
   if (!open) return null;
 
@@ -64,6 +67,26 @@ export function ReportsPanel({ open, onClose }: Props) {
           Everyone the judge has run on — click a person to read their full
           profile, presented exactly like the email digest.
         </p>
+
+        <div className="sort-dial">
+          <label htmlFor="reports-sort" className="muted">
+            Surface by
+          </label>
+          <select
+            id="reports-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as AssessedSort)}
+          >
+            {ASSESSED_SORT_LABELS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <span className="muted sort-hint">
+            {ASSESSED_SORT_LABELS.find((o) => o.value === sort)?.hint}
+          </span>
+        </div>
 
         {loading && <p className="muted">Loading reports…</p>}
         {error && <p className="error">{error}</p>}
@@ -85,7 +108,26 @@ export function ReportsPanel({ open, onClose }: Props) {
                     <span className="assess-score">
                       {r.priority_score.toFixed(0)}/100
                     </span>
-                    <span className="chip">{r.archetype.replace(/_/g, " ")}</span>
+                    <span className="chip">
+                      {r.label
+                        ? `${r.label.display} · T${r.label.tier}`
+                        : r.archetype.replace(/_/g, " ")}
+                    </span>
+                    {typeof r.age_relative === "number" && (
+                      <span className="chip">
+                        {r.estimated_age ? `~${r.estimated_age} · ` : ""}
+                        {r.age_relative}/10 for age
+                      </span>
+                    )}
+                    {typeof r.obscurity === "number" && r.obscurity >= 0.6 && (
+                      <span className="chip">
+                        {typeof r.connections === "number"
+                          ? `${r.connections} connections`
+                          : r.obscurity >= 0.8
+                            ? "barely visible"
+                            : "low profile"}
+                      </span>
+                    )}
                     {r.status !== "completed" && (
                       <span className="chip">{r.status.replace(/_/g, " ")}</span>
                     )}

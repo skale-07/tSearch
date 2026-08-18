@@ -20,6 +20,7 @@ import type { RubricDefinition } from "../rubrics/types.js";
 import { validateJudgeDimensionsV2 } from "../evidence/evidenceValidation.js";
 import { coerceScoredDimensionsForEvidence } from "./normalizeLlmPayload.js";
 import { EvidenceStore } from "../evidence/evidenceStore.js";
+import { matchAwards } from "../../awards/awardRegistry.js";
 import { averageScores, toDimensionScoreV2 } from "./scoreUtils.js";
 
 /** Publicly stated experiences pulled from the frozen candidate record. */
@@ -100,9 +101,28 @@ export function buildExperienceEvidence(
     const line = [e.title, e.company, e.dates].filter(Boolean).join(" — ");
     if (line.trim()) add(line, "Self-stated position", "weak", `exp:${i}`);
   });
+  // A stated award matching the registry stops being unverifiable self-report:
+  // the issuer publishes a named winner list, so a reviewer can check it.
+  const awardMatches = matchAwards(
+    profile.awards.map((a) => ({ title: a.title, issuer: a.issuer, date: a.date }))
+  );
+  const matchedText = new Set(awardMatches.map((m) => m.matched_text));
   profile.awards.slice(0, 12).forEach((a, i) => {
     const line = [a.title, a.issuer, a.date].filter(Boolean).join(" — ");
-    if (line.trim()) add(line, "Self-stated award", "weak", `award:${i}`);
+    if (!line.trim()) return;
+    const match = matchedText.has(a.title)
+      ? awardMatches.find((m) => m.matched_text === a.title)
+      : undefined;
+    if (match) {
+      add(
+        line,
+        `Award matched to the known-awards registry (${match.award.display_name}, tier ${match.award.prestige_tier})`,
+        "moderate",
+        `award:${i}`
+      );
+    } else {
+      add(line, "Self-stated award", "weak", `award:${i}`);
+    }
   });
   profile.olympiad_prizes.slice(0, 8).forEach((p, i) => {
     if (p.trim()) {

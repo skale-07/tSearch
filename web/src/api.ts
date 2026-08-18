@@ -604,10 +604,58 @@ export interface AssessedRow {
   status: string;
   run_id: string;
   updated_at: string;
+  label?: { display: string; tier: number };
+  age_relative?: number | null;
+  stage_bucket?: string;
+  estimated_age?: number | null;
+  obscurity?: number | null;
+  connections?: number | null;
+  substance?: number | null;
+  upside_score?: number | null;
+  age_weighted_upside?: number | null;
 }
 
-export async function fetchAssessed(): Promise<AssessedRow[]> {
-  const res = await fetch("/api/assessed");
+export type AssessedSort =
+  | "recent"
+  | "quality"
+  | "upside"
+  | "obscurity"
+  | "age_adjusted"
+  | "age_weighted_upside";
+
+export const ASSESSED_SORT_LABELS: Array<{
+  value: AssessedSort;
+  label: string;
+  hint: string;
+}> = [
+  { value: "recent", label: "Most recent", hint: "Newest reports first" },
+  { value: "quality", label: "Quality", hint: "Assessment priority score" },
+  {
+    value: "upside",
+    label: "Upside",
+    hint: "How undiscovered they are × how sound the judge found their work",
+  },
+  {
+    value: "age_weighted_upside",
+    label: "Upside for age",
+    hint: "Upside, further weighted by how impressive the work is for their stage",
+  },
+  {
+    value: "age_adjusted",
+    label: "Impressive for age",
+    hint: "How far above the norm for their stage",
+  },
+  {
+    value: "obscurity",
+    label: "Least discovered",
+    hint: "Thin public footprint, real work",
+  },
+];
+
+export async function fetchAssessed(
+  sort: AssessedSort = "recent"
+): Promise<AssessedRow[]> {
+  const res = await fetch(`/api/assessed?sort=${encodeURIComponent(sort)}`);
   const data = await readApiJson<{ assessed: AssessedRow[] }>(res);
   if (!res.ok) throw new Error(res.statusText);
   return data.assessed;
