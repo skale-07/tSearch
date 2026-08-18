@@ -74,7 +74,15 @@ function surfacingLine(c: DigestCandidate): string {
     parts.push(`impressive-for-age ${s.age_relative_impressiveness}/10`);
   }
   if (s.obscurity !== null && s.obscurity >= 0.6) {
-    parts.push(s.obscurity >= 0.8 ? "barely visible online" : "low public profile");
+    // The connection count is the most concrete way to say "nobody's found
+    // them yet" — prefer it over the qualitative phrasing when we have it.
+    parts.push(
+      typeof s.connections === "number"
+        ? `${s.connections} LinkedIn connections`
+        : s.obscurity >= 0.8
+          ? "barely visible online"
+          : "low public profile"
+    );
   }
   if (!parts.length) return "";
   return `<p style="margin:0 0 10px;font-size:12px;color:#8a8578;">${esc(parts.join(" · "))}</p>`;

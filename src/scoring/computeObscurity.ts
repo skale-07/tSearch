@@ -52,8 +52,9 @@ export function computeObscurity(input: {
   github?: GitHubProfile;
   substack?: SubstackProfile;
   website?: WebsiteProfile;
-  /** Optional until LinkedIn connection capture ships. */
   linkedinConnections?: number | null;
+  /** True when LinkedIn showed "500+" rather than an exact count. */
+  linkedinConnectionsSaturated?: boolean;
 }): ObscurityResult {
   const { github, substack, website } = input;
 
@@ -102,9 +103,14 @@ export function computeObscurity(input: {
   terms.push({ visibility: signals.writing_present ? 1 : 0, weight: 0.2 });
 
   if (connections !== null) {
+    // "500+" means LinkedIn stopped counting — treat as fully visible rather
+    // than as exactly 500. This is the heaviest single term: a teenager with
+    // 60 connections is the shape of person this whole dial exists to find.
     terms.push({
-      visibility: clamp01(connections / CONNECTION_VISIBILITY_CEILING),
-      weight: 0.35,
+      visibility: input.linkedinConnectionsSaturated
+        ? 1
+        : clamp01(connections / CONNECTION_VISIBILITY_CEILING),
+      weight: 0.4,
     });
   }
 
@@ -115,7 +121,7 @@ export function computeObscurity(input: {
       : 0;
 
   // Confidence reflects how much of the *possible* signal set we observed.
-  const maxWeight = 0.3 + 0.3 + 0.2 + 0.2 + 0.35;
+  const maxWeight = 0.3 + 0.3 + 0.2 + 0.2 + 0.4;
   const confidence = clamp01(totalWeight / maxWeight);
 
   const substance_present =
@@ -130,13 +136,32 @@ export function computeObscurity(input: {
 }
 
 /**
- * The surfacing multiplier Grace asked for: undiscovered *and* accomplished.
- * Obscurity alone is degenerate — an empty profile is maximally undiscovered —
- * so this returns null whenever there is no substance to be undiscovered about.
+ * Obscurity, damped toward neutral when we observed little of the signal set.
+ * Returns null when there is nothing to be undiscovered *about* — an empty
+ * profile is maximally obscure, which is meaningless.
  */
 export function upsideMultiplier(o: ObscurityResult): number | null {
   if (!o.substance_present) return null;
-  // Low-confidence obscurity is pulled toward neutral rather than trusted.
   const damped = 0.5 + (o.obscurity - 0.5) * Math.max(0.4, o.confidence);
   return Math.round(clamp01(damped) * 100) / 100;
+}
+
+/**
+ * The two-input vector: how undiscovered they are × how technically sound
+ * their work is, as judged by the LLM technical judge.
+ *
+ * Both inputs are required. Obscurity without judged substance is just an
+ * empty profile; judged substance without an obscurity read is just a score
+ * we already have. The product is the thing worth surfacing: nobody has
+ * noticed this person yet, and the work holds up.
+ */
+export function upsideVector(input: {
+  obscurity: ObscurityResult;
+  /** 0..1 from the technical judge; null when the work was never judged. */
+  substance: number | null;
+}): number | null {
+  if (input.substance === null) return null;
+  const multiplier = upsideMultiplier(input.obscurity);
+  if (multiplier === null) return null;
+  return Math.round(multiplier * input.substance * 100) / 100;
 }

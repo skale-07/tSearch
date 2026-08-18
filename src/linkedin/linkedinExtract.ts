@@ -12,7 +12,8 @@ import { LINKEDIN_DELAY_MS } from "../config.js";
 import { countryFromLocation } from "./countryMatch.js";
 import { cleanSearchTitle } from "./linkedinMatch.js";
 
-export const PROFILE_SCRAPE_VERSION = 9;
+// 10: captures the stated connection count (undiscoveredness signal).
+export const PROFILE_SCRAPE_VERSION = 10;
 
 export function parseGithubUrl(text: string): string | null {
   const m = text.match(
@@ -606,6 +607,36 @@ function parseHonorsDetail(text: string): LinkedInAward[] {
   return entries;
 }
 
+export interface ConnectionCount {
+  count: number;
+  /** LinkedIn caps the display at "500+", so the count is a floor there. */
+  saturated: boolean;
+}
+
+/**
+ * Read the stated connection count from top-card text.
+ * Handles "500+ connections", "87 connections", and the
+ * "1,234 followers · 500+ connections" variant.
+ */
+export function parseConnectionCount(text: string): ConnectionCount | null {
+  const m = text.match(/([\d][\d,\.]*)\s*(\+)?\s*connections?\b/i);
+  if (!m) return null;
+  const count = Number(m[1]!.replace(/[,\.]/g, ""));
+  if (!Number.isFinite(count)) return null;
+  // "500+" renders either as a trailing plus or glued to the number.
+  const saturated = !!m[2] || /500\s*\+/.test(text);
+  return { count, saturated };
+}
+
+async function extractConnectionCount(
+  page: Page
+): Promise<ConnectionCount | null> {
+  const section = page.locator("main section").first();
+  if ((await section.count()) === 0) return null;
+  const text = await section.innerText().catch(() => "");
+  return parseConnectionCount(text);
+}
+
 async function extractHeadlineFromTopSection(
   page: Page,
   name: string
@@ -870,6 +901,7 @@ export async function extractLinkedInProfile(
     (await extractHeadlineFromTopSection(page, name)) ||
     hit.headline ||
     null;
+  const connections = await extractConnectionCount(page);
   let location =
     (await extractTopCardLocation(page)) ||
     (await extractLocationFromTopSection(page)) ||
@@ -983,6 +1015,8 @@ export async function extractLinkedInProfile(
     experience,
     awards,
     skills: skillLines,
+    connections: connections?.count ?? null,
+    connections_saturated: connections?.saturated ?? false,
     scrape_version: PROFILE_SCRAPE_VERSION,
   };
 }

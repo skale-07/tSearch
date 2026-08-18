@@ -3,6 +3,7 @@ import { computeObscurity } from "./computeObscurity.js";
 import type {
   Candidate,
   GitHubProfile,
+  LinkedInProfile,
   OlympiadProfile,
   ScoreBreakdown,
   SubstackProfile,
@@ -23,7 +24,8 @@ export function computeScore(
   olympiad?: OlympiadProfile,
   identityConfidence = 0,
   convergenceSeedCount = 0,
-  website?: WebsiteProfile
+  website?: WebsiteProfile,
+  linkedin?: LinkedInProfile
 ): { final_score: number; breakdown: ScoreBreakdown } {
   const repos = github?.repos.length ?? 0;
   const recent = github?.recent_commits ?? 0;
@@ -49,7 +51,13 @@ export function computeScore(
   // signal; capped so convergence flavors ranking without dominating it.
   const convergence = Math.min(0.45, Math.max(0, convergenceSeedCount - 1) * 0.15);
 
-  const obscurityResult = computeObscurity({ github, substack, website });
+  const obscurityResult = computeObscurity({
+    github,
+    substack,
+    website,
+    linkedinConnections: linkedin?.connections ?? null,
+    linkedinConnectionsSaturated: linkedin?.connections_saturated ?? false,
+  });
 
   const breakdown: ScoreBreakdown = {
     builder: Math.round(builder * 100) / 100,
@@ -87,7 +95,8 @@ export function scoreCandidate(
     candidate.olympiad,
     candidate.identity_confidence,
     convergenceSeedCount,
-    candidate.website
+    candidate.website,
+    candidate.linkedin
   );
   return { ...candidate, final_score, score_breakdown: breakdown };
 }

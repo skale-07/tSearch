@@ -121,7 +121,11 @@ export function ReportsPanel({ open, onClose }: Props) {
                     )}
                     {typeof r.obscurity === "number" && r.obscurity >= 0.6 && (
                       <span className="chip">
-                        {r.obscurity >= 0.8 ? "barely visible" : "low profile"}
+                        {typeof r.connections === "number"
+                          ? `${r.connections} connections`
+                          : r.obscurity >= 0.8
+                            ? "barely visible"
+                            : "low profile"}
                       </span>
                     )}
                     {r.status !== "completed" && (

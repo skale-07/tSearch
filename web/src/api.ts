@@ -609,7 +609,10 @@ export interface AssessedRow {
   stage_bucket?: string;
   estimated_age?: number | null;
   obscurity?: number | null;
+  connections?: number | null;
+  substance?: number | null;
   upside_score?: number | null;
+  age_weighted_upside?: number | null;
 }
 
 export type AssessedSort =
@@ -617,7 +620,8 @@ export type AssessedSort =
   | "quality"
   | "upside"
   | "obscurity"
-  | "age_adjusted";
+  | "age_adjusted"
+  | "age_weighted_upside";
 
 export const ASSESSED_SORT_LABELS: Array<{
   value: AssessedSort;
@@ -629,7 +633,12 @@ export const ASSESSED_SORT_LABELS: Array<{
   {
     value: "upside",
     label: "Upside",
-    hint: "Impressive for their age × how undiscovered they are",
+    hint: "How undiscovered they are × how sound the judge found their work",
+  },
+  {
+    value: "age_weighted_upside",
+    label: "Upside for age",
+    hint: "Upside, further weighted by how impressive the work is for their stage",
   },
   {
     value: "age_adjusted",

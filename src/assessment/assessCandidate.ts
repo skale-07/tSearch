@@ -37,7 +37,8 @@ import {
   type AgeRelativeInputs,
 } from "./judges/ageRelativeJudge.js";
 import { deriveStage } from "./stage/deriveStage.js";
-import { upsideMultiplier, computeObscurity } from "../scoring/computeObscurity.js";
+import { upsideVector, computeObscurity } from "../scoring/computeObscurity.js";
+import { judgedSubstance } from "./scoring/judgedSubstance.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
 import { createLlmJudgeClient } from "./judges/llmClient.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
@@ -641,17 +642,28 @@ export async function assessCandidate(input: {
     github: selected.candidate.github,
     substack: selected.candidate.substack,
     website: selected.candidate.website,
+    linkedinConnections: selected.candidate.linkedin?.connections ?? null,
+    linkedinConnectionsSaturated:
+      selected.candidate.linkedin?.connections_saturated ?? false,
   });
-  const multiplier = upsideMultiplier(obscurityResult);
+  // Substance is the judge's read of the work, not a repo count.
+  const substance = judgedSubstance({
+    technical: record.judge_results.technical,
+    ownership,
+  });
+  const upside = upsideVector({ obscurity: obscurityResult, substance });
   const ageScore = record.judge_results.age_relative?.score ?? null;
   record.synthesis.surfacing = {
     age_relative_impressiveness: ageScore,
     stage_bucket: stage.bucket,
     estimated_age: stage.estimated_age,
     obscurity: obscurityResult.substance_present ? obscurityResult.obscurity : null,
-    upside_score:
-      ageScore !== null && multiplier !== null
-        ? Math.round((ageScore / 10) * multiplier * 100) / 100
+    connections: selected.candidate.linkedin?.connections ?? null,
+    substance,
+    upside_score: upside,
+    age_weighted_upside:
+      upside !== null && ageScore !== null
+        ? Math.round(upside * (ageScore / 10) * 100) / 100
         : null,
   };
 

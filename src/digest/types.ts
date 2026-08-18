@@ -44,7 +44,10 @@ export interface DigestCandidate {
     stage_bucket: string;
     estimated_age: number | null;
     obscurity: number | null;
+    connections?: number | null;
+    substance?: number | null;
     upside_score: number | null;
+    age_weighted_upside?: number | null;
   };
   cory_relevance?: string;
   cory_reasons?: string[];

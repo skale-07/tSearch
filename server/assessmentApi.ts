@@ -447,7 +447,10 @@ export interface AssessedCandidateRow {
   stage_bucket?: string;
   estimated_age?: number | null;
   obscurity?: number | null;
+  connections?: number | null;
+  substance?: number | null;
   upside_score?: number | null;
+  age_weighted_upside?: number | null;
 }
 
 /** Ranking modes the UI can ask for; "quality" is the historical default. */
@@ -457,6 +460,7 @@ export const ASSESSED_SORTS = [
   "upside",
   "obscurity",
   "age_adjusted",
+  "age_weighted_upside",
 ] as const;
 export type AssessedSort = (typeof ASSESSED_SORTS)[number];
 
@@ -503,6 +507,13 @@ export function sortAssessedRows(
           byNullableDesc(a.age_relative, b.age_relative) ||
           b.priority_score - a.priority_score
       );
+    case "age_weighted_upside":
+      return out.sort(
+        (a, b) =>
+          byNullableDesc(a.age_weighted_upside, b.age_weighted_upside) ||
+          byNullableDesc(a.upside_score, b.upside_score) ||
+          b.priority_score - a.priority_score
+      );
     default:
       return out.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }
@@ -540,7 +551,10 @@ export function listAssessedCandidates(): AssessedCandidateRow[] {
               stage_bucket: surfacing.stage_bucket,
               estimated_age: surfacing.estimated_age,
               obscurity: surfacing.obscurity,
+              connections: surfacing.connections ?? null,
+              substance: surfacing.substance ?? null,
               upside_score: surfacing.upside_score,
+              age_weighted_upside: surfacing.age_weighted_upside ?? null,
             }
           : {}),
       });

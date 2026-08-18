@@ -104,6 +104,14 @@ export interface LinkedInProfile {
   experience: LinkedInExperience[];
   awards: LinkedInAward[];
   skills: string[];
+  /**
+   * Stated connection count. LinkedIn shows an exact number up to 500 and then
+   * caps the display at "500+", so this is exact below 500 and a floor at it —
+   * which is the useful direction for measuring how undiscovered someone is.
+   */
+  connections?: number | null;
+  /** True when the profile showed "500+" rather than an exact count. */
+  connections_saturated?: boolean;
   /** Bumped when scrape logic changes; invalidates stale profile cache. */
   scrape_version?: number;
 }

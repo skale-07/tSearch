@@ -306,8 +306,14 @@ export interface CandidateSynthesis {
     estimated_age: number | null;
     /** 0..1 from the discovery-side footprint read. */
     obscurity: number | null;
-    /** age_relative × obscurity, gated on real substance; null when either is missing. */
+    /** Stated LinkedIn connection count when captured. */
+    connections?: number | null;
+    /** 0..1 LLM-judged technical soundness, damped by ownership. */
+    substance?: number | null;
+    /** obscurity × judged substance — undiscovered *and* technically sound. */
     upside_score: number | null;
+    /** upside further weighted by how impressive the work is for their age. */
+    age_weighted_upside?: number | null;
   };
   axes?: AssessmentAxes;
   headline: string;

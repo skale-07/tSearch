@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   computeObscurity,
   upsideMultiplier,
+  upsideVector,
 } from "../../src/scoring/computeObscurity.js";
+import { judgedSubstance } from "../../src/assessment/scoring/judgedSubstance.js";
+import { parseConnectionCount } from "../../src/linkedin/linkedinExtract.js";
 import { computeScore } from "../../src/scoring/computeScore.js";
 import { deriveStage } from "../../src/assessment/stage/deriveStage.js";
 import { deterministicAgeRelative } from "../../src/assessment/judges/ageRelativeJudge.js";
@@ -222,5 +225,95 @@ describe("cory routing age booster", () => {
       evidenceCompleteness: 0.2,
     });
     expect(result.relevance).toBe("insufficient_evidence");
+  });
+});
+
+describe("LinkedIn connection capture", () => {
+  it("parses exact counts and the 500+ cap", () => {
+    expect(parseConnectionCount("87 connections")).toEqual({
+      count: 87,
+      saturated: false,
+    });
+    expect(parseConnectionCount("500+ connections")).toEqual({
+      count: 500,
+      saturated: true,
+    });
+    expect(parseConnectionCount("1,234 followers · 500+ connections")).toEqual({
+      count: 500,
+      saturated: true,
+    });
+    expect(parseConnectionCount("1 connection")).toEqual({
+      count: 1,
+      saturated: false,
+    });
+    expect(parseConnectionCount("Turing Scholar | CS @ UT Austin")).toBeNull();
+  });
+
+  it("a small connection count drives obscurity up; 500+ drives it down", () => {
+    const hidden = computeObscurity({
+      github: gh({ repos: [repo(1)] }),
+      linkedinConnections: 62,
+      linkedinConnectionsSaturated: false,
+    });
+    const visible = computeObscurity({
+      github: gh({ repos: [repo(1)] }),
+      linkedinConnections: 500,
+      linkedinConnectionsSaturated: true,
+    });
+    expect(hidden.obscurity).toBeGreaterThan(visible.obscurity);
+    expect(hidden.confidence).toBeGreaterThan(0.5);
+  });
+});
+
+describe("upside vector (obscurity x judged substance)", () => {
+  const obscure = computeObscurity({
+    github: gh({ repos: [repo(1)] }),
+    linkedinConnections: 60,
+  });
+
+  it("multiplies the two inputs", () => {
+    const strong = upsideVector({ obscurity: obscure, substance: 0.8 });
+    const weak = upsideVector({ obscurity: obscure, substance: 0.3 });
+    expect(strong).toBeGreaterThan(weak!);
+  });
+
+  it("is null when the work was never judged", () => {
+    expect(upsideVector({ obscurity: obscure, substance: null })).toBeNull();
+  });
+
+  it("is null for an empty profile even with judged substance", () => {
+    const empty = computeObscurity({});
+    expect(upsideVector({ obscurity: empty, substance: 0.9 })).toBeNull();
+  });
+});
+
+describe("judgedSubstance", () => {
+  const tech = (band: string, artifacts = ["a1"]) =>
+    ({ overall_technical_strength: band, artifact_ids: artifacts }) as never;
+
+  it("reads the judge band, not repo counts", () => {
+    expect(judgedSubstance({ technical: tech("exceptional") })).toBeGreaterThan(
+      judgedSubstance({ technical: tech("moderate") })!
+    );
+  });
+
+  it("damps by ownership support", () => {
+    const high = judgedSubstance({
+      technical: tech("strong"),
+      ownership: { support_class: "high_ownership_support" } as never,
+    });
+    const low = judgedSubstance({
+      technical: tech("strong"),
+      ownership: { support_class: "low_ownership_support" } as never,
+    });
+    expect(low).toBeLessThan(high!);
+  });
+
+  it("returns null when unjudged or when no artifacts were seen", () => {
+    expect(judgedSubstance({})).toBeNull();
+    expect(judgedSubstance({ technical: tech("strong", []) })).toBeNull();
+    expect(
+      judgedSubstance({ technical: tech("insufficient_public_evidence") })
+    ).toBeNull();
   });
 });
