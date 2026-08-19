@@ -14,11 +14,16 @@ import {
 import { withAge } from "./ageDisplay";
 import {
   clampResolveLimit,
+  findPendingByName,
   groupChannels,
   MANUAL_COHORT_FILENAME,
   manualCohortTemplateJson,
+  matchesPendingFilter,
   pendingKind,
+  PERSON_NOT_ON_LIST,
   RESOLVE_LIMIT_DEFAULT,
+  uniquePendingPrograms,
+  uniquePendingYears,
 } from "./discovery";
 
 const OLYMPIAD_SOURCE_OPTIONS: Array<{ id: string; label: string }> = [
@@ -102,6 +107,8 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [kind, setKind] = useState<SeedSourceKind | "">("");
+  const [year, setYear] = useState<number | "">("");
+  const [program, setProgram] = useState("");
   const [limit, setLimit] = useState(RESOLVE_LIMIT_DEFAULT);
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [awardId, setAwardId] = useState("");
@@ -125,6 +132,8 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
     "IBO",
   ]);
   const [olySkipIbo, setOlySkipIbo] = useState(false);
+  const [resolveName, setResolveName] = useState("");
+  const [oneNameError, setOneNameError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -156,18 +165,29 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
   );
 
   const pending = useMemo(() => {
-    const rows = data?.pending ?? [];
-    if (!kind) return rows;
-    return rows.filter((s) => pendingKind(s) === kind);
+    return (data?.pending ?? []).filter((s) =>
+      matchesPendingFilter(s, { kind, year, program })
+    );
+  }, [data, kind, year, program]);
+
+  const kindRows = useMemo(() => {
+    return (data?.pending ?? []).filter((s) =>
+      matchesPendingFilter(s, { kind })
+    );
   }, [data, kind]);
+
+  const yearOptions = useMemo(() => uniquePendingYears(kindRows), [kindRows]);
+  const programOptions = useMemo(
+    () =>
+      uniquePendingPrograms(
+        kindRows.filter((s) => matchesPendingFilter(s, { year }))
+      ),
+    [kindRows, year]
+  );
 
   const githubReady = data?.github_ready ?? [];
   const githubReadyNoTree = githubReady.filter((p) => !p.has_tree);
-  const batchCeiling = Math.max(
-    pending.length,
-    githubReadyNoTree.length,
-    1
-  );
+  const batchCeiling = Math.max(pending.length, 1);
   const effectiveLimit = clampResolveLimit(limit, batchCeiling);
 
   useEffect(() => {
@@ -180,21 +200,21 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
   const awards = data?.roster_awards ?? [];
   const scrapeableAwards = awards.filter((a) => a.scrapeable);
   const scholarshipReady = grouped.scholarships.some((c) => c.present);
+  const busy = running || scanning || scraping || pullingOlympiad;
+  const resolveCount = Math.min(effectiveLimit, pending.length);
+  const programLabel = (id: string) =>
+    awards.find((a) => a.award_id === id)?.display_name ?? id;
 
-  const onScan = async (nextKind: SeedSourceKind | "" = "") => {
+  const onScan = async () => {
     setScanning(true);
-    if (nextKind) setKind(nextKind);
     try {
       const next = await refreshDiscovery();
       setData(next);
       const r = next.refresh;
-      const filtered = nextKind
-        ? next.pending.filter((s) => pendingKind(s) === nextKind)
-        : next.pending;
       setLastScan(
         r
-          ? `Read ${r.rows_read} rows · ${filtered.length} pending${nextKind ? " in this channel" : ""}`
-          : `${filtered.length} pending`
+          ? `Read ${r.rows_read} rows · ${next.pending.length} pending`
+          : `${next.pending.length} pending`
       );
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
@@ -298,14 +318,20 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
     URL.revokeObjectURL(url);
   };
 
+  const resolveFilters = {
+    kind,
+    year,
+    program,
+  };
+
   const onResolve = async () => {
     try {
       const { runId, batch } = await startDiscoveryResolve({
         limit: effectiveLimit,
-        kind,
+        ...resolveFilters,
       });
       setLastScan(
-        `Discovery started for ${batch.length}: ${batch.map((b) => b.name).join(", ")} (LinkedIn + graph expand)`
+        `Resolving ${batch.length}: ${batch.map((b) => b.name).join(", ")}`
       );
       await onStartResolve(runId);
       const next = await fetchDiscovery();
@@ -315,8 +341,37 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
     }
   };
 
+  const onResolveOne = async () => {
+    const query = resolveName.trim();
+    if (!query) {
+      setOneNameError(PERSON_NOT_ON_LIST);
+      return;
+    }
+    const hit = findPendingByName(pending, query);
+    if (!hit) {
+      setOneNameError(PERSON_NOT_ON_LIST);
+      return;
+    }
+    setOneNameError(null);
+    try {
+      const { runId, batch } = await startDiscoveryResolve({
+        name: hit.name,
+        ...resolveFilters,
+      });
+      setLastScan(`Resolving ${batch[0]?.name ?? hit.name}`);
+      setResolveName("");
+      await onStartResolve(runId);
+      const next = await fetchDiscovery();
+      setData(next);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/not on the list/i.test(msg)) setOneNameError(PERSON_NOT_ON_LIST);
+      else onError(msg);
+    }
+  };
+
   const onExpandGithubReady = async () => {
-    const batch = githubReadyNoTree.slice(0, effectiveLimit).map((p) => ({
+    const batch = githubReadyNoTree.map((p) => ({
       name: p.name,
       country: p.country || "United States",
     }));
@@ -342,81 +397,138 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
       <p className="eyebrow">Intake</p>
       <h1>Seed discovery</h1>
       <p className="muted discover-lede">
-        1) Pull names into pending · 2) Discover next = LinkedIn identity (GitHub
-        only if on LinkedIn/site) · 3) Expand people who already have verified
-        GitHub into Graph trees.
+        Filter the pending list, then resolve that batch on LinkedIn. Intake
+        cards below only pull names into the list — they do not search LinkedIn.
       </p>
 
-      <div className="discover-actions">
-        <button
-          type="button"
-          className="run-btn"
-          onClick={() => void onScan()}
-          disabled={running || scanning || scraping || pullingOlympiad}
-        >
-          {scanning && !kind ? "Scanning…" : "Scan all channels"}
-        </button>
-        <label className="discover-limit">
-          Batch size
-          <input
-            type="number"
-            min={1}
-            max={batchCeiling}
-            value={effectiveLimit}
-            disabled={running || scraping || pullingOlympiad}
-            onChange={(e) =>
-              setLimit(clampResolveLimit(Number(e.target.value), batchCeiling))
-            }
-          />
-        </label>
-        <select
-          aria-label="Filter pending by channel"
-          value={kind}
-          disabled={running || scraping || pullingOlympiad}
-          onChange={(e) => setKind(e.target.value as SeedSourceKind | "")}
-        >
-          <option value="">All channels</option>
-          <option value="olympiad_csv">Olympiads</option>
-          <option value="award_roster">Scholarships</option>
-          <option value="manual_cohort">Manual</option>
-        </select>
-        <button
-          type="button"
-          className="run-btn"
-          onClick={() => void onResolve()}
-          disabled={
-            running ||
-            scanning ||
-            scraping ||
-            pullingOlympiad ||
-            pending.length === 0
-          }
-        >
-          {running
-            ? "Discovering…"
-            : `Discover next ${Math.min(effectiveLimit, pending.length)}`}
-        </button>
-        <button
-          type="button"
-          className="run-btn"
-          onClick={() => void onExpandGithubReady()}
-          disabled={
-            running ||
-            scanning ||
-            scraping ||
-            pullingOlympiad ||
-            githubReadyNoTree.length === 0
-          }
-          title="LinkedIn-resolved people with GitHub from LinkedIn or personal site, no tree yet"
-        >
-          {running
-            ? "Expanding…"
-            : `Expand GitHub (${Math.min(effectiveLimit, githubReadyNoTree.length)})`}
-        </button>
+      <div className="discover-resolve">
+        <div className="discover-actions">
+          <select
+            aria-label="Channel"
+            value={kind}
+            disabled={busy}
+            onChange={(e) => {
+              setKind(e.target.value as SeedSourceKind | "");
+              setYear("");
+              setProgram("");
+            }}
+          >
+            <option value="">All channels</option>
+            <option value="olympiad_csv">Olympiads</option>
+            <option value="award_roster">Scholarships</option>
+            <option value="manual_cohort">Manual</option>
+          </select>
+          <select
+            aria-label="Competition or cohort year"
+            value={year === "" ? "" : String(year)}
+            disabled={busy}
+            onChange={(e) => {
+              setYear(e.target.value ? Number(e.target.value) : "");
+              setProgram("");
+            }}
+          >
+            <option value="">Any year</option>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="Program"
+            value={program}
+            disabled={busy}
+            onChange={(e) => setProgram(e.target.value)}
+          >
+            <option value="">Any program</option>
+            {programOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {programLabel(p.id)}
+              </option>
+            ))}
+          </select>
+          <label className="discover-limit">
+            Max
+            <input
+              type="number"
+              min={1}
+              max={batchCeiling}
+              value={effectiveLimit}
+              disabled={busy}
+              onChange={(e) =>
+                setLimit(clampResolveLimit(Number(e.target.value), batchCeiling))
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="chip"
+            disabled={busy || pending.length === 0}
+            onClick={() => setLimit(pending.length)}
+          >
+            All {pending.length}
+          </button>
+          <button
+            type="button"
+            className="run-btn"
+            onClick={() => void onResolve()}
+            disabled={busy || pending.length === 0}
+          >
+            {running
+              ? "Resolving…"
+              : pending.length === 0
+                ? "No matches"
+                : `Resolve ${resolveCount} matching`}
+          </button>
+        </div>
+        <div className="discover-actions">
+          <label className="discover-limit discover-one-name">
+            One person
+            <input
+              type="text"
+              value={resolveName}
+              placeholder="Full name as on the list"
+              disabled={busy}
+              onChange={(e) => {
+                setResolveName(e.target.value);
+                if (oneNameError) setOneNameError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void onResolveOne();
+                }
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="chip"
+            onClick={() => void onResolveOne()}
+            disabled={busy || !resolveName.trim()}
+          >
+            Resolve this person
+          </button>
+          <button
+            type="button"
+            className="chip"
+            onClick={() => void onScan()}
+            disabled={busy}
+          >
+            {scanning ? "Refreshing…" : "Refresh pending"}
+          </button>
+        </div>
       </div>
+      {oneNameError && <p className="error discover-status">{oneNameError}</p>}
       <p className="muted discover-status">
-        Batch size can be 1…{batchCeiling} (pending / GitHub expand queue).
-        Large LinkedIn batches burn pacing — expect bans if you slam hundreds.
+        {pending.length} pending match these filters
+        {data && data.pending_count !== pending.length
+          ? ` (${data.pending_count} total).`
+          : "."}{" "}
+        Year is the competition / cohort year on the roster.
+        {resolveCount >= 25
+          ? " Large LinkedIn batches stay paced — do not raise delay to zero."
+          : ""}
       </p>
       {lastScan && <p className="muted discover-status">{lastScan}</p>}
 
@@ -429,15 +541,6 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
           emptyLabel="scrape public rosters"
           wide
           channels={grouped.scholarships}
-          actionLabel={
-            scholarshipReady
-              ? scanning
-                ? "Scanning…"
-                : "Scan scholarships"
-              : undefined
-          }
-          onAction={() => void onScan("award_roster")}
-          actionDisabled={running || scanning || scraping || pullingOlympiad}
         >
           <form
             className="discover-roster-form"
@@ -566,9 +669,6 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
           title={meta?.olympiad_csv.title ?? "Olympiads"}
           hint={meta?.olympiad_csv.hint ?? ""}
           channels={grouped.olympiad}
-          actionLabel={scanning ? "Scanning…" : "Scan olympiads CSV"}
-          onAction={() => void onScan("olympiad_csv")}
-          actionDisabled={running || scanning || scraping || pullingOlympiad}
         >
           <form
             className="discover-roster-form"
@@ -654,9 +754,6 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
           hint={meta?.manual_cohort.hint ?? ""}
           emptyLabel="download template"
           channels={grouped.manual}
-          actionLabel={scanning ? "Scanning…" : "Scan manual cohort"}
-          onAction={() => void onScan("manual_cohort")}
-          actionDisabled={running || scanning || scraping || pullingOlympiad}
         >
           <p className="discover-roster-label">
             Required: <code>name</code>. Optional: <code>country</code>,{" "}
@@ -674,12 +771,25 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
         </ChannelCard>
       </div>
 
-      <h2 className="discover-pending-head">
-        Verified GitHub ({githubReady.length}
-        {githubReadyNoTree.length
-          ? ` · ${githubReadyNoTree.length} need tree`
-          : ""}
-        )
+      <h2 className="discover-pending-head discover-section-head">
+        <span>
+          Verified GitHub ({githubReady.length}
+          {githubReadyNoTree.length
+            ? ` · ${githubReadyNoTree.length} need tree`
+            : ""}
+          )
+        </span>
+        <button
+          type="button"
+          className="chip"
+          onClick={() => void onExpandGithubReady()}
+          disabled={busy || githubReadyNoTree.length === 0}
+          title="LinkedIn-resolved people with GitHub from LinkedIn or personal site, no tree yet"
+        >
+          {running
+            ? "Expanding…"
+            : `Expand trees (${githubReadyNoTree.length})`}
+        </button>
       </h2>
       <p className="muted discover-status">
         LinkedIn-resolved people whose GitHub URL came from LinkedIn or their
@@ -727,7 +837,6 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
 
       <h2 className="discover-pending-head">
         Pending ({pending.length}
-        {kind ? ` in filter` : ""}
         {data && data.pending_count !== pending.length
           ? ` / ${data.pending_count}`
           : ""}
@@ -735,9 +844,8 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
       </h2>
       {pending.length === 0 ? (
         <p className="muted">
-          {kind === "award_roster"
-            ? "No scholarship seeds pending. Scrape a year range, or paste a winner list."
-            : "Nothing pending in this filter. Scan a channel first."}
+          No pending people match these filters. Pull or scrape a roster, then
+          Refresh pending.
         </p>
       ) : (
         <table className="discover-table">
@@ -752,7 +860,14 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
           </thead>
           <tbody>
             {pending.slice(0, 200).map((row) => (
-              <tr key={`${row.source_id}:${row.name}`}>
+              <tr
+                key={`${row.source_id}:${row.name}`}
+                className="discover-row-pick"
+                onClick={() => {
+                  setResolveName(row.name);
+                  setOneNameError(null);
+                }}
+              >
                 <td>{row.name}</td>
                 <td title={row.age_at_award != null ? `stated ${row.age_at_award} at award` : undefined}>
                   {row.age_label ?? "—"}

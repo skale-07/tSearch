@@ -38,6 +38,7 @@ import {
   type AgeRelativeInputs,
 } from "./judges/ageRelativeJudge.js";
 import { deriveStage } from "./stage/deriveStage.js";
+import { hasDetailedLinkedInExperience } from "./youthWildcard.js";
 import { upsideVector, computeObscurity } from "../scoring/computeObscurity.js";
 import { judgedSubstance } from "./scoring/judgedSubstance.js";
 import { CORY_CALIBRATION_VERSION, deterministicCoryRelevance, runCoryRelevanceJudge } from "./judges/coryRelevanceJudge.js";
@@ -86,6 +87,7 @@ function websiteOrBlogUrl(selected: SelectedCandidate): string | undefined {
   const li = selected.candidate.linkedin;
   const hub = firstWritingSurfaceUrl([
     ...(li?.contact_links ?? []),
+    ...(li?.featured_links ?? []),
     li?.substack_url,
     selected.candidate.website?.medium_url,
     selected.candidate.website?.substack_url,
@@ -222,6 +224,7 @@ export async function assessCandidate(input: {
   };
 
   if (!username && !siteUrl) {
+    if (!hasDetailedLinkedInExperience(selected.candidate.linkedin)) {
     const cory = coryAbstention();
     record.judge_results = { ...record.judge_results, cory };
     record.judge_statuses.cory = markJudgeTerminal(record.judge_statuses.cory, "abstained");
@@ -236,6 +239,7 @@ export async function assessCandidate(input: {
     };
     checkpoint();
     return record;
+    }
   }
 
   const mockLlm = opts.mockLlm ?? LLM_USE_MOCK;
@@ -627,8 +631,9 @@ export async function assessCandidate(input: {
   checkpoint();
   const specialists = ["technical", "writing", "cross_artifact"] as const;
   const completedSpecialists = specialists.filter((judge) => record.judge_statuses[judge].status === "completed");
+  const experienceCompleted = record.judge_statuses.experience?.status === "completed";
   const anyFailed = Object.values(record.judge_statuses).some((judge) => judge.status === "failed");
-  const fallbackOnly = completedSpecialists.length === 0;
+  const fallbackOnly = completedSpecialists.length === 0 && !experienceCompleted;
   record.ownership = ownership;
   record.synthesis = synthesizeCandidate({
     name: selected.candidate.name,
@@ -639,6 +644,7 @@ export async function assessCandidate(input: {
     writing: record.judge_results.writing,
     crossArtifact: record.judge_results.cross_artifact,
     cory: record.judge_results.cory,
+    experience: record.judge_results.experience,
     estimatedAge: stage.estimated_age,
   });
   record.synthesis_state = synthesisCompleted({
@@ -655,11 +661,16 @@ export async function assessCandidate(input: {
     linkedinConnections: selected.candidate.linkedin?.connections ?? null,
     linkedinConnectionsSaturated:
       selected.candidate.linkedin?.connections_saturated ?? false,
+    githubOnLinkedIn: !!selected.candidate.linkedin?.github_url,
+    linkedinExperiencePresent: hasDetailedLinkedInExperience(
+      selected.candidate.linkedin
+    ),
   });
   // Substance is the judge's read of the work, not a repo count.
   const substance = judgedSubstance({
     technical: record.judge_results.technical,
     ownership,
+    experience: record.judge_results.experience,
   });
   const upside = upsideVector({ obscurity: obscurityResult, substance });
   const ageScore = record.judge_results.age_relative?.score ?? null;

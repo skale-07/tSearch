@@ -67,6 +67,7 @@ import {
 import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
 import { ageFromPublicIdentity } from "../src/assessment/stage/deriveStage.js";
+import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
 import { refreshConvergenceStore } from "../src/pipeline/convergence.js";
 import {
   FEEDBACK_VERDICTS,
@@ -263,6 +264,7 @@ app.get("/api/candidates", (_req, res) => {
   }
   try {
     const loaded = loadCandidatesFromPath(OUTPUT_PATH);
+    const youthWildcard = pickYouthWildcardIds(loaded);
     const candidates = [...loaded]
       .sort((a, b) => (b.final_score ?? 0) - (a.final_score ?? 0))
       .map((c: Candidate) => {
@@ -279,6 +281,7 @@ app.get("/api/candidates", (_req, res) => {
           candidate_id: identity.candidate_id,
           name: c.name,
           age_label: age.age_label,
+          estimated_age: age.estimated_age,
           final_score: c.final_score ?? 0,
           overall_score: c.overall_score ?? c.score_breakdown?.overall_score,
           github_username,
@@ -286,6 +289,7 @@ app.get("/api/candidates", (_req, res) => {
           blog_url,
           has_github: Boolean(github_username),
           has_writing_surface: Boolean(blog_url || website_url),
+          youth_wildcard: youthWildcard.has(identity.candidate_id),
         };
       });
     res.json({ candidates, path: OUTPUT_PATH });
@@ -665,12 +669,17 @@ app.get("/api/assessed/:candidateId/profile.html", (req, res) => {
     res.status(404).send("Assessment run not found.");
     return;
   }
+  const sources =
+    readJson<Candidate[]>(
+      path.join(assessmentRunDir(found.run_id), "source-candidates.json")
+    ) ?? [];
   const digest = buildDigest({
     run,
     assessments: [found.record],
     discoveredCandidateCount: 1,
     minPriority: 0,
     convergence: loadConvergenceMap(),
+    youthWildcardIds: pickYouthWildcardIds(sources),
   });
   const dc = digest.candidates[0];
   if (!dc) {
@@ -679,10 +688,6 @@ app.get("/api/assessed/:candidateId/profile.html", (req, res) => {
       .send("This assessment has no rankable synthesis to render.");
     return;
   }
-  const sources =
-    readJson<Candidate[]>(
-      path.join(assessmentRunDir(found.run_id), "source-candidates.json")
-    ) ?? [];
   const source = sources.find(
     (s) => identityFromCandidate(s).candidate_id === req.params.candidateId
   );

@@ -1,4 +1,5 @@
 import {
+  FORCE_REFRESH,
   LINKEDIN_CACHE_TTL_MS,
   LINKEDIN_SEARCH_CACHE_TTL_MS,
   MAX_IDENTITY_RESOLVES,
@@ -43,7 +44,7 @@ import {
   scrapeWebsite,
 } from "../website/scrapeWebsite.js";
 import { awardLinkedInSearchTerm } from "../awards/awardRegistry.js";
-import { attachVerifiedGithub } from "./githubIdentity.js";
+import { enqueueVerifiedGithub } from "./githubIdentity.js";
 
 export interface ResolveOptions {
   olympiadIndex: Map<string, OlympiadProfile>;
@@ -84,7 +85,9 @@ export async function resolveIdentity(
   const olympiad = lookupOlympiad(olympiadIndex, queryName);
   const country = resolveCountry(seed, olympiad);
 
-  const scraped = findScrapedCandidate(existingCandidates, seed, olympiad);
+  const scraped = FORCE_REFRESH
+    ? undefined
+    : findScrapedCandidate(existingCandidates, seed, olympiad);
   if (
     scraped?.linkedin &&
     scraped.linkedin.scrape_version === PROFILE_SCRAPE_VERSION
@@ -320,7 +323,7 @@ export async function resolveIdentities(
   const failed: ResolveResults["failed"] = [];
   const seen = new Set<string>();
   const cap = Math.min(seeds.length, MAX_IDENTITY_RESOLVES);
-  const websiteJobs: Promise<void>[] = [];
+  const followOnJobs: Promise<void>[] = [];
 
   const sessionRef: { current: LinkedInSession | null } = { current: null };
   const getSession = async (): Promise<LinkedInSession> => {
@@ -362,8 +365,14 @@ export async function resolveIdentities(
           `  → ${identity.linkedin.url} conf=${identity.identity_confidence.toFixed(2)} gh=${gh ?? "—"} substack=${ss ?? "—"} site=${site} contact=${contactCount}`
         );
         resolved.push(identity);
-        // Overlap website fetch with the next LinkedIn profiles.
-        websiteJobs.push(enrichIdentityFromWebsite(identity));
+        const olympiad = lookupOlympiad(olympiadIndex, identity.query_name);
+        // Website then GitHub run beside the next LinkedIn resolves — not after the batch.
+        followOnJobs.push(
+          (async () => {
+            await enrichIdentityFromWebsite(identity);
+            await enqueueVerifiedGithub(identity, { olympiad });
+          })()
+        );
       } else {
         failed.push({ seed, reason: outcome.reason });
       }
@@ -379,16 +388,11 @@ export async function resolveIdentities(
     }
   }
 
-  if (websiteJobs.length) {
+  if (followOnJobs.length) {
     console.log(
-      `[website] waiting on ${websiteJobs.length} personal-site scrape(s)...`
+      `[follow-on] waiting on ${followOnJobs.length} website/GitHub job(s)...`
     );
-    await Promise.all(websiteJobs);
-  }
-
-  // GitHub only from LinkedIn / personal-site URLs — never name-search.
-  for (const identity of resolved) {
-    await attachVerifiedGithub(identity);
+    await Promise.all(followOnJobs);
   }
 
   return { resolved, failed };

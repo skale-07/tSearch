@@ -13,6 +13,7 @@ import type {
   SpecialistJudgeResult,
   TechnicalJudgeResultV2,
   WritingJudgeResult,
+  ExperienceJudgeResult,
 } from "../types.js";
 import {
   aggregateCandidateOwnership,
@@ -35,6 +36,13 @@ export const PRIORITY_V2_WEIGHTS = {
   cory: 0.1,
   evidence_completeness: 0.05,
 } as const;
+
+/**
+ * LinkedIn experience may fill `technical_strength` only when GitHub was not
+ * judged. Capped at 0.5 so a self-reported internship cannot outrank a
+ * "strong" repository assessment (0.8).
+ */
+export const EXPERIENCE_AS_TECHNICAL_CAP = 0.5;
 
 export {
   aggregateCandidateOwnership,
@@ -306,6 +314,7 @@ function buildAxes(input: {
   writing?: WritingJudgeResult;
   crossArtifact?: CrossArtifactJudgeResult;
   cory?: CoryRelevanceResult;
+  experience?: ExperienceJudgeResult;
   evidenceCompleteness: number;
 }): AssessmentAxes {
   const tech01 = strengthTo01(input.technical?.overall_technical_strength);
@@ -315,8 +324,15 @@ function buildAxes(input: {
     "algorithmic_or_methodological_depth",
     "implementation_quality",
   ]);
-  const technicalScore =
+  const githubTechnical =
     tech01 !== null ? tech01 : techFromDims !== null ? techFromDims : null;
+  const experience01 = strengthTo01(input.experience?.overall_distinctiveness);
+  const experienceTechnical =
+    githubTechnical === null && experience01 !== null
+      ? experience01 * EXPERIENCE_AS_TECHNICAL_CAP
+      : null;
+  const technicalScore = githubTechnical ?? experienceTechnical;
+  const technicalFromExperience = githubTechnical === null && experienceTechnical !== null;
 
   const ownershipScore = input.ownership
     ? ownershipSupportToScore(input.ownership.support_class) / 10
@@ -347,8 +363,12 @@ function buildAxes(input: {
       technicalScore !== null
         ? availableAxis(
             technicalScore,
-            input.technical?.evidence_support ?? "low",
-            input.technical?.summary
+            technicalFromExperience
+              ? "low"
+              : input.technical?.evidence_support ?? "low",
+            technicalFromExperience
+              ? `LinkedIn experience (no GitHub) — capped at ${EXPERIENCE_AS_TECHNICAL_CAP} so internships cannot outrank repository evidence.${input.experience?.summary ? ` ${input.experience.summary}` : ""}`
+              : input.technical?.summary
           )
         : unavailableAxis("Technical strength unavailable."),
     ownership_support:
@@ -637,6 +657,7 @@ export function synthesizeCandidate(input: {
   crossArtifact?: CrossArtifactJudgeResult;
   ownership?: OwnershipAssessment | OwnershipAssessmentV2;
   cory?: CoryRelevanceResult;
+  experience?: ExperienceJudgeResult;
   evidenceCount: number;
   discoveryScore?: number;
   /** Chronological age estimate for priority scalar (younger → higher). */
@@ -652,6 +673,7 @@ export function synthesizeCandidate(input: {
     writing: input.writing,
     crossArtifact: input.crossArtifact,
     cory: input.cory,
+    experience: input.experience,
     evidenceCompleteness,
   });
 
@@ -659,6 +681,7 @@ export function synthesizeCandidate(input: {
     ...(input.technical?.strongest_evidence_ids ?? []),
     ...(input.writing?.strongest_evidence_ids ?? []),
     ...(input.crossArtifact?.strongest_evidence_ids ?? []),
+    ...(input.experience?.strongest_evidence_ids ?? []),
     ...(ownershipV2?.supporting_evidence_ids ?? []),
   ];
 

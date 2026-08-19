@@ -5,6 +5,7 @@ import { deterministicCrossArtifactJudge } from "../../src/assessment/judges/cro
 import { deterministicCoryRelevance } from "../../src/assessment/judges/coryRelevanceJudge.js";
 import {
   computePriorityV2,
+  EXPERIENCE_AS_TECHNICAL_CAP,
   PRIORITY_V2_VERSION,
   synthesizeCandidate,
   ownershipSupportToScore,
@@ -302,5 +303,92 @@ describe("priority-v2 synthesis", () => {
     expect(syn.weight_version).toBe("priority-v2");
     expect(syn.archetype_assignment).toBeDefined();
     expect(syn.axes).toBeDefined();
+  });
+
+  it("uses LinkedIn experience as capped technical when GitHub was not judged", () => {
+    const experience = {
+      schema_version: "experience-judge-v1" as const,
+      judge_type: "experience" as const,
+      artifact_ids: ["art_exp"],
+      rubric_id: "experience-distinctiveness-v1",
+      rubric_version: "1",
+      prompt_version: "experience-prompt-v1",
+      model: "test",
+      dimensions: [],
+      overall_distinctiveness: "strong" as const,
+      evidence_support: "low" as const,
+      hook: "Built a national robotics platform",
+      strongest_evidence_ids: ["ev_exp"],
+      counterevidence_ids: [],
+      missing_information: [],
+      summary: "Distinctive stated path.",
+    };
+    const withExp = synthesizeCandidate({
+      name: "Youth",
+      experience,
+      evidenceCount: 3,
+      estimatedAge: 18,
+    });
+    const empty = synthesizeCandidate({
+      name: "Youth",
+      evidenceCount: 3,
+      estimatedAge: 18,
+    });
+    expect(withExp.axes?.technical_strength?.available).toBe(true);
+    expect(withExp.axes?.technical_strength?.score).toBeCloseTo(
+      0.8 * EXPERIENCE_AS_TECHNICAL_CAP
+    );
+    expect(withExp.axes?.technical_strength?.summary).toMatch(/LinkedIn experience/);
+    expect(withExp.priority_score).toBeGreaterThan(empty.priority_score);
+
+    const github = deterministicTechnicalJudgeV2({
+      evidence: [ev("ev1", "strong")],
+      repositories: [repo()],
+    });
+    const withBoth = synthesizeCandidate({
+      name: "Both",
+      technical: github,
+      ownership: repo().ownership,
+      experience,
+      evidenceCount: 6,
+    });
+    expect(withBoth.axes?.technical_strength?.score).toBeGreaterThan(
+      withExp.axes!.technical_strength!.score!
+    );
+    expect(withBoth.axes?.technical_strength?.summary).not.toMatch(/LinkedIn experience/);
+  });
+
+  it("applies the age scalar to LinkedIn-only experience so 17 outranks 28", () => {
+    const experience = {
+      schema_version: "experience-judge-v1" as const,
+      judge_type: "experience" as const,
+      artifact_ids: ["art_exp"],
+      rubric_id: "experience-distinctiveness-v1",
+      rubric_version: "1",
+      prompt_version: "experience-prompt-v1",
+      model: "test",
+      dimensions: [],
+      overall_distinctiveness: "strong" as const,
+      evidence_support: "low" as const,
+      hook: "Built a national robotics platform",
+      strongest_evidence_ids: ["ev_exp"],
+      counterevidence_ids: [],
+      missing_information: [],
+      summary: "Distinctive stated path.",
+    };
+    const young = synthesizeCandidate({
+      name: "Youth",
+      experience,
+      evidenceCount: 3,
+      estimatedAge: 17,
+    });
+    const older = synthesizeCandidate({
+      name: "Older",
+      experience,
+      evidenceCount: 3,
+      estimatedAge: 28,
+    });
+    expect(young.priority_score).toBeGreaterThan(older.priority_score);
+    expect(young.priority_score / older.priority_score).toBeCloseTo(28 / 17, 2);
   });
 });

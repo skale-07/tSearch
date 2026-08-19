@@ -12,9 +12,10 @@ import { nameMatchConfidence } from "./nameMatch.js";
 
 /**
  * Legacy GitHub-first footprint qualification. Live intake is pending-seeds
- * (olympiad CSV / rosters / manual) → LinkedIn first; GitHub attaches only
- * from LinkedIn/website URLs. These helpers remain for name-match scoring
- * and the unused seed-queue file.
+ * (olympiad CSV / rosters / manual) → LinkedIn first. GitHub attaches from a
+ * LinkedIn/website URL, or from a name-search hit corroborated by
+ * school/college/major. github_login_guess from this sweep still never
+ * becomes links.github_url by itself.
  */
 
 const FOOTPRINT_TTL_MS = Number(

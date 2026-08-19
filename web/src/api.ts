@@ -291,6 +291,9 @@ export async function pullDiscoveryOlympiads(body: {
 export async function startDiscoveryResolve(body: {
   limit?: number;
   kind?: SeedSourceKind | "";
+  name?: string;
+  year?: number | "";
+  program?: string;
 }): Promise<{ runId: string; batch: Array<{ name: string; country?: string }> }> {
   const res = await fetch("/api/discovery/resolve", {
     method: "POST",
@@ -298,6 +301,9 @@ export async function startDiscoveryResolve(body: {
     body: JSON.stringify({
       limit: body.limit,
       kind: body.kind || undefined,
+      name: body.name?.trim() || undefined,
+      year: typeof body.year === "number" ? body.year : undefined,
+      program: body.program?.trim() || undefined,
     }),
   });
   const data = await readApiJson<{
@@ -451,12 +457,15 @@ export interface AssessmentCandidateRow {
   candidate_id: string;
   name: string;
   age_label?: string | null;
+  estimated_age?: number | null;
   final_score: number;
   github_username?: string;
   website_url?: string;
   blog_url?: string;
   has_github: boolean;
   has_writing_surface: boolean;
+  /** Frozen 17–19 draw from LinkedIn experience + featured links. */
+  youth_wildcard?: boolean;
 }
 
 export type AssessmentRunStatus =

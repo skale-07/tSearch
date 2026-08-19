@@ -1,4 +1,5 @@
 import type { DigestDocument } from "./types.js";
+import { scoreBreakdownMarkdown } from "./scoreBreakdown.js";
 
 export function renderMarkdown(digest: DigestDocument): string {
   const lines: string[] = [];
@@ -69,6 +70,12 @@ export function renderMarkdown(digest: DigestDocument): string {
         `**Also:** ${c.secondary_archetypes.map((a) => a.replace(/_/g, " ")).join(", ")}`
       );
     }
+    if (c.youth_wildcard) {
+      lines.push("");
+      lines.push(
+        `**Youth wildcard** (17–19) — included regardless of assessment score.`
+      );
+    }
     lines.push("");
     lines.push(
       `- Assessment overall: **${(c.assessment_priority_score / 10).toFixed(1)}/10** (confidence ${c.assessment_confidence})`
@@ -77,6 +84,10 @@ export function renderMarkdown(digest: DigestDocument): string {
       `- Discovery score (pipeline \`final_score\`): **${c.discovery_score}**`
     );
     lines.push("");
+    if (c.score_breakdown) {
+      lines.push(scoreBreakdownMarkdown(c.score_breakdown).trimEnd());
+      lines.push("");
+    }
     lines.push(`### Why send to Cory`);
     lines.push("");
     lines.push(c.brief_rationale ?? c.why_highlighted[0]?.rationale ?? c.headline);

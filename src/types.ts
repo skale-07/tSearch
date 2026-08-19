@@ -56,6 +56,8 @@ export interface LinkedInExperience {
   company: string | null;
   dates: string | null;
   location: string | null;
+  /** Role description when LinkedIn included one; omitted on older scrapes. */
+  description?: string | null;
 }
 
 export interface LinkedInAward {
@@ -103,6 +105,11 @@ export interface LinkedInProfile {
   website_url: string | null;
   /** All external links found in Contact info. */
   contact_links: string[];
+  /**
+   * Pins from the Featured / Featured links section. Empty on scrapes
+   * from before this field existed — callers must tolerate absence.
+   */
+  featured_links?: string[];
   experience: LinkedInExperience[];
   awards: LinkedInAward[];
   skills: string[];

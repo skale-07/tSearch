@@ -2,6 +2,8 @@ import { WEIRD_TOPICS } from "../config.js";
 import { deriveStage } from "../assessment/stage/deriveStage.js";
 import { ageScalar, toOverallScore10 } from "./ageScalar.js";
 import { computeObscurity } from "./computeObscurity.js";
+import { linkedinTechnicalSignal } from "./linkedinTechnical.js";
+import { hasDetailedLinkedInExperience } from "../assessment/youthWildcard.js";
 import type {
   Candidate,
   GitHubProfile,
@@ -33,10 +35,14 @@ export function computeScore(
   const recent = github?.recent_commits ?? 0;
   const posts = substack?.posts ?? 0;
 
-  const builder =
+  const githubBuilder =
     (github?.active ? 0.3 : 0) +
     (repos > 3 ? 0.2 : 0) +
     (recent > 5 ? 0.2 : 0);
+  const liTech = linkedinTechnicalSignal(linkedin);
+  // LinkedIn titles fill in when GitHub is missing. They never subtract, and
+  // they cannot beat a full GitHub builder — max(), not a missing-experience penalty.
+  const builder = Math.max(githubBuilder, liTech);
 
   const thinker =
     (substack?.active ? 0.3 : 0) + (posts > 5 ? 0.2 : 0);
@@ -60,6 +66,7 @@ export function computeScore(
     linkedinConnections: linkedin?.connections ?? null,
     linkedinConnectionsSaturated: linkedin?.connections_saturated ?? false,
     githubOnLinkedIn: !!linkedin?.github_url,
+    linkedinExperiencePresent: hasDetailedLinkedInExperience(linkedin),
   });
 
   const stage = deriveStage({ linkedin, olympiad });
@@ -75,7 +82,8 @@ export function computeScore(
   // Chronological age scales the whole pre-age total (younger → higher).
   const final_score = Math.round(preAge * scalar * 100) / 100;
   // Historical final_score is ~0–3; operator-facing overall is 1–10.
-  const overall_score = toOverallScore10(final_score * (10 / 3));
+  // final_score is ~0–3; toOverallScore10 expects 0–100.
+  const overall_score = toOverallScore10(final_score * (100 / 3));
 
   const breakdown: ScoreBreakdown = {
     builder: Math.round(builder * 100) / 100,

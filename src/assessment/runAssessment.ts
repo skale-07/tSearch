@@ -79,6 +79,7 @@ import {
 import type { LlmJudgeClient } from "./judges/llmClient.js";
 import { synthesizeCandidate } from "./scoring/synthesizeCandidate.js";
 import { deriveStage } from "./stage/deriveStage.js";
+import { pickYouthWildcardIds } from "./youthWildcard.js";
 import type {
   AssessmentRunError,
   CandidateAssessmentRecord,
@@ -963,12 +964,17 @@ export async function renderDigestForRun(
     discovered = assessments.length;
   }
 
+  const sources =
+    readJson<Candidate[]>(
+      path.join(assessmentRunDir(runId), "source-candidates.json")
+    ) ?? [];
   const digest = buildDigest({
     run,
     assessments,
     discoveredCandidateCount: discovered ?? assessments.length,
     feedback: loadFeedbackMap(),
     convergence: loadConvergenceMap(),
+    youthWildcardIds: pickYouthWildcardIds(sources),
   });
   const md = renderMarkdown(digest);
   // Learn-more pages live next to the digest; DIGEST_PROFILE_BASE_URL points
@@ -993,10 +999,6 @@ export async function renderDigestForRun(
     "utf-8"
   );
 
-  const sources =
-    readJson<Candidate[]>(
-      path.join(assessmentRunDir(runId), "source-candidates.json")
-    ) ?? [];
   const pagesDir = path.join(digestsDir, "profiles", digest.digest_id);
   const pages = writeDigestProfilePages(digest, sources, pagesDir);
   logStage(runId, "digest_profile_pages", { pages, dir: pagesDir });

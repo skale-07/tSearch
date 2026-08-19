@@ -70,6 +70,38 @@ export function pendingKind(seed: PendingSeed): SeedSourceKind {
   return "award_roster";
 }
 
+export function pendingProgramKey(seed: PendingSeed): string {
+  if (seed.award_id) return seed.award_id;
+  const oly = seed.source_id.match(/^olympiad:(.+)$/i);
+  if (oly) return oly[1]!.toUpperCase();
+  return seed.source_id.split(":")[0] ?? seed.source_id;
+}
+
+export interface PendingPickOpts {
+  kind?: SeedSourceKind;
+  cohort_year?: number;
+  program?: string;
+}
+
+export function seedMatchesPick(
+  seed: PendingSeed,
+  opts: PendingPickOpts
+): boolean {
+  if (opts.kind && pendingKind(seed) !== opts.kind) return false;
+  if (
+    opts.cohort_year != null &&
+    seed.cohort_year !== opts.cohort_year
+  ) {
+    return false;
+  }
+  if (opts.program) {
+    const want = opts.program.trim().toLowerCase();
+    if (!want) return true;
+    if (pendingProgramKey(seed).toLowerCase() !== want) return false;
+  }
+  return true;
+}
+
 function snapshotOf(source: SeedSource): ChannelSnapshot {
   try {
     const rows = source.read();
@@ -290,11 +322,42 @@ export function takePendingBatch(
     pendingPath?: string;
     skip?: (seed: PendingSeed) => boolean;
     kind?: SeedSourceKind;
+    cohort_year?: number;
+    program?: string;
   }
 ): PendingSeed[] {
   const skip = opts?.skip ?? (() => false);
   return loadPendingSeeds(opts?.pendingPath)
     .filter((s) => !skip(s))
-    .filter((s) => !opts?.kind || pendingKind(s) === opts.kind)
+    .filter((s) =>
+      seedMatchesPick(s, {
+        kind: opts?.kind,
+        cohort_year: opts?.cohort_year,
+        program: opts?.program,
+      })
+    )
     .slice(0, n);
+}
+
+export function pendingNameKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Operator-picked seed. Does not skip recent LinkedIn failures. */
+export function findPendingSeedByName(
+  query: string,
+  opts?: PendingPickOpts & { pendingPath?: string }
+): PendingSeed | null {
+  const q = pendingNameKey(query);
+  if (!q) return null;
+  return (
+    loadPendingSeeds(opts?.pendingPath)
+      .filter((s) => seedMatchesPick(s, opts ?? {}))
+      .find((s) => pendingNameKey(s.name) === q) ?? null
+  );
 }

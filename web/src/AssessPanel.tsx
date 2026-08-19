@@ -25,12 +25,19 @@ import {
 } from "./assessmentStatus";
 import { AssessmentResultView } from "./AssessmentResultView";
 
-type SortKey = "name" | "final_score" | "context";
-type SurfaceFilter = "all" | "both" | "github" | "writing";
+type SortKey = "name" | "final_score" | "context" | "age";
+type SurfaceFilter = "all" | "both" | "github" | "writing" | "youth";
 
 /** Assessable context breadth: both surfaces > one > none. */
 function surfaceRank(c: AssessmentCandidateRow): number {
   return (c.has_github ? 1 : 0) + (c.has_writing_surface ? 1 : 0);
+}
+
+/** Numeric age for sort. Missing ages stay last in either direction. */
+function estimatedAge(c: AssessmentCandidateRow): number | null {
+  return typeof c.estimated_age === "number" && Number.isFinite(c.estimated_age)
+    ? c.estimated_age
+    : null;
 }
 
 function matchesSurfaceFilter(
@@ -40,6 +47,7 @@ function matchesSurfaceFilter(
   if (f === "all") return true;
   if (f === "both") return c.has_github && c.has_writing_surface;
   if (f === "github") return c.has_github && !c.has_writing_surface;
+  if (f === "youth") return Boolean(c.youth_wildcard);
   return c.has_writing_surface && !c.has_github;
 }
 
@@ -175,8 +183,20 @@ export function AssessPanel({
       );
     }
     return [...rows].sort((a, b) => {
+      const wa = a.youth_wildcard ? 1 : 0;
+      const wb = b.youth_wildcard ? 1 : 0;
+      if (wa !== wb) return wb - wa;
       if (sortKey === "name") {
         const cmp = a.name.localeCompare(b.name);
+        return sortDesc ? -cmp : cmp;
+      }
+      if (sortKey === "age") {
+        const av = estimatedAge(a);
+        const bv = estimatedAge(b);
+        if (av == null && bv == null) return a.name.localeCompare(b.name);
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        const cmp = av - bv;
         return sortDesc ? -cmp : cmp;
       }
       if (sortKey === "context") {
@@ -198,6 +218,11 @@ export function AssessPanel({
       return next;
     });
   };
+
+  const wildcardCount = useMemo(
+    () => candidates.filter((c) => c.youth_wildcard).length,
+    [candidates]
+  );
 
   const eligibleFiltered = useMemo(
     () => filtered.filter((candidate) => assessmentEligibility(candidate).eligible),
@@ -339,6 +364,14 @@ export function AssessPanel({
 
       {loadError && <p className="error">{loadError}</p>}
 
+      {wildcardCount > 0 && (
+        <p className="muted">
+          Youth wildcard: {wildcardCount} people aged 17–19 drawn this freeze
+          from LinkedIn experience with detail plus featured/interesting links.
+          Eligible even without GitHub. Same freeze, same draw.
+        </p>
+      )}
+
       {!loadError && !loading && candidates.length === 0 && (
         <p className="muted">No candidates yet — run discovery first.</p>
       )}
@@ -451,6 +484,17 @@ export function AssessPanel({
             <button
               type="button"
               className="chip"
+              title="Younger first; click again for older first. Unknown ages last."
+              onClick={() => {
+                setSortKey("age");
+                setSortDesc((d) => (sortKey === "age" ? !d : false));
+              }}
+            >
+              Age {sortKey === "age" ? (sortDesc ? "↓" : "↑") : ""}
+            </button>
+            <button
+              type="button"
+              className="chip"
               title="Assessable context: both GitHub + writing first, then one surface"
               onClick={() => {
                 setSortKey("context");
@@ -479,6 +523,7 @@ export function AssessPanel({
               <option value="both">GitHub + blog</option>
               <option value="github">GitHub only</option>
               <option value="writing">Blog/site only</option>
+              <option value="youth">Youth wildcard</option>
             </select>
             <button type="button" className="chip" onClick={toggleAllVisible}>
               Select visible eligible
@@ -505,6 +550,11 @@ export function AssessPanel({
                       </span>
                       <span className={`chip ${assessmentEligibility(c).githubPathAvailable ? "chip-on" : "chip-off"}`}>GitHub path available</span>
                       <span className={`chip ${assessmentEligibility(c).writingEligible ? "chip-on" : "chip-off"}`}>Writing</span>
+                      {c.youth_wildcard && (
+                        <span className="chip chip-strong" title="17–19 with detailed LinkedIn experience and featured links">
+                          Youth wildcard
+                        </span>
+                      )}
                       {assessedAt.has(c.candidate_id) && (
                         <span className="chip chip-strong" title="A finished report exists — selecting will re-run the judge">📄 report available</span>
                       )}

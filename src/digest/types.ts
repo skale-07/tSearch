@@ -6,6 +6,38 @@ import type {
 
 export const DIGEST_SCHEMA_VERSION = "digest-v2";
 
+export interface DigestWeightedLine {
+  label: string;
+  score: number;
+  weight: number;
+  weighted: number;
+}
+
+export interface DigestScoreBreakdown {
+  assessment: {
+    overall_10: number;
+    priority_100: number;
+    lines: DigestWeightedLine[];
+    base: number;
+    age_scalar: number;
+    estimated_age: number | null;
+    caps: string[];
+  } | null;
+  discovery: {
+    final_score: number;
+    overall_10: number | null;
+    parts: Array<{ label: string; value: number }>;
+    age_scalar: number | null;
+    estimated_age: number | null;
+  };
+  dials: {
+    obscurity: number | null;
+    upside: number | null;
+    age_relative: number | null;
+    connections: number | null;
+  };
+}
+
 export interface DigestCandidate {
   candidate_id: string;
   rank: number;
@@ -21,6 +53,8 @@ export interface DigestCandidate {
   evidence_support?: string;
   /** Reviewer feedback applied to this digest (Phase 3/4 loop). */
   reviewer_feedback?: "relevant" | "explore_network";
+  /** Frozen 17–19 lottery pick — included even below the priority floor. */
+  youth_wildcard?: boolean;
   /** Reachable from 2+ seed-set members (the convergence heuristic). */
   network_bridges?: {
     seed_count: number;
@@ -38,6 +72,8 @@ export interface DigestCandidate {
   experience_hook?: string;
   /** Tiered recruiter label (label-judge): e.g. "Garage Builder" tier 1. */
   label?: { id: string; display: string; tier: number; rationale?: string };
+  /** How the 1–10 was computed (assessment formula + discovery parts). */
+  score_breakdown?: DigestScoreBreakdown;
   /** Surfacing dials — age-relative impressiveness and footprint obscurity. */
   surfacing?: {
     age_relative_impressiveness: number | null;

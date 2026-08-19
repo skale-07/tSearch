@@ -1339,12 +1339,26 @@ button.linkish {
   line-height: 1.45;
 }
 
+.discover-resolve {
+  margin-bottom: 0.35rem;
+}
+
 .discover-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.discover-actions select {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--ink);
+  padding: 0.4rem 0.5rem;
 }
 
 .discover-limit {
@@ -1364,6 +1378,25 @@ button.linkish {
   background: var(--bg-elev);
   color: var(--ink);
   padding: 0.4rem 0.5rem;
+}
+
+.discover-one-name input {
+  width: 16rem;
+}
+
+.discover-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.discover-row-pick {
+  cursor: pointer;
+}
+
+.discover-row-pick:hover td {
+  background: rgba(250, 246, 237, 0.04);
 }
 
 .discover-status {

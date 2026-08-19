@@ -59,6 +59,8 @@ export function computeObscurity(input: {
   linkedinConnectionsSaturated?: boolean;
   /** Verified GitHub URL on the LinkedIn profile (not a name-search guess). */
   githubOnLinkedIn?: boolean;
+  /** Stated LinkedIn roles with detail — substance even with no GitHub. */
+  linkedinExperiencePresent?: boolean;
 }): ObscurityResult {
   const { github, substack, website } = input;
 
@@ -132,7 +134,9 @@ export function computeObscurity(input: {
   const substance_present =
     (github?.repos?.length ?? 0) > 0 ||
     (substack?.posts ?? 0) > 0 ||
-    !!input.githubOnLinkedIn;
+    !!input.githubOnLinkedIn ||
+    !!website ||
+    !!input.linkedinExperiencePresent;
 
   return {
     obscurity: Math.round(clamp01(1 - visibility) * 100) / 100,

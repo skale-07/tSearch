@@ -17,6 +17,8 @@ describe("eligibility", () => {
     const no = assessmentEligibility({});
     expect(no.eligible).toBe(false);
     expect(no.reasons.join(" ")).toMatch(/GitHub path/i);
+    const youth = assessmentEligibility({ youth_wildcard: true });
+    expect(youth.eligible).toBe(true);
   });
 });
 
@@ -44,6 +46,72 @@ describe("errorView", () => {
     });
     expect(view.message).not.toMatch(/expected array/i);
     expect(view.technical_details).toMatch(/Schema validation/i);
+  });
+});
+
+describe("pending filters", () => {
+  it("filters olympiad rows by competition year and program", async () => {
+    const { matchesPendingFilter, uniquePendingYears, uniquePendingPrograms } =
+      await import("../../web/src/discovery.js");
+    const rows = [
+      {
+        name: "A",
+        source_id: "olympiad:isef",
+        source_kind: "olympiad_csv" as const,
+        cohort_year: 2025,
+        first_seen: "2026-01-01",
+      },
+      {
+        name: "B",
+        source_id: "olympiad:imo",
+        source_kind: "olympiad_csv" as const,
+        cohort_year: 2024,
+        first_seen: "2026-01-01",
+      },
+      {
+        name: "C",
+        award_id: "coca_cola_scholars",
+        source_id: "coca_cola_scholars:2025",
+        source_kind: "award_roster" as const,
+        cohort_year: 2025,
+        first_seen: "2026-01-01",
+      },
+    ];
+    expect(
+      rows.filter((s) =>
+        matchesPendingFilter(s, { kind: "olympiad_csv", year: 2025 })
+      ).map((s) => s.name)
+    ).toEqual(["A"]);
+    expect(
+      rows.filter((s) => matchesPendingFilter(s, { program: "ISEF" })).map((s) => s.name)
+    ).toEqual(["A"]);
+    expect(
+      rows.filter((s) =>
+        matchesPendingFilter(s, { year: 2025, program: "coca_cola_scholars" })
+      ).map((s) => s.name)
+    ).toEqual(["C"]);
+    expect(uniquePendingYears(rows)).toEqual([2025, 2024]);
+    expect(uniquePendingPrograms(rows).map((p) => p.id).sort()).toEqual(
+      ["ISEF", "IMO", "coca_cola_scholars"].sort()
+    );
+  });
+});
+
+describe("findPendingByName", () => {
+  it("matches the pending list case-insensitively and rejects unknowns", async () => {
+    const { findPendingByName, PERSON_NOT_ON_LIST, pendingNameKey } =
+      await import("../../web/src/discovery.js");
+    const rows = [
+      {
+        name: "Jane Smith",
+        source_id: "coca_cola_scholars.2025",
+        first_seen: "2026-01-01",
+      },
+    ];
+    expect(findPendingByName(rows, "  jane   smith ")?.name).toBe("Jane Smith");
+    expect(findPendingByName(rows, "Jane Smyth")).toBeNull();
+    expect(pendingNameKey("José")).toBe("jose");
+    expect(PERSON_NOT_ON_LIST).toBe("This person is not on the list");
   });
 });
 

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { Candidate } from "../types.js";
 import type { DigestCandidate, DigestDocument } from "./types.js";
+import { scoreBreakdownProfileHtml } from "./scoreBreakdown.js";
 import { identityFromCandidate } from "../assessment/candidateIdentity.js";
 import { slugify } from "../storage/jsonStore.js";
 
@@ -160,6 +161,7 @@ export function renderProfilePage(
           `🔗 bridges ${c.network_bridges.seed_count} seed-set members`
         )
       : "",
+    c.youth_wildcard ? chip("Youth wildcard · 17–19") : "",
     source?.olympiad?.sources?.length
       ? chip(esc(source.olympiad.sources.join(" · ")))
       : "",
@@ -193,6 +195,7 @@ export function renderProfilePage(
     <div class="score-row">
       <div><span class="big">${esc((c.assessment_priority_score / 10).toFixed(1))}</span><span class="muted">/10 overall</span></div>
     </div>
+    ${c.score_breakdown ? scoreBreakdownProfileHtml(c.score_breakdown) : ""}
     ${c.technical_summary ? `<p>${esc(c.technical_summary.rationale.slice(0, 800))}</p>` : ""}
     ${caveats}
     <p class="next"><strong>Suggested first look:</strong> ${esc(c.next_review_step)}</p>`;
@@ -241,6 +244,10 @@ export function renderProfilePage(
   .btn:hover { background:rgba(232,197,106,.12); }
   .big { font-family:Georgia, serif; font-size:40px; color:var(--accent); margin-right:8px; }
   .score-row { margin-bottom:8px; }
+  table.break { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 12px; }
+  table.break td { padding:4px 0; color:var(--muted); }
+  table.break td:last-child { text-align:right; color:var(--ink); white-space:nowrap; }
+  table.break tr.sum td { color:var(--ink); font-weight:600; border-top:1px solid var(--line); padding-top:8px; }
   details { margin:12px 0; }
   summary { cursor:pointer; color:var(--muted); }
   .next { margin-bottom:0; }

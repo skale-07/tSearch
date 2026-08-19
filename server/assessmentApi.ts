@@ -17,6 +17,7 @@ import {
   normalizeRunStatus,
 } from "../src/assessment/assessmentState.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
+import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
 import {
   assessmentRunDir,
   createAssessmentRun,
@@ -51,7 +52,10 @@ import { OUTPUT_PATH } from "../src/config.js";
 
 const COLLECTION_CONFIG_VERSION = "collection-v2-agents-wired";
 
-export function candidateEligibility(c: Candidate): {
+export function candidateEligibility(
+  c: Candidate,
+  youthWildcardIds?: Set<string>
+): {
   eligible: boolean;
   reason?: string;
   github_username?: string;
@@ -66,7 +70,9 @@ export function candidateEligibility(c: Candidate): {
   const blog_url = c.github?.blog ?? c.substack?.url ?? undefined;
   const github_path_available = Boolean(github_username);
   const writing_path_available = Boolean(blog_url || website_url);
-  if (github_path_available || writing_path_available) {
+  const youth =
+    youthWildcardIds?.has(identityFromCandidate(c).candidate_id) ?? false;
+  if (github_path_available || writing_path_available || youth) {
     return {
       eligible: true,
       github_username,
@@ -123,6 +129,7 @@ export function prepareAssessmentRun(
 
   ensureAssessmentCacheDirs();
   const all = loadCandidatesFromPath(inputPath);
+  const youthWildcardIds = pickYouthWildcardIds(all);
   const byId = new Map(
     all.map((c) => [identityFromCandidate(c).candidate_id, c] as const)
   );
@@ -142,7 +149,7 @@ export function prepareAssessmentRun(
 
   for (const id of requested) {
     const c = byId.get(id)!;
-    const el = candidateEligibility(c);
+    const el = candidateEligibility(c, youthWildcardIds);
     if (!el.eligible) {
       skipped_candidates.push({
         candidate_id: id,
@@ -156,7 +163,7 @@ export function prepareAssessmentRun(
 
   if (!eligibleIds.length) {
     return {
-      error: "No eligible candidates in request (need GitHub path or writing path)",
+      error: "No eligible candidates in request (need GitHub, writing, or youth wildcard)",
       status: 400,
     };
   }

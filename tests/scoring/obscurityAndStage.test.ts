@@ -5,6 +5,7 @@ import {
   upsideVector,
 } from "../../src/scoring/computeObscurity.js";
 import { judgedSubstance } from "../../src/assessment/scoring/judgedSubstance.js";
+import { EXPERIENCE_AS_TECHNICAL_CAP } from "../../src/assessment/scoring/synthesizeCandidate.js";
 import { parseConnectionCount } from "../../src/linkedin/linkedinExtract.js";
 import { computeScore } from "../../src/scoring/computeScore.js";
 import { deriveStage } from "../../src/assessment/stage/deriveStage.js";
@@ -74,6 +75,16 @@ describe("computeObscurity", () => {
     expect(result.substance_present).toBe(false);
     // The degenerate case must never produce a surfacing multiplier.
     expect(upsideMultiplier(result)).toBeNull();
+  });
+
+  it("LinkedIn experience or a website counts as substance without GitHub", () => {
+    const fromLi = computeObscurity({ linkedinExperiencePresent: true });
+    expect(fromLi.substance_present).toBe(true);
+    expect(upsideMultiplier(fromLi)).not.toBeNull();
+
+    const fromSite = computeObscurity({ website: site(3) });
+    expect(fromSite.substance_present).toBe(true);
+    expect(upsideMultiplier(fromSite)).not.toBeNull();
   });
 
   it("real work with no audience scores highly obscure and yields a multiplier", () => {
@@ -314,6 +325,27 @@ describe("judgedSubstance", () => {
     expect(judgedSubstance({ technical: tech("strong", []) })).toBeNull();
     expect(
       judgedSubstance({ technical: tech("insufficient_public_evidence") })
+    ).toBeNull();
+  });
+
+  it("falls back to capped LinkedIn experience when GitHub was never judged", () => {
+    const experience = {
+      overall_distinctiveness: "strong",
+    } as never;
+    expect(judgedSubstance({ experience })).toBeCloseTo(
+      0.8 * EXPERIENCE_AS_TECHNICAL_CAP * 0.5
+    );
+    expect(
+      judgedSubstance({
+        technical: tech("strong", []),
+        experience,
+      })
+    ).toBeCloseTo(0.8 * EXPERIENCE_AS_TECHNICAL_CAP * 0.5);
+    expect(
+      judgedSubstance({
+        technical: tech("insufficient_public_evidence"),
+        experience,
+      })
     ).toBeNull();
   });
 });

@@ -307,3 +307,99 @@ describe("digest feedback refinement (Phase 4)", () => {
     expect(digest.meta.feedback_excluded_count).toBeUndefined();
   });
 });
+
+describe("youth wildcards in digest", () => {
+  it("includes an assessed wildcard below the priority floor", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_high", "High", 80),
+        assessment("cand_youth", "Youth", 12),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 50,
+      topN: 5,
+      youthWildcardIds: ["cand_youth"],
+    });
+    expect(digest.candidates.map((c) => c.name)).toEqual(["High", "Youth"]);
+    expect(digest.candidates[1]?.youth_wildcard).toBe(true);
+    expect(digest.candidates[0]?.youth_wildcard).toBeUndefined();
+    const html = renderHtml(digest);
+    expect(html).toMatch(/Youth wildcard/);
+    const md = renderMarkdown(digest);
+    expect(md).toMatch(/included regardless of assessment score/i);
+  });
+
+  it("appends wildcards after top-N instead of dropping them", () => {
+    const assessments = [
+      assessment("cand_1", "Ann", 90),
+      assessment("cand_2", "Ben", 80),
+      assessment("cand_3", "Cara", 70),
+      assessment("cand_4", "Drew", 60),
+      assessment("cand_5", "Eve", 55),
+      assessment("cand_youth", "Youth", 8),
+    ];
+    const digest = buildDigest({
+      run,
+      assessments,
+      discoveredCandidateCount: 6,
+      minPriority: 50,
+      topN: 5,
+      youthWildcardIds: ["cand_youth"],
+    });
+    expect(digest.candidates).toHaveLength(6);
+    expect(digest.candidates.map((c) => c.name)).toEqual([
+      "Ann",
+      "Ben",
+      "Cara",
+      "Drew",
+      "Eve",
+      "Youth",
+    ]);
+  });
+
+  it("does not duplicate a wildcard already in the scored shortlist", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_youth", "Youth", 80),
+        assessment("cand_b", "Bob", 40),
+      ],
+      discoveredCandidateCount: 2,
+      minPriority: 50,
+      youthWildcardIds: ["cand_youth"],
+    });
+    expect(digest.candidates.map((c) => c.name)).toEqual(["Youth"]);
+    expect(digest.candidates[0]?.youth_wildcard).toBe(true);
+  });
+
+  it("still excludes failed wildcards and not_relevant feedback", () => {
+    const failed = assessment("cand_fail", "Fail", 10);
+    failed.status = "failed";
+    const digest = buildDigest({
+      run,
+      assessments: [
+        assessment("cand_high", "High", 80),
+        failed,
+        assessment("cand_skip", "Skip", 9),
+      ],
+      discoveredCandidateCount: 3,
+      minPriority: 50,
+      youthWildcardIds: ["cand_fail", "cand_skip"],
+      feedback: new Map([
+        [
+          "cand_skip",
+          {
+            candidate_id: "cand_skip",
+            entries: [
+              { verdict: "not_relevant" as const, at: new Date().toISOString() },
+            ],
+            latest_verdict: "not_relevant" as const,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+      ]),
+    });
+    expect(digest.candidates.map((c) => c.name)).toEqual(["High"]);
+  });
+});

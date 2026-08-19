@@ -551,9 +551,12 @@ function parseExperienceDetail(text: string): LinkedInExperience[] {
       location = lines[i++];
     }
 
-    if (i < lines.length && lines[i].length > 100) i++;
+    let description: string | null = null;
+    if (i < lines.length && lines[i].length > 80 && !lines[i].startsWith("http")) {
+      description = lines[i++];
+    }
 
-    entries.push({ title, company, dates, location });
+    entries.push({ title, company, dates, location, description });
   }
 
   return entries;
@@ -932,6 +935,10 @@ export async function extractLinkedInProfile(
   const featuredLinks = featured.text.trim()
     ? parseAllLinks(featured.text, featured.hrefs.map(unwrapRedirectUrl))
     : null;
+  const featured_links = collectContactUrls(
+    featured.text,
+    featured.hrefs.map(unwrapRedirectUrl)
+  ).slice(0, 15);
 
   const educationText = await fetchDetailSectionText(
     page,
@@ -1013,6 +1020,7 @@ export async function extractLinkedInProfile(
     personal_website: website,
     website_url: website,
     contact_links: classified.contact_links,
+    featured_links,
     experience,
     awards,
     skills: skillLines,

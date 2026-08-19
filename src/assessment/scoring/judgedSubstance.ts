@@ -1,24 +1,24 @@
 import type {
+  ExperienceJudgeResult,
   OverallStrengthBand,
   OwnershipAssessmentV2,
   TechnicalJudgeResultV2,
 } from "../types.js";
+import { EXPERIENCE_AS_TECHNICAL_CAP } from "./synthesizeCandidate.js";
 
 /**
- * "Technically sound GitHub projects that the LLM judges" — the substance
- * input to the upside vector.
+ * Substance input to the upside vector (obscurity × work).
  *
- * This reads the technical judge's verdict rather than counting repos: a
- * hundred tutorial forks are not substance, and one deep inspectable system
- * is. It is damped by ownership support, because crediting someone for work
- * that is probably not theirs is the failure mode this system exists to
- * avoid.
+ * Prefers the GitHub technical judge over repo counts. When GitHub was never
+ * judged, LinkedIn experience distinctiveness fills in at
+ * EXPERIENCE_AS_TECHNICAL_CAP so GitHub-less youth can still surface as
+ * undiscovered *and* substantive. Damped by ownership support.
  *
- * Returns null — not zero — when the work was never judged, so unjudged
- * candidates fall out of the vector instead of ranking at the bottom of it.
+ * Returns null — not zero — when nothing was judged, so unjudged candidates
+ * fall out of the vector instead of ranking at the bottom of it.
  */
 
-function bandTo01(band: OverallStrengthBand): number | null {
+function bandTo01(band: OverallStrengthBand | undefined): number | null {
   switch (band) {
     case "exceptional":
       return 0.95;
@@ -51,12 +51,22 @@ function ownershipFactor(ownership?: OwnershipAssessmentV2): number {
 export function judgedSubstance(input: {
   technical?: TechnicalJudgeResultV2;
   ownership?: OwnershipAssessmentV2;
+  experience?: ExperienceJudgeResult;
 }): number | null {
   const { technical } = input;
-  // The judge must have actually seen artifacts — a deterministic abstention
-  // over an empty repo set is not evidence of anything.
-  if (!technical || technical.artifact_ids.length === 0) return null;
-  const base = bandTo01(technical.overall_technical_strength);
-  if (base === null) return null;
-  return Math.round(base * ownershipFactor(input.ownership) * 100) / 100;
+  if (technical && technical.artifact_ids.length > 0) {
+    const base = bandTo01(technical.overall_technical_strength);
+    if (base === null) return null;
+    return Math.round(base * ownershipFactor(input.ownership) * 100) / 100;
+  }
+  const fromExperience = bandTo01(input.experience?.overall_distinctiveness);
+  if (fromExperience === null) return null;
+  return (
+    Math.round(
+      fromExperience *
+        EXPERIENCE_AS_TECHNICAL_CAP *
+        ownershipFactor(input.ownership) *
+        100
+    ) / 100
+  );
 }

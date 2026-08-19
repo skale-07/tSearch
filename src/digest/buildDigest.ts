@@ -11,6 +11,7 @@ import {
   resolveProfileLinks,
   selectNamedWorks,
 } from "./buildCoryBrief.js";
+import { digestScoreBreakdown } from "./scoreBreakdown.js";
 
 function avgDims(
   record: CandidateAssessmentRecord,
@@ -64,15 +65,32 @@ function contentHash(record: CandidateAssessmentRecord): string {
     .digest("hex");
 }
 
+function isClosedForDigest(a: CandidateAssessmentRecord): boolean {
+  return (
+    a.status === "failed" ||
+    a.status === "pending" ||
+    a.status === "running"
+  );
+}
+
 function isDigestEligible(
   a: CandidateAssessmentRecord,
   minPriority: number
 ): boolean {
-  if (a.status === "failed" || a.status === "insufficient_context") return false;
+  if (isClosedForDigest(a) || a.status === "insufficient_context") return false;
   if (a.synthesis_state && a.synthesis_state.valid_for_ranking === false) {
     return false;
   }
   return a.synthesis.priority_score >= minPriority;
+}
+
+/** Lottery picks skip the score floor; failed/unfinished records still do not. */
+function isYouthWildcardInclude(
+  a: CandidateAssessmentRecord,
+  youthWildcardIds: Set<string>
+): boolean {
+  if (!youthWildcardIds.has(a.candidate_id)) return false;
+  return !isClosedForDigest(a);
 }
 
 function clampTopN(topN: number): number {
@@ -89,10 +107,16 @@ export function buildDigest(input: {
   feedback?: Map<string, FeedbackRecord>;
   /** Multi-seed bridges keyed by lowercase github login. */
   convergence?: Map<string, ConvergenceEntry>;
+  /**
+   * Frozen youth-wildcard ids for this freeze. Assessed members are appended
+   * even when they sit below `minPriority` or outside top-N.
+   */
+  youthWildcardIds?: Iterable<string>;
 }): DigestDocument {
   const topN = clampTopN(input.topN ?? DIGEST_TOP_N);
   const minPriority = input.minPriority ?? DIGEST_MIN_PRIORITY;
   const feedback = input.feedback ?? new Map<string, FeedbackRecord>();
+  const youthWildcardIds = new Set(input.youthWildcardIds ?? []);
 
   const verdictOf = (a: CandidateAssessmentRecord) =>
     feedback.get(a.candidate_id)?.latest_verdict;
@@ -136,6 +160,14 @@ export function buildDigest(input: {
               a.source_candidate.name.localeCompare(b.source_candidate.name)
           )
           .slice(0, topN);
+
+  const already = new Set(selected.map((a) => a.candidate_id));
+  const youthExtras = [...pool]
+    .filter((a) => isYouthWildcardInclude(a, youthWildcardIds) && !already.has(a.candidate_id))
+    .sort((a, b) =>
+      a.source_candidate.name.localeCompare(b.source_candidate.name)
+    );
+  selected.push(...youthExtras);
 
   const feedback_boosted_count = selected.filter(
     (a) => feedbackBoost(a) === 1
@@ -182,12 +214,14 @@ export function buildDigest(input: {
       reviewerVerdict === "explore_network"
         ? { reviewer_feedback: reviewerVerdict }
         : {}),
+      ...(youthWildcardIds.has(a.candidate_id) ? { youth_wildcard: true } : {}),
       archetype: a.synthesis.archetype,
       primary_archetype: assignment?.primary ?? a.synthesis.archetype,
       secondary_archetypes: assignment?.secondary?.slice(0, 2) ?? [],
       headline: a.synthesis.headline,
       discovery_score: a.source_candidate.discovery_score,
       assessment_priority_score: a.synthesis.priority_score,
+      score_breakdown: digestScoreBreakdown(a),
       assessment_confidence: a.synthesis.priority_confidence,
       ownership_support: a.ownership?.support_class,
       evidence_support: axes?.evidence_completeness?.evidence_support,
@@ -330,6 +364,7 @@ export function buildDigest(input: {
         "Ownership requires direct core-contribution evidence for high support.",
         "Discovery score (final_score) is shown separately and is not the assessment priority.",
         `Digest includes candidates at or above priority ${minPriority} (top ${topN}).`,
+        "Youth wildcards (17–19 with detailed LinkedIn experience and featured links) are included even below that floor.",
       ],
     },
     meta: {

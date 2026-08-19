@@ -9,6 +9,7 @@ import { predictSeedAge } from "../src/seeds/predictSeedAge.js";
 import {
   CHANNEL_META,
   discoverySnapshot,
+  findPendingSeedByName,
   refreshSeeds,
   takePendingBatch,
   type DiscoverySnapshot,
@@ -397,30 +398,51 @@ export async function postDiscoveryOlympiadPull(body: {
 export function postDiscoveryResolve(body: {
   limit?: unknown;
   kind?: unknown;
+  name?: unknown;
+  year?: unknown;
+  program?: unknown;
 }):
   | { runId: string; batch: Array<{ name: string; country?: string }> }
   | { error: string; status: number } {
-  const raw = Number(body.limit ?? PENDING_RESOLVE_DEFAULT);
-  const limit = Math.max(
-    1,
-    Number.isFinite(raw) ? Math.floor(raw) : PENDING_RESOLVE_DEFAULT
-  );
   const kind =
     typeof body.kind === "string" && KINDS.has(body.kind as SeedSourceKind)
       ? (body.kind as SeedSourceKind)
       : undefined;
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const yearRaw = Number(body.year);
+  const cohort_year =
+    Number.isInteger(yearRaw) && yearRaw >= 1990 && yearRaw <= 2100
+      ? yearRaw
+      : undefined;
+  const program =
+    typeof body.program === "string" && body.program.trim()
+      ? body.program.trim()
+      : undefined;
+  const pick = { kind, cohort_year, program };
 
-  const batch = takePendingBatch(limit, {
-    kind,
-    skip: (s) => attemptedRecently(s.name),
-  });
-  if (!batch.length) {
-    return {
-      error: kind
-        ? `No pending ${CHANNEL_META[kind].title.toLowerCase()} seeds to resolve.`
-        : "No pending seeds to resolve. Scan sources first.",
-      status: 400,
-    };
+  let batch: PendingSeed[];
+  if (name) {
+    const hit = findPendingSeedByName(name, pick);
+    if (!hit) {
+      return { error: "This person is not on the list", status: 404 };
+    }
+    batch = [hit];
+  } else {
+    const raw = Number(body.limit ?? PENDING_RESOLVE_DEFAULT);
+    const limit = Math.max(
+      1,
+      Number.isFinite(raw) ? Math.floor(raw) : PENDING_RESOLVE_DEFAULT
+    );
+    batch = takePendingBatch(limit, {
+      ...pick,
+      skip: (s) => attemptedRecently(s.name),
+    });
+    if (!batch.length) {
+      return {
+        error: "No pending people match these filters.",
+        status: 400,
+      };
+    }
   }
 
   const started = startSeedBatchRun({
@@ -429,7 +451,9 @@ export function postDiscoveryResolve(body: {
       country: s.country,
       award_id: s.award_id,
     })),
-    label: `pending:${batch.length}`,
+    label: name
+      ? `pending:name:${batch[0]!.name}`
+      : `pending:${batch.length}${cohort_year ? `:y${cohort_year}` : ""}${program ? `:${program}` : ""}`,
     // Discover intake: LinkedIn resolve + graph expand into trees/candidates.
     resolveOnly: false,
   });

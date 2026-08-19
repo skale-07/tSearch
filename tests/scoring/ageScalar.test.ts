@@ -24,6 +24,26 @@ describe("ageScalar", () => {
   });
 });
 
+describe("computeScore overall_score mapping", () => {
+  it("maps a typical ~2.7 final_score onto ~9/10, not 1/10", () => {
+    const r = computeScore(undefined, undefined, {
+      name: "Test",
+      years: [new Date().getFullYear()],
+      sources: ["IMO"],
+      prizes: [],
+      countries: [],
+      schools: [],
+      olympiadScore: 3,
+      medalScore: 2,
+      recencyScore: 4,
+      ageScore: 2,
+    });
+    expect(r.final_score).toBeGreaterThan(1.5);
+    expect(r.overall_score).toBeGreaterThanOrEqual(5);
+    expect(r.overall_score).toBeLessThanOrEqual(10);
+  });
+});
+
 describe("computeScore age scalar", () => {
   const oly = (ageScore: number, year: number): OlympiadProfile => ({
     name: "Test",

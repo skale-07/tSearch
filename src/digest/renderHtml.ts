@@ -1,5 +1,6 @@
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { profileFileName } from "./renderProfilePages.js";
+import { scoreBreakdownHtml } from "./scoreBreakdown.js";
 
 /**
  * The digest email. Design goals: card-per-person, minimal prose (depth lives
@@ -105,6 +106,7 @@ function card(
     c.network_bridges
       ? chipHtml(`🔗 knows ${c.network_bridges.seed_count} of your seed set`)
       : "",
+    c.youth_wildcard ? chipHtml("Youth wildcard · 17–19") : "",
     c.reviewer_feedback === "relevant" ? chipHtml("✓ you flagged relevant") : "",
   ]
     .filter(Boolean)
@@ -145,6 +147,7 @@ function card(
         <p style="margin:12px 0 10px;font-size:14px;line-height:1.55;color:#3b372e;">${brief}</p>
         ${c.experience_hook ? `<p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:#8a6d1f;font-style:italic;">✦ ${esc(truncateAtWord(c.experience_hook, 130))}</p>` : ""}
         ${surfacingLine(c)}
+        ${c.score_breakdown ? scoreBreakdownHtml(c.score_breakdown) : ""}
         ${works ? `<p style="margin:0 0 14px;font-size:13px;color:#6b6558;">Worth a look: ${works}</p>` : ""}
         <a href="${esc(profileHref)}" style="display:inline-block;background:#e8c56a;color:#1a1408;font-weight:700;font-size:13px;padding:9px 20px;border-radius:8px;text-decoration:none;">Learn more →</a>
         ${github ? `&nbsp;&nbsp;<a href="${esc(github)}" style="display:inline-block;border:1px solid #d9d4c7;color:#3b372e;font-weight:600;font-size:13px;padding:8px 18px;border-radius:8px;text-decoration:none;">GitHub</a>` : ""}

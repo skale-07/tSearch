@@ -59,8 +59,7 @@ export interface PersonRecord {
 
   /**
    * GitHub-first footprint qualification (coverage sweep). A NOMINATION only:
-   * github_login_guess never becomes links.github_url — that stays reserved
-   * for LinkedIn/website-verified identities.
+   * github_login_guess never becomes links.github_url by itself.
    */
   footprint?: {
     score: number;
