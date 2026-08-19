@@ -6,10 +6,13 @@ import {
   type AssessedRow,
   type AssessedSort,
 } from "./api";
+import { formatOverallScore } from "./ageDisplay";
 
 interface Props {
   open: boolean;
-  onClose: () => void;
+  /** When true, render as Score page content (not a slide-over). */
+  embedded?: boolean;
+  onClose?: () => void;
 }
 
 function timeAgo(iso: string): string {
@@ -23,7 +26,7 @@ function timeAgo(iso: string): string {
 }
 
 /** Everyone the judge has run on, with the digest-style profile a click away. */
-export function ReportsPanel({ open, onClose }: Props) {
+export function ReportsPanel({ open, embedded = false, onClose }: Props) {
   const [rows, setRows] = useState<AssessedRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +58,20 @@ export function ReportsPanel({ open, onClose }: Props) {
 
   return (
     <>
-      <aside className="panel assess-panel open">
-        <div className="panel-head">
-          <button type="button" className="panel-close" onClick={onClose}>
-            Close
-          </button>
-        </div>
-        <p className="eyebrow">Assessment</p>
-        <h2>Reports</h2>
+      <aside className={embedded ? "score-pane" : "panel assess-panel open"}>
+        {!embedded && onClose && (
+          <div className="panel-head">
+            <button type="button" className="panel-close" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        )}
+        {!embedded && (
+          <>
+            <p className="eyebrow">Assessment</p>
+            <h2>Reports</h2>
+          </>
+        )}
         <p className="muted assess-hint">
           Everyone the judge has run on — click a person to read their full
           profile, presented exactly like the email digest.
@@ -103,10 +112,15 @@ export function ReportsPanel({ open, onClose }: Props) {
                 onClick={() => setViewing(r)}
               >
                 <span className="assess-row-main">
-                  <span className="assess-name">{r.name}</span>
+                  <span className="assess-name">
+                    {r.name}
+                    {r.estimated_age != null ? (
+                      <span className="name-age"> · ~{r.estimated_age}</span>
+                    ) : null}
+                  </span>
                   <span className="assess-meta">
                     <span className="assess-score">
-                      {r.priority_score.toFixed(0)}/100
+                      {formatOverallScore(r.priority_score)}
                     </span>
                     <span className="chip">
                       {r.label
@@ -115,7 +129,6 @@ export function ReportsPanel({ open, onClose }: Props) {
                     </span>
                     {typeof r.age_relative === "number" && (
                       <span className="chip">
-                        {r.estimated_age ? `~${r.estimated_age} · ` : ""}
                         {r.age_relative}/10 for age
                       </span>
                     )}

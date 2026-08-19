@@ -193,6 +193,110 @@ export function startRun(input: {
   return { runId: id };
 }
 
+export function startSeedBatchRun(input: {
+  seeds: Array<{ name: string; country?: string; award_id?: string }>;
+  label?: string;
+  /** LinkedIn identity only — no GitHub/Substack expand (Discover Resolve). */
+  resolveOnly?: boolean;
+}): { runId: string; batch: Array<{ name: string; country?: string; award_id?: string }> } | { error: string; status: number } {
+  if (activeRunId) {
+    return {
+      error: `A run is already in progress (${activeRunId}). Wait for it to finish.`,
+      status: 409,
+    };
+  }
+  if (!input.seeds.length) {
+    return { error: "No pending seeds to resolve.", status: 400 };
+  }
+  if (!fs.existsSync(COOKIES_PATH)) {
+    return {
+      error: `Missing ${COOKIES_PATH}. Run "npm run login" before starting a pipeline.`,
+      status: 400,
+    };
+  }
+
+  const id = crypto.randomBytes(6).toString("hex");
+  const tmpDir = path.resolve(process.cwd(), "tmp");
+  fs.mkdirSync(tmpDir, { recursive: true });
+  const seedFile = path.join(tmpDir, `ui-pending-${id}.json`);
+  fs.writeFileSync(
+    seedFile,
+    JSON.stringify(
+      input.seeds.map((s) => ({
+        name: s.name,
+        country: s.country ?? "",
+        ...(s.award_id ? { award_id: s.award_id } : {}),
+      })),
+      null,
+      2
+    ),
+    "utf-8"
+  );
+
+  const resolveOnly = Boolean(input.resolveOnly);
+  const label = input.label ?? input.seeds[0]!.name;
+  const run: RunRecord = {
+    id,
+    name: label,
+    country: input.seeds[0]?.country ?? "",
+    status: "running",
+    startedAt: new Date().toISOString(),
+    logs: [],
+    listeners: new Set(),
+    kind: "seed",
+  };
+  runs.set(id, run);
+  activeRunId = id;
+
+  const child = spawn("npx", ["tsx", "src/pipeline/runPipeline.ts"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      SEEDS_PATH: seedFile,
+      MAX_IDENTITY_RESOLVES: String(input.seeds.length),
+      ...(resolveOnly ? { RESOLVE_ONLY: "1" } : { RESOLVE_ONLY: "0" }),
+    },
+    shell: true,
+  });
+
+  pushLog(
+    run,
+    `[ui] started ${resolveOnly ? "resolve-only" : "pipeline"} batch ${id} (${input.seeds.length}): ${input.seeds.map((s) => s.name).join(", ")}`
+  );
+  attachChild(run, child, (code) => {
+    if (code === 0) {
+      const seedSlug = resolveSeedSlugFromTree(input.seeds[0]!.name);
+      run.status = "done";
+      run.seedSlug = seedSlug ?? undefined;
+      pushLog(
+        run,
+        `[ui] finished ok${seedSlug ? ` seedSlug=${seedSlug}` : " (no seedSlug found)"}`
+      );
+      notifyDone(run, {
+        type: "done",
+        seedSlug: seedSlug ?? null,
+        exitCode: code,
+      });
+    } else {
+      run.status = "failed";
+      run.error = `Pipeline exited with code ${code}`;
+      pushLog(run, `[ui] failed with exit code ${code}`);
+      notifyDone(run, {
+        type: "error",
+        message: run.error,
+        exitCode: code,
+      });
+    }
+    try {
+      fs.unlinkSync(seedFile);
+    } catch {
+      /* ignore */
+    }
+  });
+
+  return { runId: id, batch: input.seeds };
+}
+
 export function startBranchRun(input: {
   rootSeedSlug: string;
   parentSlug: string;

@@ -10,6 +10,7 @@ import type { LinkedInSession } from "./linkedinBrowser.js";
 import { assertLinkedInAuth, sleep } from "./linkedinBrowser.js";
 import { LINKEDIN_DELAY_MS } from "../config.js";
 import { countryFromLocation } from "./countryMatch.js";
+import { parseStatedAge } from "./linkedinAge.js";
 import { cleanSearchTitle } from "./linkedinMatch.js";
 
 // 10: captures the stated connection count (undiscoveredness signal).
@@ -1017,16 +1018,58 @@ export async function extractLinkedInProfile(
     skills: skillLines,
     connections: connections?.count ?? null,
     connections_saturated: connections?.saturated ?? false,
+    stated_age: parseStatedAge(
+      [headline, about.text].filter(Boolean).join("\n")
+    ),
     scrape_version: PROFILE_SCRAPE_VERSION,
   };
 }
 
+const GITHUB_RESERVED_LOGINS = new Set([
+  "topics",
+  "collections",
+  "orgs",
+  "organizations",
+  "settings",
+  "login",
+  "marketplace",
+  "sponsors",
+  "about",
+  "features",
+  "pricing",
+  "blog",
+  "explore",
+  "notifications",
+  "issues",
+  "pulls",
+  "codespaces",
+  "enterprise",
+  "apps",
+  "org",
+  "account",
+  "new",
+  "search",
+  "site",
+  "gist",
+]);
+
 export function githubUsernameFromUrl(url: string | null): string | null {
   if (!url) return null;
-  const m = url.match(
-    /github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)/i
-  );
-  return m ? m[1] : null;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./i, "").toLowerCase();
+    if (host !== "github.com") return null;
+    const seg = u.pathname.split("/").filter(Boolean)[0];
+    if (!seg) return null;
+    const login = decodeURIComponent(seg);
+    if (GITHUB_RESERVED_LOGINS.has(login.toLowerCase())) return null;
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(login)) {
+      return null;
+    }
+    return login;
+  } catch {
+    return null;
+  }
 }
 
 export function substackSlugFromUrl(url: string | null): string | null {

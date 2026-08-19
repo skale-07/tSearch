@@ -22,6 +22,8 @@ export interface ObscuritySignals {
   writing_present: boolean;
   /** Populated once LinkedIn connection capture ships; null until then. */
   linkedin_connections: number | null;
+  /** True when LinkedIn Contact listed a github.com/<user> URL. */
+  github_on_linkedin: boolean;
 }
 
 export interface ObscurityResult {
@@ -55,6 +57,8 @@ export function computeObscurity(input: {
   linkedinConnections?: number | null;
   /** True when LinkedIn showed "500+" rather than an exact count. */
   linkedinConnectionsSaturated?: boolean;
+  /** Verified GitHub URL on the LinkedIn profile (not a name-search guess). */
+  githubOnLinkedIn?: boolean;
 }): ObscurityResult {
   const { github, substack, website } = input;
 
@@ -75,6 +79,7 @@ export function computeObscurity(input: {
     website_substantive: websiteSubstantive(website),
     writing_present: !!substack?.active && (substack.posts ?? 0) > 0,
     linkedin_connections: connections,
+    github_on_linkedin: !!input.githubOnLinkedIn,
   };
 
   // Each term is a visibility score in 0..1 with the weight it carries when
@@ -125,7 +130,9 @@ export function computeObscurity(input: {
   const confidence = clamp01(totalWeight / maxWeight);
 
   const substance_present =
-    (github?.repos?.length ?? 0) > 0 || (substack?.posts ?? 0) > 0;
+    (github?.repos?.length ?? 0) > 0 ||
+    (substack?.posts ?? 0) > 0 ||
+    !!input.githubOnLinkedIn;
 
   return {
     obscurity: Math.round(clamp01(1 - visibility) * 100) / 100,

@@ -63,6 +63,42 @@ const MAX_COLLABORATOR_PROFILES = Number(
   process.env.MAX_COLLABORATOR_PROFILES ?? 15
 );
 
+/**
+ * Seed candidates only — LinkedIn (+ website/olympiad already on the identity).
+ * No GitHub/Substack neighbor expand. Used by RESOLVE_ONLY runs.
+ */
+export function identitiesToSeedPool(
+  identities: ResolvedIdentity[],
+  olympiadIndex: Map<string, OlympiadProfile>
+): ExpandResult {
+  const pool = new Map<string, RawCandidate>();
+  const neighbors = new Map<string, IdentityNeighbors>();
+
+  for (const identity of identities) {
+    const { query_name, linkedin, identity_confidence } = identity;
+    const oly = lookupOlympiad(olympiadIndex, query_name);
+    const identityKey = query_name.trim().toLowerCase();
+    neighbors.set(identityKey, {
+      github: [],
+      collaborators: [],
+      followers: [],
+      substack: [],
+    });
+
+    addRaw(pool, {
+      key: identityKey,
+      name: query_name,
+      discovered_via: [`linkedin:${query_name}`],
+      linkedin,
+      identity_confidence,
+      olympiad: oly,
+      website: identity.website ?? undefined,
+    });
+  }
+
+  return { pool, neighbors, seedTree: [] };
+}
+
 export async function expandGraph(
   identities: ResolvedIdentity[],
   olympiadIndex: Map<string, OlympiadProfile>

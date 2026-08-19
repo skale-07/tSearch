@@ -9,7 +9,9 @@ import {
 
 interface Props {
   open: boolean;
-  onClose: () => void;
+  /** When true, render as Score page content (not a slide-over). */
+  embedded?: boolean;
+  onClose?: () => void;
 }
 
 function timeAgo(iso: string): string {
@@ -35,7 +37,7 @@ function formatWhen(iso: string): string {
 }
 
 /** Browse, open, and email generated talent digests. */
-export function DigestsPanel({ open, onClose }: Props) {
+export function DigestsPanel({ open, embedded = false, onClose }: Props) {
   const [rows, setRows] = useState<DigestListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,14 +126,20 @@ export function DigestsPanel({ open, onClose }: Props) {
 
   return (
     <>
-      <aside className="panel assess-panel open">
-        <div className="panel-head">
-          <button type="button" className="panel-close" onClick={onClose}>
-            Close
-          </button>
-        </div>
-        <p className="eyebrow">Assessment</p>
-        <h2>Digests</h2>
+      <aside className={embedded ? "score-pane" : "panel assess-panel open"}>
+        {!embedded && onClose && (
+          <div className="panel-head">
+            <button type="button" className="panel-close" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        )}
+        {!embedded && (
+          <>
+            <p className="eyebrow">Assessment</p>
+            <h2>Digests</h2>
+          </>
+        )}
         <p className="muted assess-hint">
           Open a generated talent digest, then email it. Send defaults to
           dry-run until you check “Send for real.”

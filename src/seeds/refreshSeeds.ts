@@ -2,9 +2,14 @@ import path from "path";
 import { PEOPLE_DIR } from "../config.js";
 import { readJson, writeJsonAtomic } from "../storage/jsonStore.js";
 import { loadPerson } from "../storage/personStore.js";
-import { createRosterSources } from "./sources/rosterSource.js";
+import { createRosterSources, listPublicRosterAwards } from "./sources/rosterSource.js";
 import { createManualCohortSource } from "./sources/manualCohortSource.js";
-import type { SeedCandidateRow, SeedSource } from "./sources/types.js";
+import { createOlympiadCsvSource } from "./sources/olympiadCsvSource.js";
+import type {
+  SeedCandidateRow,
+  SeedSource,
+  SeedSourceKind,
+} from "./sources/types.js";
 
 /**
  * Continuous seed refresh: read every configured source, drop anyone the
@@ -25,14 +30,137 @@ export interface PendingSeed {
   country?: string;
   cohort_year?: number;
   award_id?: string;
+  age_at_award?: number;
   source_id: string;
+  source_kind?: SeedSourceKind;
   first_seen: string;
 }
 
+export const CHANNEL_META: Record<
+  SeedSourceKind,
+  { title: string; hint: string }
+> = {
+  olympiad_csv: {
+    title: "Olympiads",
+    hint: "Pull IMO / IOI / IPhO / IChO / IBO / ISEF into olympiad_winners.csv, then scan",
+  },
+  award_roster: {
+    title: "Scholarships & awards",
+    hint: "Scrape Davidson Fellows, Regeneron STS, and Coca-Cola Scholars. Other awards still need a pasted public roster.",
+  },
+  manual_cohort: {
+    title: "Manual cohort",
+    hint: "Download the template, save as data/manual-cohort.json, then scan.",
+  },
+};
+
+export interface ChannelSnapshot {
+  source_id: string;
+  kind: SeedSourceKind;
+  label: string;
+  present: boolean;
+  row_count: number;
+  error?: string;
+}
+
+export function pendingKind(seed: PendingSeed): SeedSourceKind {
+  if (seed.source_kind) return seed.source_kind;
+  if (seed.source_id.startsWith("olympiad:")) return "olympiad_csv";
+  if (seed.source_id.startsWith("manual")) return "manual_cohort";
+  return "award_roster";
+}
+
+function snapshotOf(source: SeedSource): ChannelSnapshot {
+  try {
+    const rows = source.read();
+    return {
+      source_id: source.source_id,
+      kind: source.kind,
+      label: source.describe(),
+      present: true,
+      row_count: rows.length,
+    };
+  } catch (err) {
+    return {
+      source_id: source.source_id,
+      kind: source.kind,
+      label: source.describe(),
+      present: true,
+      row_count: 0,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/** Channel status even when a source file is missing — the UI needs empty states. */
+export function inspectSources(): ChannelSnapshot[] {
+  const out: ChannelSnapshot[] = [];
+  const olympiad = createOlympiadCsvSource();
+  out.push(
+    olympiad
+      ? snapshotOf(olympiad)
+      : {
+          source_id: "olympiad_csv",
+          kind: "olympiad_csv",
+          label: CHANNEL_META.olympiad_csv.title,
+          present: false,
+          row_count: 0,
+        }
+  );
+
+  const rosters = createRosterSources();
+  if (rosters.length) {
+    out.push(...rosters.map(snapshotOf));
+  } else {
+    out.push({
+      source_id: "award_roster",
+      kind: "award_roster",
+      label: CHANNEL_META.award_roster.title,
+      present: false,
+      row_count: 0,
+    });
+  }
+
+  const manual = createManualCohortSource();
+  out.push(
+    manual
+      ? snapshotOf(manual)
+      : {
+          source_id: "manual_cohort",
+          kind: "manual_cohort",
+          label: CHANNEL_META.manual_cohort.title,
+          present: false,
+          row_count: 0,
+        }
+  );
+  return out;
+}
+
+export interface DiscoverySnapshot {
+  channels: ChannelSnapshot[];
+  pending: PendingSeed[];
+  pending_count: number;
+  roster_awards: Array<{ award_id: string; display_name: string }>;
+}
+
+export function discoverySnapshot(): DiscoverySnapshot {
+  const pending = loadPendingSeeds();
+  return {
+    channels: inspectSources(),
+    pending,
+    pending_count: pending.length,
+    roster_awards: listPublicRosterAwards(),
+  };
+}
+
 export function collectSources(): SeedSource[] {
+  // Operator-supplied names first so a fresh pending file doesn't bury them
+  // under the olympiad CSV (thousands of rows).
   const sources: SeedSource[] = [...createRosterSources()];
   const manual = createManualCohortSource();
   if (manual) sources.push(manual);
+  const olympiad = createOlympiadCsvSource();
+  if (olympiad) sources.push(olympiad);
   return sources;
 }
 
@@ -62,32 +190,41 @@ export function diffNewSeeds(
   isKnown: (name: string) => boolean,
   existing: PendingSeed[] = []
 ): RefreshResult {
-  const seen = new Set(existing.map((e) => normalizeName(e.name)));
-  const merged: PendingSeed[] = [...existing];
+  const seen = new Set<string>();
+  const merged: PendingSeed[] = [];
   let already_known = 0;
   let duplicates_within_run = 0;
 
-  for (const row of rows) {
-    const key = normalizeName(row.name);
-    if (!key) continue;
+  const consider = (name: string, keep: () => PendingSeed): void => {
+    const key = normalizeName(name);
+    if (!key) return;
     if (seen.has(key)) {
       duplicates_within_run++;
-      continue;
+      return;
     }
-    if (isKnown(row.name)) {
+    if (isKnown(name)) {
       already_known++;
       seen.add(key);
-      continue;
+      return;
     }
     seen.add(key);
-    merged.push({
+    merged.push(keep());
+  };
+
+  for (const entry of existing) {
+    consider(entry.name, () => entry);
+  }
+  for (const row of rows) {
+    consider(row.name, () => ({
       name: row.name,
       country: row.country,
       cohort_year: row.cohort_year,
       award_id: row.award_id,
+      age_at_award: row.age_at_award,
       source_id: row.source_id,
+      source_kind: row.source_kind,
       first_seen: row.as_of,
-    });
+    }));
   }
 
   return {
@@ -120,7 +257,13 @@ export function refreshSeeds(
   }
 
   const before = existing.length;
-  const result = diffNewSeeds(rows, (name) => !!loadPerson(name), existing);
+  // Resolved identities drop out. Failed LinkedIn attempts stay so autopilot
+  // can retry after AUTOPILOT_RETRY_TTL_MS — a person record is not a match.
+  const result = diffNewSeeds(
+    rows,
+    (name) => loadPerson(name)?.identity?.status === "resolved",
+    existing
+  );
   result.sources_read = sources.length;
 
   if (result.new_seeds.length !== before) {
@@ -132,4 +275,26 @@ export function refreshSeeds(
     } new → ${pendingPath}`
   );
   return result;
+}
+
+export function loadPendingSeeds(
+  pendingPath = PENDING_SEEDS_PATH
+): PendingSeed[] {
+  return readJson<PendingSeed[]>(pendingPath) ?? [];
+}
+
+/** Next unresolved nominations. Skip is for recent LinkedIn failures. */
+export function takePendingBatch(
+  n: number,
+  opts?: {
+    pendingPath?: string;
+    skip?: (seed: PendingSeed) => boolean;
+    kind?: SeedSourceKind;
+  }
+): PendingSeed[] {
+  const skip = opts?.skip ?? (() => false);
+  return loadPendingSeeds(opts?.pendingPath)
+    .filter((s) => !skip(s))
+    .filter((s) => !opts?.kind || pendingKind(s) === opts.kind)
+    .slice(0, n);
 }

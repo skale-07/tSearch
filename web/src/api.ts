@@ -4,6 +4,9 @@ export interface SeedOption {
   name: string;
   country: string;
   hasTree: boolean;
+  has_github?: boolean;
+  has_linkedin?: boolean;
+  age_label?: string | null;
 }
 
 export interface TreeNodeSummary {
@@ -26,6 +29,7 @@ export interface TreeNodeSummary {
   can_expand: boolean;
   bridge_seed_count?: number;
   bridge_seeds?: string[];
+  age_label?: string | null;
 }
 
 export interface TreeEdge {
@@ -86,6 +90,7 @@ export interface ProfileRecord {
     countries?: string[];
   };
   last_updated?: string;
+  age_label?: string | null;
 }
 
 export interface TreeResponse {
@@ -97,6 +102,7 @@ export interface TreeResponse {
 
 /** Same rule as server: hop ≥ 1 needs score ≥ 4 (hide ≤ 3). Applies to hop-2 too. */
 export const MIN_TREE_DISPLAY_SCORE = 4;
+export const DISCOVERED_FOREST_SLUG = "tsearch-discovered";
 
 function isBotishNode(id: string, name: string): boolean {
   const slug = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
@@ -123,6 +129,24 @@ export function sanitizeTree(tree: TreeResponse): TreeResponse {
 export interface TreeOption {
   slug: string;
   name: string;
+  age_label?: string | null;
+  hasTree?: boolean;
+}
+
+/** Vite is up before tsx watch; retry GETs through a dead proxy instead of failing the shell. */
+async function getWithRetry(path: string, attempts = 10): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(path);
+      if (res.ok || res.status < 500 || i === attempts - 1) return res;
+    } catch (err) {
+      lastErr = err;
+      if (i === attempts - 1) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`GET ${path} failed`);
 }
 
 export async function fetchSeeds(): Promise<{
@@ -130,9 +154,160 @@ export async function fetchSeeds(): Promise<{
   profileSeeds: string[];
   trees?: TreeOption[];
 }> {
-  const res = await fetch("/api/seeds");
+  const res = await getWithRetry("/api/seeds");
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export type SeedSourceKind = "olympiad_csv" | "award_roster" | "manual_cohort";
+
+export interface ChannelSnapshot {
+  source_id: string;
+  kind: SeedSourceKind;
+  label: string;
+  present: boolean;
+  row_count: number;
+  error?: string;
+}
+
+export interface PendingSeedRow {
+  name: string;
+  country?: string;
+  cohort_year?: number;
+  award_id?: string;
+  age_at_award?: number;
+  estimated_age?: number | null;
+  age_label?: string | null;
+  source_id: string;
+  source_kind?: SeedSourceKind;
+  first_seen: string;
+}
+
+export interface DiscoverySnapshot {
+  channels: ChannelSnapshot[];
+  pending: PendingSeedRow[];
+  pending_count: number;
+  channel_meta: Record<SeedSourceKind, { title: string; hint: string }>;
+  refresh?: {
+    sources_read: number;
+    rows_read: number;
+    already_known: number;
+    duplicates_within_run: number;
+  };
+  roster_awards?: Array<{
+    award_id: string;
+    display_name: string;
+    scrapeable?: boolean;
+  }>;
+  saved?: { file: string; count: number };
+  scrape?: {
+    names_written: number;
+    jobs: Array<{
+      award_id: string;
+      year: number;
+      url?: string;
+      count: number;
+      error?: string;
+    }>;
+  };
+  olympiad_pull?: {
+    rows_written: number | null;
+    sources: string[];
+    year_from: number;
+    year_to: number;
+    log_tail: string;
+  };
+  github_ready?: Array<{
+    name: string;
+    country: string;
+    github_url: string;
+    linkedin_url?: string;
+    has_tree: boolean;
+    age_label: string | null;
+  }>;
+}
+
+export async function fetchDiscovery(): Promise<DiscoverySnapshot> {
+  const res = await getWithRetry("/api/discovery");
+  const data = await readApiJson<DiscoverySnapshot & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+export async function refreshDiscovery(): Promise<DiscoverySnapshot> {
+  const res = await fetch("/api/discovery/refresh", { method: "POST" });
+  const data = await readApiJson<DiscoverySnapshot & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+export async function saveDiscoveryRoster(body: {
+  award_id: string;
+  year: number;
+  names: string;
+}): Promise<DiscoverySnapshot> {
+  const res = await fetch("/api/discovery/roster", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<DiscoverySnapshot & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+export async function scrapeDiscoveryRosters(body: {
+  award_id?: string;
+  year_from: number;
+  year_to: number;
+}): Promise<DiscoverySnapshot> {
+  const res = await fetch("/api/discovery/scrape", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<DiscoverySnapshot & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+/** Re-run olympiad_winners.py and refresh pending from the CSV. */
+export async function pullDiscoveryOlympiads(body: {
+  year_from: number;
+  year_to: number;
+  sources?: string[];
+  skip_ibo?: boolean;
+}): Promise<DiscoverySnapshot> {
+  const res = await fetch("/api/discovery/olympiad", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<DiscoverySnapshot & { error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+export async function startDiscoveryResolve(body: {
+  limit?: number;
+  kind?: SeedSourceKind | "";
+}): Promise<{ runId: string; batch: Array<{ name: string; country?: string }> }> {
+  const res = await fetch("/api/discovery/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      limit: body.limit,
+      kind: body.kind || undefined,
+    }),
+  });
+  const data = await readApiJson<{
+    runId?: string;
+    batch?: Array<{ name: string; country?: string }>;
+    error?: string;
+  }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!data.runId) throw new Error("API response missing runId");
+  return { runId: data.runId, batch: data.batch ?? [] };
 }
 
 export async function cancelRun(runId: string): Promise<void> {
@@ -175,6 +350,25 @@ export async function startRun(body: {
   if (!res.ok) throw new Error(data.error || res.statusText);
   if (!data.runId) throw new Error("API response missing runId");
   return { runId: data.runId };
+}
+
+/** Run pipeline on N seeds in one batch (max 15). */
+export async function startRunBatch(body: {
+  seeds: Array<{ name: string; country: string }>;
+}): Promise<{ runId: string; batch: Array<{ name: string; country?: string }> }> {
+  const res = await fetch("/api/runs/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{
+    runId?: string;
+    batch?: Array<{ name: string; country?: string }>;
+    error?: string;
+  }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!data.runId) throw new Error("API response missing runId");
+  return { runId: data.runId, batch: data.batch ?? [] };
 }
 
 export async function startBranchRun(body: {
@@ -256,6 +450,7 @@ export type SseEvent =
 export interface AssessmentCandidateRow {
   candidate_id: string;
   name: string;
+  age_label?: string | null;
   final_score: number;
   github_username?: string;
   website_url?: string;
@@ -469,6 +664,7 @@ export interface CandidateAssessmentDetail {
   judge_results?: Record<string, unknown>;
   judge_statuses?: Record<string, JudgeExecutionState>;
   synthesis?: {
+    overall_score?: number;
     priority_score?: number;
     archetype?: string;
     headline?: string;

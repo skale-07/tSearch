@@ -1,3 +1,4 @@
+import { githubUsernameFromUrl } from "../linkedin/linkedinExtract.js";
 import { readCache, writeCache } from "../storage/jsonStore.js";
 import type { WebsiteProfile } from "../types.js";
 
@@ -10,6 +11,7 @@ const FETCH_TIMEOUT_MS = Number(process.env.WEBSITE_FETCH_TIMEOUT_MS ?? 12000);
 type SocialKind =
   | "github"
   | "substack"
+  | "medium"
   | "twitter"
   | "email"
   | "linkedin"
@@ -40,9 +42,13 @@ function classifyLink(url: string): SocialKind {
   if (url.startsWith("mailto:")) return "email";
   try {
     const host = new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
-    if (host === "github.com" || host.endsWith(".github.io")) return "github";
+    // Profile identity only — *.github.io is a Pages site, not a login.
+    if (host === "github.com" && githubUsernameFromUrl(url)) return "github";
     if (host === "substack.com" || host.endsWith(".substack.com")) {
       return "substack";
+    }
+    if (host === "medium.com" || host.endsWith(".medium.com")) {
+      return "medium";
     }
     if (host === "twitter.com" || host === "x.com") return "twitter";
     if (host === "linkedin.com" || host.endsWith(".linkedin.com")) {
@@ -157,14 +163,14 @@ export async function scrapeWebsite(
       })
       .slice(0, 20);
 
-    const github = firstOf("github", social);
+    const githubRaw = firstOf("github", social);
+    const githubLogin = githubUsernameFromUrl(githubRaw);
     const profile: WebsiteProfile = {
       url: finalUrl,
       scraped_at: new Date().toISOString(),
-      github_url: github?.includes("github.com/")
-        ? github.replace(/\/$/, "")
-        : github,
+      github_url: githubLogin ? `https://github.com/${githubLogin}` : null,
       substack_url: firstOf("substack", social),
+      medium_url: firstOf("medium", social),
       twitter_url: firstOf("twitter", social),
       linkedin_url: firstOf("linkedin", social),
       email: emailFromMailto(firstOf("email", social)),
@@ -221,7 +227,13 @@ export function applyWebsiteToLinkedInUrls(
   };
 
   return {
-    github_url: pick("github", website?.github_url, githubUrl),
+    github_url: pick(
+      "github",
+      githubUsernameFromUrl(website?.github_url ?? null)
+        ? website?.github_url ?? null
+        : null,
+      githubUsernameFromUrl(githubUrl) ? githubUrl : null
+    ),
     substack_url: pick("substack", website?.substack_url, substackUrl),
     twitter_url: pick("twitter", website?.twitter_url, twitterUrl),
     overrides,

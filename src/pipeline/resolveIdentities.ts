@@ -26,6 +26,7 @@ import {
 } from "../linkedin/linkedinExtract.js";
 import { lookupOlympiad } from "../olympiad/parseOlympiad.js";
 import {
+  olympiadCollege,
   olympiadHighSchool,
   olympiadSearchHints,
   normalizeSchoolForSearch,
@@ -41,6 +42,8 @@ import {
   applyWebsiteToLinkedInUrls,
   scrapeWebsite,
 } from "../website/scrapeWebsite.js";
+import { awardLinkedInSearchTerm } from "../awards/awardRegistry.js";
+import { attachVerifiedGithub } from "./githubIdentity.js";
 
 export interface ResolveOptions {
   olympiadIndex: Map<string, OlympiadProfile>;
@@ -97,9 +100,14 @@ export async function resolveIdentity(
   }
 
   const olympiad_hints = olympiadSearchHints(olympiad);
+  const award_hint = awardLinkedInSearchTerm(seed.award_id);
   const highSchoolRaw = school?.trim() || olympiadHighSchool(olympiad);
   const highSchool = highSchoolRaw
     ? normalizeSchoolForSearch(highSchoolRaw) || undefined
+    : undefined;
+  const collegeRaw = olympiadCollege(olympiad);
+  const college = collegeRaw
+    ? normalizeSchoolForSearch(collegeRaw) || undefined
     : undefined;
   const matchCtx = {
     query_name: queryName,
@@ -107,10 +115,23 @@ export async function resolveIdentity(
     school: highSchool,
     olympiad,
     olympiad_hints,
+    award_hint,
   };
 
-  // Primary: name + high school. Secondary: original name + olympiad + country.
+  // Award → college → school → olympiad/country. One token besides the name.
   const attempts: { label: string; context: LinkedInSearchContext }[] = [];
+  if (award_hint) {
+    attempts.push({
+      label: "name+award",
+      context: { award_hint },
+    });
+  }
+  if (college) {
+    attempts.push({
+      label: "name+college",
+      context: { college },
+    });
+  }
   if (highSchool) {
     attempts.push({
       label: "name+school",
@@ -143,7 +164,9 @@ export async function resolveIdentity(
     } else {
       const session = await getSession();
       hits = await searchLinkedInByName(session, queryName, attempt.context);
-      writeCache("linkedin-search", searchQuery, hits);
+      // Don't cache empty — timeouts/auth walls look like "no results" and
+      // would block retries for LINKEDIN_SEARCH_CACHE_TTL_MS.
+      if (hits.length) writeCache("linkedin-search", searchQuery, hits);
     }
 
     if (!hits.length) {
@@ -154,11 +177,15 @@ export async function resolveIdentity(
 
     const attemptMatchCtx = {
       ...matchCtx,
-      school: attempt.label === "name+school" ? highSchool : undefined,
+      school:
+        attempt.label === "name+school" || attempt.label === "name+college"
+          ? highSchool
+          : undefined,
       expected_country:
         attempt.label === "name+olympiad" ? country : undefined,
       olympiad_hints:
         attempt.label === "name+olympiad" ? olympiad_hints : undefined,
+      award_hint: attempt.label === "name+award" ? award_hint : undefined,
     };
     picked = pickBestLinkedInHit(hits, attemptMatchCtx);
     if (picked) {
@@ -170,7 +197,9 @@ export async function resolveIdentity(
       `  [linkedin] top results don't match name "${queryName}" (${attempt.label})`
     );
     for (const h of hits.slice(0, 3)) {
-      console.log(`    ? ${h.title}`);
+      console.log(
+        `    ? ${h.title || "(no title scraped)"} — ${h.url}`
+      );
     }
     if (ai < attempts.length - 1) {
       console.log(`  [linkedin] falling back to ${attempts[ai + 1].label}`);
@@ -310,11 +339,19 @@ export async function resolveIdentities(
       seen.add(key);
 
       console.log(`[resolve] (${i + 1}/${cap}) ${seed.name}`);
-      const outcome = await resolveIdentity(seed, {
-        getSession,
-        olympiadIndex,
-        existingCandidates,
-      });
+      let outcome: ResolveOutcome;
+      try {
+        outcome = await resolveIdentity(seed, {
+          getSession,
+          olympiadIndex,
+          existingCandidates,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`  [resolve] aborted for ${seed.name}: ${msg}`);
+        failed.push({ seed, reason: "no_results" });
+        continue;
+      }
       if (outcome.ok) {
         const identity = outcome.identity;
         const gh = githubUsernameFromUrl(identity.github_url);
@@ -347,6 +384,11 @@ export async function resolveIdentities(
       `[website] waiting on ${websiteJobs.length} personal-site scrape(s)...`
     );
     await Promise.all(websiteJobs);
+  }
+
+  // GitHub only from LinkedIn / personal-site URLs — never name-search.
+  for (const identity of resolved) {
+    await attachVerifiedGithub(identity);
   }
 
   return { resolved, failed };

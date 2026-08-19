@@ -191,7 +191,7 @@ export function renderProfilePage(
 
   const assessment = `
     <div class="score-row">
-      <div><span class="big">${esc(String(c.assessment_priority_score))}</span><span class="muted">/100 assessment priority</span></div>
+      <div><span class="big">${esc((c.assessment_priority_score / 10).toFixed(1))}</span><span class="muted">/10 overall</span></div>
     </div>
     ${c.technical_summary ? `<p>${esc(c.technical_summary.rationale.slice(0, 800))}</p>` : ""}
     ${caveats}

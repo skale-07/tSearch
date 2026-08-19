@@ -6,8 +6,11 @@ import { primaryCountrySearchTerm } from "./countryMatch.js";
 
 export interface LinkedInSearchContext {
   school?: string;
+  college?: string;
   country?: string;
   olympiad_hints?: string[];
+  /** Registry display name — scholarships search name + award, not country. */
+  award_hint?: string;
 }
 
 export interface LinkedInSearchHit {
@@ -34,6 +37,16 @@ function buildSearchTerms(
   context?: LinkedInSearchContext
 ): string[] {
   const terms = [`"${name}"`];
+  if (context?.award_hint) {
+    // Name is an exact phrase; award stays unquoted so LinkedIn can match
+    // partial/token forms ("Davidson Fellows" → Davidson Fellows).
+    terms.push(context.award_hint.trim());
+    return terms;
+  }
+  if (context?.college && !context.olympiad_hints?.length && !context.country) {
+    terms.push(context.college);
+    return terms;
+  }
   // School-only primary queries stay tight — don't mix olympiad/country terms.
   if (context?.school && !context.olympiad_hints?.length && !context.country) {
     terms.push(context.school);
@@ -132,7 +145,9 @@ async function readHitFromContainer(
   const link = container.locator('a[href*="/in/"]').first();
   if ((await link.count()) === 0) return null;
 
-  const href = await link.getAttribute("href");
+  const href = await link
+    .getAttribute("href", { timeout: 3000 })
+    .catch(() => null);
   if (!href) return null;
   const url = normalizeProfileUrl(href);
   if (!url) return null;
@@ -170,7 +185,25 @@ async function readHitFromContainer(
   };
 }
 
+/**
+ * People search that never throws into the resolve loop — LinkedIn DOM flakiness
+ * becomes empty hits so the batch can continue.
+ */
 export async function searchLinkedInByName(
+  session: LinkedInSession,
+  name: string,
+  context?: LinkedInSearchContext
+): Promise<LinkedInSearchHit[]> {
+  try {
+    return await searchLinkedInByNameUnsafe(session, name, context);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`  [linkedin] search failed for "${name}": ${msg}`);
+    return [];
+  }
+}
+
+async function searchLinkedInByNameUnsafe(
   session: LinkedInSession,
   name: string,
   context?: LinkedInSearchContext
@@ -192,27 +225,42 @@ export async function searchLinkedInByName(
   const count = await containers.count();
 
   for (let i = 0; i < count && hits.length < MAX_LINKEDIN_RESULTS; i++) {
-    const hit = await readHitFromContainer(containers.nth(i));
-    if (!hit || !hit.title || seen.has(hit.url)) continue;
+    const hit = await readHitFromContainer(containers.nth(i)).catch(() => null);
+    // Keep URL even when the name scrape returns "" — pickBest trusts LinkedIn
+    // ranking for targeted queries.
+    if (!hit?.url || seen.has(hit.url)) continue;
     seen.add(hit.url);
     hits.push(hit);
   }
 
   if (hits.length === 0) {
-    const links = page.locator('main a[href*="/in/"]');
-    const linkCount = await links.count();
-    for (let i = 0; i < linkCount && hits.length < MAX_LINKEDIN_RESULTS; i++) {
-      const link = links.nth(i);
-      const href = await link.getAttribute("href");
-      if (!href) continue;
-      const url = normalizeProfileUrl(href);
+    // Snapshot hrefs + link text in one evaluate — per-nth getAttribute waits
+    // up to 30s and dies when LinkedIn detaches lazy result nodes mid-loop.
+    const anchors = await page
+      .locator('main a[href*="/in/"]')
+      .evaluateAll((els) =>
+        els.map((el) => {
+          const a = el as HTMLAnchorElement;
+          return {
+            href: a.href,
+            text: (a.getAttribute("aria-label") || a.textContent || "")
+              .trim()
+              .split("\n")[0]
+              ?.trim() ?? "",
+          };
+        })
+      )
+      .catch(() => [] as Array<{ href: string; text: string }>);
+
+    for (const anchor of anchors) {
+      if (hits.length >= MAX_LINKEDIN_RESULTS) break;
+      const url = normalizeProfileUrl(anchor.href);
       if (!url || seen.has(url)) continue;
-      if (/\/(company|school|search)\//i.test(href)) continue;
+      if (/\/(company|school|search)\//i.test(anchor.href)) continue;
       seen.add(url);
-      const title = (await link.innerText().catch(() => "")).trim();
       hits.push({
         url,
-        title,
+        title: normalizeCardName(anchor.text),
         headline: "",
         location: "",
         snippet: "",

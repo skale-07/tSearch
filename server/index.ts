@@ -9,7 +9,16 @@ import {
   startAssessmentRunLegacy,
   startBranchRun,
   startRun,
+  startSeedBatchRun,
 } from "./runs.js";
+import {
+  getDiscovery,
+  postDiscoveryOlympiadPull,
+  postDiscoveryRefresh,
+  postDiscoveryResolve,
+  postDiscoveryRoster,
+  postDiscoveryScrape,
+} from "./discoveryApi.js";
 import {
   assertCandidateInRun,
   findLatestCandidateAssessment,
@@ -44,8 +53,10 @@ import {
   buildTree,
   cookiesExist,
   listProfileSeeds,
+  listSeedOptions,
+  listTreeOptions,
   loadProfile,
-  loadSeedsFile,
+  profileWithAgeLabel,
   type TreeResponse,
 } from "./tree.js";
 import type { ProfileRelation } from "../src/storage/profileStore.js";
@@ -55,6 +66,7 @@ import {
 } from "../src/assessment/candidateIdentity.js";
 import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
+import { ageFromPublicIdentity } from "../src/assessment/stage/deriveStage.js";
 import { refreshConvergenceStore } from "../src/pipeline/convergence.js";
 import {
   FEEDBACK_VERDICTS,
@@ -81,27 +93,73 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/seeds", (_req, res) => {
   try {
-    const seeds = loadSeedsFile();
-    const available = new Set(listProfileSeeds());
+    const trees = listTreeOptions();
     res.json({
-      seeds: seeds.map((s) => ({
-        ...s,
-        hasTree: available.has(
-          s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-        ),
-      })),
-      profileSeeds: [...available],
-      // Display names for the load-tree picker (slug stays the identifier).
-      trees: [...available].map((slug) => ({
-        slug,
-        name: loadProfile(slug, "seed")?.name ?? slug,
-      })),
+      seeds: listSeedOptions(),
+      profileSeeds: trees.map((t) => t.slug),
+      trees,
     });
   } catch (err) {
     res.status(500).json({
       error: err instanceof Error ? err.message : String(err),
     });
   }
+});
+
+app.get("/api/discovery", (_req, res) => {
+  try {
+    res.json(getDiscovery());
+  } catch (err) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
+app.post("/api/discovery/refresh", (_req, res) => {
+  try {
+    res.json(postDiscoveryRefresh());
+  } catch (err) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
+app.post("/api/discovery/roster", (req, res) => {
+  const result = postDiscoveryRoster(req.body ?? {});
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+app.post("/api/discovery/scrape", async (req, res) => {
+  const result = await postDiscoveryScrape(req.body ?? {});
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+app.post("/api/discovery/olympiad", async (req, res) => {
+  const result = await postDiscoveryOlympiadPull(req.body ?? {});
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.json(result);
+});
+
+app.post("/api/discovery/resolve", (req, res) => {
+  const result = postDiscoveryResolve(req.body ?? {});
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.status(202).json(result);
 });
 
 app.post("/api/runs", (req, res) => {
@@ -119,6 +177,43 @@ app.post("/api/runs", (req, res) => {
     return;
   }
   res.status(202).json({ runId: result.runId });
+});
+
+/** Batch pipeline: N seeds in one LinkedIn-paced run (Graph UI multi-select). */
+app.post("/api/runs/batch", (req, res) => {
+  const raw = req.body?.seeds;
+  if (!Array.isArray(raw) || !raw.length) {
+    res.status(400).json({ error: "Body requires { seeds: [{ name, country }] }" });
+    return;
+  }
+  const seeds: Array<{ name: string; country: string }> = [];
+  for (const entry of raw) {
+    const name = typeof entry?.name === "string" ? entry.name.trim() : "";
+    const country =
+      typeof entry?.country === "string" ? entry.country.trim() : "";
+    if (!name || !country) {
+      res.status(400).json({
+        error: "Each seed needs non-empty name and country",
+      });
+      return;
+    }
+    seeds.push({ name, country });
+  }
+  if (seeds.length > 500) {
+    res.status(400).json({
+      error: "Batch capped at 500 seeds — split the run if you need more.",
+    });
+    return;
+  }
+  const result = startSeedBatchRun({
+    seeds,
+    label: `batch:${seeds.length}`,
+  });
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.status(202).json({ runId: result.runId, batch: result.batch });
 });
 
 app.post("/api/runs/:id/cancel", (req, res) => {
@@ -176,10 +271,16 @@ app.get("/api/candidates", (_req, res) => {
         const website_url =
           c.linkedin?.personal_website ?? c.website?.url ?? undefined;
         const blog_url = c.github?.blog ?? c.substack?.url ?? undefined;
+        const age = ageFromPublicIdentity({
+          linkedin: c.linkedin,
+          olympiad: c.olympiad,
+        });
         return {
           candidate_id: identity.candidate_id,
           name: c.name,
+          age_label: age.age_label,
           final_score: c.final_score ?? 0,
+          overall_score: c.overall_score ?? c.score_breakdown?.overall_score,
           github_username,
           website_url,
           blog_url,
@@ -478,7 +579,7 @@ app.get("/api/profile/:seedSlug/seed", (req, res) => {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
-  res.json(profile);
+  res.json(profileWithAgeLabel(profile));
 });
 
 app.get(
@@ -507,7 +608,7 @@ app.get(
       res.status(404).json({ error: "Profile not found" });
       return;
     }
-    res.json(profile);
+    res.json(profileWithAgeLabel(profile));
   }
 );
 
@@ -524,7 +625,7 @@ app.get("/api/profile/:seedSlug/:relation/:slug", (req, res) => {
     res.status(404).json({ error: "Profile not found" });
     return;
   }
-  res.json(profile);
+  res.json(profileWithAgeLabel(profile));
 });
 
 // Convenience: list known trees for the “load existing” path
@@ -747,7 +848,7 @@ app.get("/api/feedback/explore-queue", (_req, res) => {
   res.json({ queue: exploreQueue() });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "127.0.0.1", () => {
   const { interrupted } = reconcileAbandonedAssessmentRuns();
   if (interrupted.length) {
     console.log(

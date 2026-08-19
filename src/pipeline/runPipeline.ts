@@ -13,6 +13,7 @@ import {
   PROFILES_DIR,
   SEEDS_PATH,
   MAX_CANDIDATES,
+  RESOLVE_ONLY,
 } from "../config.js";
 import type { Candidate, OlympiadProfile } from "../types.js";
 import { loadOlympiadCsv, lookupOlympiad } from "../olympiad/parseOlympiad.js";
@@ -26,7 +27,12 @@ import {
 import { selectAutoAssess } from "./autoAssess.js";
 import { hasAnyAssessment } from "../assessment/storage/assessmentRunStore.js";
 import { resolveIdentities, type ResolveResults } from "./resolveIdentities.js";
-import { expandGraph, type IdentityNeighbors, type SeedTreeEdge } from "./expandGraph.js";
+import {
+  expandGraph,
+  identitiesToSeedPool,
+  type IdentityNeighbors,
+  type SeedTreeEdge,
+} from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
 import { readBranchExpandEnv, runBranchExpand } from "./runBranchExpand.js";
 
@@ -176,7 +182,12 @@ async function main(): Promise<void> {
   }
 
   const seeds = parseSeeds(JSON.parse(fs.readFileSync(SEEDS_PATH, "utf-8")));
-  log("start", `LinkedIn-first pipeline via Playwright (${seeds.length} seeds)`);
+  log(
+    "start",
+    RESOLVE_ONLY
+      ? `LinkedIn identity resolve only (${seeds.length} seeds) — no graph expand`
+      : `LinkedIn-first pipeline via Playwright (${seeds.length} seeds)`
+  );
   log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
   log("start", `COOKIES_PATH=${COOKIES_PATH}`);
   log("start", `CACHE_DIR=${CACHE_DIR}`);
@@ -215,16 +226,22 @@ async function main(): Promise<void> {
   let neighbors: Map<string, IdentityNeighbors>;
   let seedTree: SeedTreeEdge[] = [];
 
-  if (identities.length) {
+  if (!identities.length) {
+    log("expand", "skipped — no new identities");
+    pool = new Map();
+    neighbors = new Map();
+  } else if (RESOLVE_ONLY) {
+    log("expand", "skipped — RESOLVE_ONLY=1 (use Graph → Run pipeline to expand)");
+    const seeded = identitiesToSeedPool(identities, olympiadIndex);
+    pool = seeded.pool;
+    neighbors = seeded.neighbors;
+    seedTree = seeded.seedTree;
+  } else {
     log("expand", "GitHub collaborator + rich follower tree + Substack...");
     const expanded = await expandGraph(identities, olympiadIndex);
     pool = expanded.pool;
     neighbors = expanded.neighbors;
     seedTree = expanded.seedTree;
-  } else {
-    log("expand", "skipped — no new identities");
-    pool = new Map();
-    neighbors = new Map();
   }
 
   // Convergence from prior runs' person records boosts this run's ranking;
@@ -300,10 +317,8 @@ async function main(): Promise<void> {
     }
   }
 
-  // Auto-assess the solid base case: GitHub path + writing surface (and, for
-  // discovered neighbors, enough graph context). Mock LLM unless explicitly
-  // armed — automatic live spend needs AUTO_ASSESS_LIVE=1. AUTO_ASSESS=0 off.
-  if (process.env.AUTO_ASSESS !== "0") {
+  // Auto-assess only on full pipeline runs — resolve-only is intake.
+  if (!RESOLVE_ONLY && process.env.AUTO_ASSESS !== "0") {
     const picks = selectAutoAssess(ranked, { hasReport: hasAnyAssessment });
     if (picks.length) {
       const live = process.env.AUTO_ASSESS_LIVE === "1";

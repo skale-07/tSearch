@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   ageFromAwardMatch,
+  awardLinkedInSearchTerm,
   loadAwardRegistry,
   matchAwards,
   parseAwardYear,
 } from "../../src/awards/awardRegistry.js";
 import { deriveStage } from "../../src/assessment/stage/deriveStage.js";
 import { buildExperienceEvidence } from "../../src/assessment/judges/experienceJudge.js";
-import { diffNewSeeds } from "../../src/seeds/refreshSeeds.js";
-import { parseRosterFilename } from "../../src/seeds/sources/rosterSource.js";
+import { diffNewSeeds, inspectSources, pendingKind } from "../../src/seeds/refreshSeeds.js";
+import { parseRosterFilename, writeAwardRoster } from "../../src/seeds/sources/rosterSource.js";
 import { parseManualCohort } from "../../src/seeds/sources/manualCohortSource.js";
+import { createOlympiadCsvSource } from "../../src/seeds/sources/olympiadCsvSource.js";
 import { sortAssessedRows, type AssessedCandidateRow } from "../../server/assessmentApi.js";
 import type { SeedCandidateRow } from "../../src/seeds/sources/types.js";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 describe("award registry", () => {
   it("loads, and every award has unique id and aliases", () => {
@@ -20,6 +25,14 @@ describe("award registry", () => {
     const ids = new Set(registry.awards.map((a) => a.award_id));
     expect(ids.size).toBe(registry.awards.length);
     for (const a of registry.awards) expect(a.aliases.length).toBeGreaterThan(0);
+  });
+
+  it("LinkedIn search term is the award display name", () => {
+    expect(awardLinkedInSearchTerm("davidson_fellows")).toBe("Davidson Fellows");
+    expect(awardLinkedInSearchTerm("cameron_impact")).toBe(
+      "Cameron Impact Scholarship"
+    );
+    expect(awardLinkedInSearchTerm("not_a_real_award")).toBeUndefined();
   });
 
   it("matches stated award strings case- and punctuation-insensitively", () => {
@@ -120,6 +133,28 @@ describe("seed refresh", () => {
     expect(result.duplicates_within_run).toBe(1);
   });
 
+  it("prunes resolved names already sitting in the pending file", () => {
+    const result = diffNewSeeds([row("Ada Lovelace")], (name) => name === "Grace Hopper", [
+      {
+        name: "Grace Hopper",
+        source_id: "prev",
+        first_seen: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    expect(result.new_seeds.map((s) => s.name)).toEqual(["Ada Lovelace"]);
+    expect(result.already_known).toBe(1);
+  });
+
+  it("always reports olympiad, scholarship, and manual channels", () => {
+    const kinds = new Set(inspectSources().map((c) => c.kind));
+    expect(kinds.has("olympiad_csv")).toBe(true);
+    expect(kinds.has("award_roster")).toBe(true);
+    expect(kinds.has("manual_cohort")).toBe(true);
+    expect(pendingKind({ name: "X", source_id: "olympiad:ioi", first_seen: "t" })).toBe(
+      "olympiad_csv"
+    );
+  });
+
   it("parses roster filenames with and without a year", () => {
     expect(parseRosterFilename("cameron_impact.2026.csv")).toEqual({
       award_id: "cameron_impact",
@@ -130,6 +165,28 @@ describe("seed refresh", () => {
       year: undefined,
     });
     expect(parseRosterFilename("notes.md")).toBeNull();
+  });
+
+  it("writes a scholarship roster file from pasted names", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tsearch-roster-"));
+    const saved = writeAwardRoster({
+      award_id: "cameron_impact",
+      year: 2026,
+      namesText: "Ada Lovelace\nGrace Hopper\n",
+      dir,
+    });
+    expect(saved).toEqual({ file: "cameron_impact.2026.csv", count: 2 });
+    const body = fs.readFileSync(path.join(dir, saved.file), "utf8");
+    expect(body).toMatch(/Ada Lovelace/);
+    expect(body).toMatch(/Grace Hopper/);
+    expect(() =>
+      writeAwardRoster({
+        award_id: "not_a_real_award",
+        year: 2026,
+        namesText: "Ada",
+        dir,
+      })
+    ).toThrow(/Unknown award_id/);
   });
 
   it("manual cohort intake keeps only names, skipping malformed rows", () => {
@@ -143,6 +200,41 @@ describe("seed refresh", () => {
       name: "Ada Lovelace",
       cohort_year: 2032,
       source_kind: "manual_cohort",
+    });
+  });
+
+  it("manual cohort keeps a stated age at award when present", () => {
+    const rows = parseManualCohort([
+      { name: "Ada Lovelace", cohort_year: 2022, age_at_award: 18 },
+    ]);
+    expect(rows[0]?.age_at_award).toBe(18);
+  });
+
+  it("olympiad CSV source nominates unique names, newest first", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tsearch-oly-"));
+    const csv = path.join(dir, "olympiad_winners.csv");
+    fs.writeFileSync(
+      csv,
+      [
+        "source,competition_year,name,age,school,country,award,rank",
+        "IOI,2023,Grace Hopper,16,,Canada,Silver,",
+        "IMO,2024,Ada Lovelace,,,United States,Gold,",
+        "IMO,2024,Ada Lovelace,,,United States,Gold,",
+      ].join("\n")
+    );
+    const source = createOlympiadCsvSource(csv);
+    expect(source).not.toBeNull();
+    const rows = source!.read();
+    expect(rows.map((r) => r.name)).toEqual(["Ada Lovelace", "Grace Hopper"]);
+    expect(rows[0]).toMatchObject({
+      source_kind: "olympiad_csv",
+      country: "United States",
+      cohort_year: 2024,
+    });
+    expect(rows[1]).toMatchObject({
+      name: "Grace Hopper",
+      age_at_award: 16,
+      cohort_year: 2023,
     });
   });
 });

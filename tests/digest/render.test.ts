@@ -191,7 +191,7 @@ describe("digest rendering", () => {
     expect(html).not.toMatch(/: independent systems builder/i);
     const md = renderMarkdown(digest);
     expect(md).toContain("Discovery score");
-    expect(md).toContain("Assessment priority");
+    expect(md).toContain("Assessment overall");
     expect(md).toMatch(/Profiles:/);
   });
 

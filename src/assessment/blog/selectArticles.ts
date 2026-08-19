@@ -1,9 +1,53 @@
 import { BLOG_BUDGETS } from "./types.js";
 import type { BlogArticle, TopicCluster } from "./types.js";
+import { isWritingPlatformHost } from "./writingHubs.js";
 
 export interface SelectArticlesOptions {
   maxSelected?: number;
   now?: Date;
+}
+
+const JUNK_ARTICLE_TITLE =
+  /^(page redirection|terms of service|privacy policy|medium privacy policy|work at medium|index|untitled|cookie policy|hello world!?)\b/i;
+
+/** Portfolio nav labels — junk only when the body is still a stub. */
+const NAV_LABEL_TITLE =
+  /^(home|about|outreach|publications?|research|more projects|projects?)\b/i;
+
+/** Below this, the page is a stub/nav shell — not judgeable writing. */
+const MIN_SUBSTANCE_CHARS = 280;
+
+function isJunkArticle(a: BlogArticle): boolean {
+  const title = a.title.trim();
+  if (JUNK_ARTICLE_TITLE.test(title)) return true;
+  const len = articleLength(a);
+  if (len < MIN_SUBSTANCE_CHARS) return true;
+  if (NAV_LABEL_TITLE.test(title) && len < 800) return true;
+  try {
+    const u = new URL(a.canonical_url);
+    const host = u.hostname.replace(/^www\./i, "");
+    const path = u.pathname.replace(/\/$/, "") || "/";
+    // Listing indexes are only useful when nothing deeper was found — drop
+    // them when the path is exactly /blog or /posts.
+    if (/^\/(blog|posts|articles|writing)$/i.test(path) && len < 800) {
+      return true;
+    }
+    // Reserved Medium chrome hosts should never be selectable even if fetched.
+    if (
+      host === "policy.medium.com" ||
+      host === "help.medium.com" ||
+      /\/jobs-at-medium\//i.test(a.canonical_url)
+    ) {
+      return true;
+    }
+    // Drop zero-substance pages that only exist as platform chrome.
+    if (isWritingPlatformHost(host) && len < 200) {
+      if (/privacy|terms|jobs?|career|cookie/i.test(title)) return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 function articleLength(a: BlogArticle): number {
@@ -57,7 +101,9 @@ export function selectArticles(
     }
   }
 
-  const scored = articles.map((a) => {
+  const scored = articles
+    .filter((a) => !isJunkArticle(a))
+    .map((a) => {
     const len = articleLength(a);
     const lengthScore = Math.min(1, len / 4000);
     const revBonus = a.revision_markers.length > 0 ? 0.1 : 0;

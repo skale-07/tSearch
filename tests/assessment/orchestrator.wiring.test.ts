@@ -103,7 +103,13 @@ const linkedBlogFixture: BlogFixture = {
         <article>
           <p>We built a custom scheduler. Source:
           https://github.com/deepbuilder/custom-scheduler-engine</p>
-          <p>Mechanism and evaluation details follow.</p>
+          <p>Mechanism and evaluation details follow. The placement loop
+          keeps a ready queue, scores each pending job against current
+          cluster capacity, and commits the assignment only after a
+          two-phase check against fragmentation. That is the whole
+          design: inspectable control flow, no hidden heuristic soup,
+          and a writeup long enough to judge as real technical writing
+          rather than a landing-page stub.</p>
         </article>
       </body></html>`,
     },

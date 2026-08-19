@@ -118,6 +118,15 @@ export function matchAwards(
   return out;
 }
 
+/** Phrase for LinkedIn people search: display name, not country. */
+export function awardLinkedInSearchTerm(
+  award_id: string | undefined
+): string | undefined {
+  if (!award_id) return undefined;
+  const award = loadAwardRegistry().awards.find((a) => a.award_id === award_id);
+  return award?.display_name;
+}
+
 /**
  * Age implied by a dated award whose cohort stage is known.
  * Only `hs_senior` awards give a tight band; broader stages are too loose to

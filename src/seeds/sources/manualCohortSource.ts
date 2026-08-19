@@ -12,7 +12,10 @@ import type { SeedCandidateRow, SeedSource } from "./types.js";
  * goes through the same LinkedIn verification as every other seed.
  *
  * File: data/manual-cohort.json
- *   [{ "name": "...", "cohort_year": 2032, "country": "US", "note": "..." }]
+ *   [{ "name": "...", "cohort_year": 2026, "country": "US", "age_at_award": 18 }]
+ *
+ * `name` is required. `cohort_year` / `country` / `age_at_award` are optional
+ * but `cohort_year` and `age_at_award` are what the pending Age column uses.
  */
 export const MANUAL_COHORT_PATH_DEFAULT = "data/manual-cohort.json";
 
@@ -20,6 +23,13 @@ interface ManualEntry {
   name?: unknown;
   cohort_year?: unknown;
   country?: unknown;
+  age_at_award?: unknown;
+}
+
+function parseOptionalAge(raw: unknown): number | undefined {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isInteger(n) || n < 14 || n > 30) return undefined;
+  return n;
 }
 
 export function parseManualCohort(raw: unknown): SeedCandidateRow[] {
@@ -42,6 +52,7 @@ export function parseManualCohort(raw: unknown): SeedCandidateRow[] {
           ? entry.country.trim()
           : undefined,
       cohort_year: year,
+      age_at_award: parseOptionalAge(entry.age_at_award),
       source_id: year ? `manual:${year}` : "manual",
       source_kind: "manual_cohort",
       as_of,

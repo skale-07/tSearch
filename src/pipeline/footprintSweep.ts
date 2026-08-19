@@ -8,16 +8,13 @@ import {
   type PersonRecord,
 } from "../storage/personStore.js";
 import { loadAllPeople } from "./convergence.js";
+import { nameMatchConfidence } from "./nameMatch.js";
 
 /**
- * Coverage sweep: GitHub-first footprint qualification of the olympiad seed
- * set. LinkedIn is the scarce, risky resource — so instead of qualifying
- * seeds by resolving them there, this sweep cheaply estimates who has enough
- * public context (GitHub, site/blog) to be worth a LinkedIn confirm, and
- * ranks them into data/seed-queue.json for the pipeline/autopilot to consume.
- *
- * It nominates; it never asserts identity. The pipeline's LinkedIn resolve
- * remains the only path that verifies who someone actually is.
+ * Legacy GitHub-first footprint qualification. Live intake is pending-seeds
+ * (olympiad CSV / rosters / manual) → LinkedIn first; GitHub attaches only
+ * from LinkedIn/website URLs. These helpers remain for name-match scoring
+ * and the unused seed-queue file.
  */
 
 const FOOTPRINT_TTL_MS = Number(
@@ -43,34 +40,14 @@ export interface FootprintResult {
   signals: string[];
 }
 
+export { nameMatchConfidence };
+
 function norm(s: string): string {
   return s
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-}
-
-/** 0..1 name-similarity between a seed name and a github login/display name. */
-export function nameMatchConfidence(
-  name: string,
-  login: string,
-  displayName: string | null
-): number {
-  const target = norm(name);
-  const l = norm(login);
-  const d = displayName ? norm(displayName) : "";
-  if (d === target || l === target) return 1;
-  if (d && (d.includes(target) || target.includes(d))) return 0.8;
-  const parts = name.toLowerCase().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    const first = norm(parts[0]);
-    const last = norm(parts[parts.length - 1]);
-    if (l.includes(first) && l.includes(last)) return 0.75;
-    if (l.includes(last) || l.includes(first + (last[0] ?? ""))) return 0.45;
-  }
-  if (target.includes(l) || l.includes(target)) return 0.5;
-  return 0.1;
 }
 
 const OLYMPIAD_HINT_RE =

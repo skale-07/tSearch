@@ -1,4 +1,6 @@
 import { WEIRD_TOPICS } from "../config.js";
+import { deriveStage } from "../assessment/stage/deriveStage.js";
+import { ageScalar, toOverallScore10 } from "./ageScalar.js";
 import { computeObscurity } from "./computeObscurity.js";
 import type {
   Candidate,
@@ -26,7 +28,7 @@ export function computeScore(
   convergenceSeedCount = 0,
   website?: WebsiteProfile,
   linkedin?: LinkedInProfile
-): { final_score: number; breakdown: ScoreBreakdown } {
+): { final_score: number; overall_score: number; breakdown: ScoreBreakdown } {
   const repos = github?.repos.length ?? 0;
   const recent = github?.recent_commits ?? 0;
   const posts = substack?.posts ?? 0;
@@ -57,7 +59,23 @@ export function computeScore(
     website,
     linkedinConnections: linkedin?.connections ?? null,
     linkedinConnectionsSaturated: linkedin?.connections_saturated ?? false,
+    githubOnLinkedIn: !!linkedin?.github_url,
   });
+
+  const stage = deriveStage({ linkedin, olympiad });
+  const scalar = ageScalar(stage.estimated_age);
+
+  const preAge =
+    Math.round(
+      (builder + thinker + olympiadScore + weirdness + identity + convergence) *
+        100
+    ) / 100;
+
+  // `obscurity` is intentionally absent from this sum — see ScoreBreakdown.
+  // Chronological age scales the whole pre-age total (younger → higher).
+  const final_score = Math.round(preAge * scalar * 100) / 100;
+  // Historical final_score is ~0–3; operator-facing overall is 1–10.
+  const overall_score = toOverallScore10(final_score * (10 / 3));
 
   const breakdown: ScoreBreakdown = {
     builder: Math.round(builder * 100) / 100,
@@ -68,28 +86,19 @@ export function computeScore(
     convergence: Math.round(convergence * 100) / 100,
     obscurity: obscurityResult.obscurity,
     obscurity_confidence: obscurityResult.confidence,
+    age_scalar: scalar,
+    estimated_age: stage.estimated_age,
+    overall_score,
   };
 
-  // `obscurity` is intentionally absent from this sum — see ScoreBreakdown.
-  const final_score =
-    Math.round(
-      (breakdown.builder +
-        breakdown.thinker +
-        breakdown.olympiad +
-        breakdown.weirdness +
-        breakdown.identity +
-        (breakdown.convergence ?? 0)) *
-        100
-    ) / 100;
-
-  return { final_score, breakdown };
+  return { final_score, overall_score, breakdown };
 }
 
 export function scoreCandidate(
   candidate: Omit<Candidate, "final_score" | "score_breakdown">,
   convergenceSeedCount = 0
 ): Candidate {
-  const { final_score, breakdown } = computeScore(
+  const { final_score, overall_score, breakdown } = computeScore(
     candidate.github,
     candidate.substack,
     candidate.olympiad,
@@ -98,5 +107,10 @@ export function scoreCandidate(
     candidate.website,
     candidate.linkedin
   );
-  return { ...candidate, final_score, score_breakdown: breakdown };
+  return {
+    ...candidate,
+    final_score,
+    overall_score,
+    score_breakdown: breakdown,
+  };
 }

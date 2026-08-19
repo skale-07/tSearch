@@ -6,7 +6,7 @@ import {
   fetchTree,
   parseNodeId,
   startBranchRun,
-  startRun,
+  startRunBatch,
   subscribeRunEvents,
   type ProfileRecord,
   type ProfileRelation,
@@ -15,20 +15,40 @@ import {
   type TreeOption,
   type TreeResponse,
 } from "./api";
-import { AssessPanel } from "./AssessPanel";
-import { DigestsPanel } from "./DigestsPanel";
+import { DiscoverPage } from "./DiscoverPage";
+import { PipelineBatchModal } from "./PipelineBatchModal";
 import { ProfilePanel } from "./ProfilePanel";
-import { ReportsPanel } from "./ReportsPanel";
 import { RadialTree } from "./RadialTree";
+import { ScorePage, type ScoreTab } from "./ScorePage";
 import "./App.css";
 
 type Status = "idle" | "running" | "done" | "warning" | "failed";
+type Workspace = "discover" | "graph" | "score";
+
+function workspaceFromHash(): Workspace {
+  const h = window.location.hash;
+  if (h === "#discover") return "discover";
+  if (h === "#score") return "score";
+  return "graph";
+}
+
+function hashForWorkspace(ws: Workspace): string {
+  if (ws === "discover") return "discover";
+  if (ws === "score") return "score";
+  return "";
+}
+
+function brandSub(ws: Workspace): string {
+  if (ws === "discover") return "discovery";
+  if (ws === "score") return "priority score";
+  return "seed tree";
+}
 
 export default function App() {
   const [seeds, setSeeds] = useState<SeedOption[]>([]);
   const [trees, setTrees] = useState<TreeOption[]>([]);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  const [selectedSeed, setSelectedSeed] = useState<string>("");
+  const [pipelineBatchOpen, setPipelineBatchOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -43,9 +63,9 @@ export default function App() {
   const [panelError, setPanelError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
-  const [assessOpen, setAssessOpen] = useState(false);
-  const [reportsOpen, setReportsOpen] = useState(false);
-  const [digestsOpen, setDigestsOpen] = useState(false);
+  const [workspace, setWorkspace] = useState<Workspace>(workspaceFromHash);
+  const [scoreTab, setScoreTab] = useState<ScoreTab>("assess");
+  const [scoreMountId, setScoreMountId] = useState(0);
   const [assessmentDigest, setAssessmentDigest] = useState<string | null>(null);
   const [assessmentPreselect, setAssessmentPreselect] = useState<string[]>([]);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
@@ -74,6 +94,24 @@ export default function App() {
   }, [logs, logsOpen]);
 
   useEffect(() => {
+    const onHash = () => setWorkspace(workspaceFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const openWorkspace = (next: Workspace) => {
+    setWorkspace(next);
+    window.location.hash = hashForWorkspace(next);
+  };
+
+  const openScore = (tab: ScoreTab = "assess", preselect: string[] = []) => {
+    setScoreTab(tab);
+    setAssessmentPreselect(preselect);
+    setScoreMountId((n) => n + 1);
+    openWorkspace("score");
+  };
+
+  useEffect(() => {
     let cancelled = false;
     fetchSeeds()
       .then(async (data) => {
@@ -82,10 +120,6 @@ export default function App() {
         setTrees(
           data.trees ?? data.profileSeeds.map((s) => ({ slug: s, name: s }))
         );
-        if (data.seeds.length) {
-          const preferred = data.seeds[0];
-          setSelectedSeed(`${preferred.name}||${preferred.country}`);
-        }
         const slug = data.profileSeeds[0];
         if (slug) {
           try {
@@ -120,10 +154,6 @@ export default function App() {
     }
   }, []);
 
-  const current = seeds.find(
-    (s) => `${s.name}||${s.country}` === selectedSeed
-  );
-
   const watchRun = (runId: string): Promise<string | null> =>
     new Promise((resolve) => {
       const unsub = subscribeRunEvents(runId, (ev) => {
@@ -153,8 +183,11 @@ export default function App() {
       });
     });
 
-  const onRun = async () => {
-    if (!current) return;
+  const onRunBatch = async (
+    batch: Array<{ name: string; country: string }>
+  ) => {
+    if (!batch.length) return;
+    setPipelineBatchOpen(false);
     setError(null);
     setStatus("running");
     setLogs([]);
@@ -164,20 +197,22 @@ export default function App() {
     setSelectedNodeId(null);
 
     try {
-      const { runId } = await startRun({
-        name: current.name,
-        country: current.country,
-      });
+      const { runId, batch: accepted } = await startRunBatch({ seeds: batch });
+      setLogs((prev) => [
+        ...prev,
+        `[ui] batch ${accepted.length}: ${accepted.map((s) => s.name).join(", ")}`,
+      ]);
       setActiveRunId(runId);
       const slug = await watchRun(runId);
+      const refreshed = await fetchSeeds();
+      setSeeds(refreshed.seeds);
+      setTrees(
+        refreshed.trees ??
+          refreshed.profileSeeds.map((s) => ({ slug: s, name: s }))
+      );
       if (slug) {
         setSeedSlug(slug);
         await loadTree(slug);
-        setTrees((prev) =>
-          prev.some((t) => t.slug === slug)
-            ? prev
-            : [...prev, { slug, name: current.name }]
-        );
       }
     } catch (err) {
       setStatus("failed");
@@ -196,7 +231,7 @@ export default function App() {
     }
   };
 
-  const onAssessmentStart = async (runId: string) => {
+  const onWatchJob = async (runId: string) => {
     setError(null);
     setAssessmentDigest(null);
     setStatus("running");
@@ -337,77 +372,52 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">tSearch</span>
-          <span className="brand-sub">seed tree</span>
+          <span className="brand-sub">{brandSub(workspace)}</span>
         </div>
 
         <div className="controls">
-          <label className="sr-only" htmlFor="seed-select">
-            Seed
-          </label>
-          <select
-            id="seed-select"
-            value={selectedSeed}
-            onChange={(e) => setSelectedSeed(e.target.value)}
-            disabled={status === "running"}
-          >
-            {seeds.map((s) => (
-              <option
-                key={`${s.name}-${s.country}`}
-                value={`${s.name}||${s.country}`}
-              >
-                {s.country ? `${s.name} — ${s.country}` : s.name}
-              </option>
-            ))}
-          </select>
+          <div className="workspace-tabs" role="tablist" aria-label="Workspace">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={workspace === "discover"}
+              className={`nav-tab ${workspace === "discover" ? "on" : ""}`}
+              onClick={() => openWorkspace("discover")}
+            >
+              Discover
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={workspace === "graph"}
+              className={`nav-tab ${workspace === "graph" ? "on" : ""}`}
+              onClick={() => openWorkspace("graph")}
+            >
+              Graph
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={workspace === "score"}
+              className={`nav-tab ${workspace === "score" ? "on" : ""}`}
+              onClick={() => openScore("assess")}
+            >
+              Score
+            </button>
+          </div>
 
-          <button
-            type="button"
-            className="run-btn"
-            onClick={onRun}
-            disabled={!current || status === "running"}
-          >
-            {status === "running" ? "Running…" : "Run pipeline"}
-          </button>
+          {workspace === "graph" && (
+            <button
+              type="button"
+              className="run-btn"
+              onClick={() => setPipelineBatchOpen(true)}
+              disabled={seeds.length === 0 || status === "running"}
+            >
+              {status === "running" ? "Running…" : "Run pipeline…"}
+            </button>
+          )}
 
-          <button
-            type="button"
-            className="run-btn"
-            onClick={() => {
-              setAssessOpen(true);
-              setAssessmentPreselect([]);
-              setReportsOpen(false);
-              setDigestsOpen(false);
-            }}
-            disabled={status === "running"}
-          >
-            Assess
-          </button>
-
-          <button
-            type="button"
-            className="run-btn"
-            onClick={() => {
-              setReportsOpen(true);
-              setAssessOpen(false);
-              setDigestsOpen(false);
-            }}
-          >
-            Reports
-          </button>
-
-          <button
-            type="button"
-            className="run-btn"
-            onClick={() => {
-              setDigestsOpen(true);
-              setReportsOpen(false);
-              setAssessOpen(false);
-            }}
-          >
-            Digests
-          </button>
-
-          {trees.length > 0 && (
+          {workspace === "graph" && trees.length > 0 && (
             <select
               aria-label="Load existing tree"
               value={seedSlug ?? ""}
@@ -460,69 +470,90 @@ export default function App() {
       )}
 
       <main className="stage">
-        {tree ? (
-          <>
-            <input
-              type="search"
-              className="tree-search"
-              placeholder="Search tree…"
-              aria-label="Search tree by name"
-              value={treeSearch}
-              onChange={(e) => setTreeSearch(e.target.value)}
-            />
-            <RadialTree
-              nodes={tree.nodes}
-              edges={tree.edges}
-              seedId={tree.seedSlug}
-              selectedId={selectedNodeId}
-              onSelect={onSelectNode}
-              searchQuery={treeSearch}
-            />
-          </>
-        ) : (
-          <div className="empty">
-            <p>Select a seed and run the pipeline to grow the tree.</p>
-            <p className="muted">
-              Existing trees load automatically when found under{" "}
-              <code>profiles/</code>.
-            </p>
-          </div>
+        {workspace === "discover" && (
+          <DiscoverPage
+            open
+            running={status === "running"}
+            onStartResolve={onWatchJob}
+            onError={(message) => {
+              setStatus("failed");
+              setError(message);
+            }}
+          />
         )}
 
-        <ProfilePanel
-          profile={panelProfile}
-          node={panelNode}
-          loading={panelLoading}
-          error={panelError}
-          expanding={expanding}
-          onExpandBranch={onExpandBranch}
-          onAssessCandidate={(candidateId) => {
-            setAssessmentPreselect([candidateId]);
-            setAssessOpen(true);
-          }}
-          onClose={() => {
-            setPanelProfile(null);
-            setPanelNode(null);
-            setSelectedNodeId(null);
-            setPanelError(null);
-          }}
-        />
+        {workspace === "score" && (
+          <ScorePage
+            running={status === "running"}
+            digestHint={assessmentDigest}
+            initialTab={scoreTab}
+            navEpoch={scoreMountId}
+            preselectCandidateIds={assessmentPreselect}
+            onStartRun={(runId) => void onWatchJob(runId)}
+            onError={(message) => {
+              setStatus("failed");
+              setError(message);
+            }}
+          />
+        )}
 
-        <ReportsPanel open={reportsOpen} onClose={() => setReportsOpen(false)} />
+        {workspace === "graph" &&
+          (tree ? (
+            <>
+              <input
+                type="search"
+                className="tree-search"
+                placeholder="Search tree…"
+                aria-label="Search tree by name"
+                value={treeSearch}
+                onChange={(e) => setTreeSearch(e.target.value)}
+              />
+              <RadialTree
+                nodes={tree.nodes}
+                edges={tree.edges}
+                seedId={tree.seedSlug}
+                selectedId={selectedNodeId}
+                onSelect={onSelectNode}
+                searchQuery={treeSearch}
+              />
+            </>
+          ) : (
+            <div className="empty">
+              <p>Select a seed and run the pipeline to grow the tree.</p>
+              <p className="muted">
+                Existing trees load automatically when found under{" "}
+                <code>profiles/</code>.
+              </p>
+            </div>
+          ))}
 
-        <DigestsPanel open={digestsOpen} onClose={() => setDigestsOpen(false)} />
+        {workspace === "graph" && (
+          <ProfilePanel
+            profile={panelProfile}
+            node={panelNode}
+            loading={panelLoading}
+            error={panelError}
+            expanding={expanding}
+            onExpandBranch={onExpandBranch}
+            onAssessCandidate={(candidateId) => {
+              openScore("assess", [candidateId]);
+            }}
+            onClose={() => {
+              setPanelProfile(null);
+              setPanelNode(null);
+              setSelectedNodeId(null);
+              setPanelError(null);
+            }}
+          />
+        )}
 
-        <AssessPanel
-          open={assessOpen}
-          running={status === "running"}
-          digestHint={assessmentDigest}
-          onClose={() => setAssessOpen(false)}
-          onStartRun={(runId) => void onAssessmentStart(runId)}
-          preselectCandidateIds={assessmentPreselect}
-          onError={(message) => {
-            setStatus("failed");
-            setError(message);
-          }}
+        <PipelineBatchModal
+          open={pipelineBatchOpen}
+          seeds={seeds}
+          trees={trees}
+          disabled={status === "running"}
+          onClose={() => setPipelineBatchOpen(false)}
+          onConfirm={(batch) => void onRunBatch(batch)}
         />
       </main>
 

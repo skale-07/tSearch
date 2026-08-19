@@ -24,6 +24,22 @@ function profile(partial: Partial<OlympiadProfile>): OlympiadProfile {
 }
 
 describe("LinkedIn search query strategy", () => {
+  it("award query is name + award display name, unquoted award token", () => {
+    expect(
+      formatSearchQuery("Christine Song", {
+        award_hint: "Davidson Fellows",
+      })
+    ).toBe('"Christine Song" Davidson Fellows');
+  });
+
+  it("college-only query is name + college", () => {
+    expect(
+      formatSearchQuery("Christine Song", {
+        college: "Stanford University",
+      })
+    ).toBe('"Christine Song" Stanford University');
+  });
+
   it("primary query is name + high school only", () => {
     expect(
       formatSearchQuery("Christine Song", {

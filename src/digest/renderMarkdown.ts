@@ -71,7 +71,7 @@ export function renderMarkdown(digest: DigestDocument): string {
     }
     lines.push("");
     lines.push(
-      `- Assessment priority: **${c.assessment_priority_score}/100** (confidence ${c.assessment_confidence})`
+      `- Assessment overall: **${(c.assessment_priority_score / 10).toFixed(1)}/10** (confidence ${c.assessment_confidence})`
     );
     lines.push(
       `- Discovery score (pipeline \`final_score\`): **${c.discovery_score}**`

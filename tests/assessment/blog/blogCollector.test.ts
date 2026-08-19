@@ -94,6 +94,8 @@ function stubArticle(
   text: string,
   published_at?: string
 ): BlogArticle {
+  // Pad so selection substance filter does not drop unit fixtures.
+  const body = text.length >= 280 ? text : `${text} ${"detail ".repeat(50)}`;
   return {
     article_id: id,
     artifact_id: `art_${id}`,
@@ -102,7 +104,7 @@ function stubArticle(
     published_at,
     date_support: published_at ? "moderate" : "low",
     extraction_method: "readability",
-    sections: [{ text, order: 0 }],
+    sections: [{ text: body, order: 0 }],
     citations: [],
     revision_markers: [],
     original_analysis_artifacts: [],
@@ -149,6 +151,70 @@ describe("clustering and selection", () => {
   });
 });
 
+describe("collectBlogArtifacts writing-hub traversal", () => {
+  it("follows Medium profile + story links off the personal homepage", async () => {
+    const storyHtml = (title: string) =>
+      `<html><body><article><h1>${title}</h1>
+<p>Long enough body about kotlin android ${"systems ".repeat(40)}experimentation.</p>
+</article></body></html>`;
+    const pages: Record<string, string> = {
+      "https://armanko.com/en": `<html><body>
+<a href="https://armanco.medium.com/">Medium</a>
+<a href="https://medium.com/@armanco/kotlin-tutorial-part-1-introduction-2dc17497b610">Kotlin 1</a>
+<a href="/en/privacy-policy">Privacy</a>
+</body></html>`,
+      "https://armanco.medium.com": `<html><body>
+<a href="https://armanco.medium.com/develop-android-tv-app-using-recyclerview-f17e04ea2779">TV app</a>
+<a href="https://policy.medium.com/medium-privacy-policy-f03bf92035c9">Medium Privacy Policy</a>
+<a href="https://medium.com/jobs-at-medium/work-at-medium-959d1a85284e">Work at Medium</a>
+</body></html>`,
+      "https://armanco.medium.com/feed": `<?xml version="1.0"?><rss><channel>
+<item><title>Feed story</title><link>https://medium.com/@armanco/feed-story-aaa</link></item>
+</channel></rss>`,
+      "https://medium.com/@armanco/kotlin-tutorial-part-1-introduction-2dc17497b610":
+        storyHtml("Kotlin tutorial part 1"),
+      "https://armanco.medium.com/develop-android-tv-app-using-recyclerview-f17e04ea2779":
+        storyHtml("Android TV RecyclerView"),
+      "https://medium.com/@armanco/feed-story-aaa": storyHtml("Feed story"),
+    };
+    const fetchImpl = async (input: string | URL): Promise<Response> => {
+      const key = String(input).replace(/\/$/, "");
+      const body = pages[key];
+      return new Response(body ?? "not found", {
+        status: body ? 200 : 404,
+        headers: {
+          "content-type": key.includes("feed")
+            ? "application/rss+xml"
+            : "text/html",
+        },
+      });
+    };
+
+    const result = await collectBlogArtifacts("https://armanko.com/en/", {
+      candidate_id: "cand_arman",
+      fetchImpl,
+      maxArticlePages: 10,
+    });
+
+    const urls = result.articles.map((a) => a.canonical_url);
+    expect(urls.some((u) => u.includes("kotlin-tutorial-part-1"))).toBe(true);
+    expect(
+      urls.some((u) => u.includes("recyclerview") || u.includes("feed-story"))
+    ).toBe(true);
+    expect(urls.some((u) => u.includes("privacy"))).toBe(false);
+    expect(urls.some((u) => u.includes("jobs-at-medium"))).toBe(false);
+    expect(urls.some((u) => u.includes("policy.medium.com"))).toBe(false);
+    expect(result.selected.length).toBeGreaterThan(0);
+    expect(
+      result.selected.every(
+        (a) =>
+          !/privacy policy|work at medium/i.test(a.title) &&
+          !a.canonical_url.includes("policy.medium.com")
+      )
+    ).toBe(true);
+  });
+});
+
 describe("collectBlogArtifacts homepage-link fallback", () => {
   it("discovers articles from homepage links when no feed or sitemap exists", async () => {
     const articleHtml = (title: string) =>
@@ -187,6 +253,71 @@ describe("collectBlogArtifacts homepage-link fallback", () => {
     expect(urls.some((u) => u.includes("/about"))).toBe(false);
     expect(urls.some((u) => u.includes("github.com"))).toBe(false);
     expect(result.selected.length).toBeGreaterThan(0);
+  });
+
+  it("follows /blog index links into individual posts", async () => {
+    const post = (title: string) =>
+      `<html><body><article><h1>${title}</h1>
+<p>Long enough body about systems and ${"runtime ".repeat(40)}experimentation.</p>
+</article></body></html>`;
+    const pages: Record<string, string> = {
+      "https://writer.dev": `<html><body><a href="/blog">Blog</a></body></html>`,
+      "https://writer.dev/blog": `<html><body>
+<a href="/blog/post-one">Post One</a>
+<a href="/blog/post-two">Post Two</a>
+</body></html>`,
+      "https://writer.dev/blog/post-one": post("Post One"),
+      "https://writer.dev/blog/post-two": post("Post Two"),
+    };
+    const fetchImpl = async (input: string | URL): Promise<Response> => {
+      const key = String(input).replace(/\/$/, "");
+      const body = pages[key];
+      return new Response(body ?? "not found", {
+        status: body ? 200 : 404,
+        headers: { "content-type": "text/html" },
+      });
+    };
+
+    const result = await collectBlogArtifacts("https://writer.dev/", {
+      candidate_id: "cand_index_hop",
+      fetchImpl,
+    });
+    const urls = result.articles.map((a) => a.canonical_url);
+    expect(urls).toContain("https://writer.dev/blog/post-one");
+    expect(urls).toContain("https://writer.dev/blog/post-two");
+    expect(
+      result.selected.some((a) => a.canonical_url.includes("/blog/post-"))
+    ).toBe(true);
+  });
+
+  it("does not treat font/favicon assets as articles", async () => {
+    const pages: Record<string, string> = {
+      "https://spa.dev": `<html><body>
+<a href="/_next/static/media/font.woff2">font</a>
+<a href="/favicon.ico">icon</a>
+<a href="/notes/real-post">Real</a>
+</body></html>`,
+      "https://spa.dev/notes/real-post": `<html><body><article><h1>Real</h1>
+<p>Long enough body about systems and ${"runtime ".repeat(40)}experimentation.</p>
+</article></body></html>`,
+    };
+    const fetchImpl = async (input: string | URL): Promise<Response> => {
+      const key = String(input).replace(/\/$/, "");
+      const body = pages[key];
+      return new Response(body ?? "not found", {
+        status: body ? 200 : 404,
+        headers: { "content-type": "text/html" },
+      });
+    };
+    const result = await collectBlogArtifacts("https://spa.dev/", {
+      candidate_id: "cand_assets",
+      fetchImpl,
+    });
+    const urls = result.articles.map((a) => a.canonical_url);
+    expect(urls.some((u) => u.includes("woff2") || u.includes("favicon"))).toBe(
+      false
+    );
+    expect(urls).toContain("https://spa.dev/notes/real-post");
   });
 });
 

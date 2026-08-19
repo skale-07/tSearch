@@ -1,7 +1,7 @@
 import type { CandidateAssessmentRecord } from "../assessment/types.js";
 
 const JUNK_TITLE =
-  /^(page redirection|terms of service|privacy policy|home|index|untitled)\b/i;
+  /^(page redirection|terms of service|privacy policy|medium privacy policy|work at medium|home|index|untitled)\b/i;
 
 export type DigestWorkLink = {
   artifact_id: string;

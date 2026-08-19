@@ -138,7 +138,7 @@ function card(
               <div>${chips}</div>
             </td>
             <td valign="top" align="right" style="white-space:nowrap;">
-              <span style="font-family:Georgia,serif;font-size:22px;color:#b98f1e;">${esc(String(c.assessment_priority_score))}</span><span style="font-size:11px;color:#a49e90;">/100</span>
+              <span style="font-family:Georgia,serif;font-size:22px;color:#b98f1e;">${esc((c.assessment_priority_score / 10).toFixed(1))}</span><span style="font-size:11px;color:#a49e90;">/10</span>
             </td>
           </tr>
         </table>

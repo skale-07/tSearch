@@ -49,7 +49,9 @@ function walk(root: string, rel: string, out: string[]): void {
   const stat = fs.statSync(abs, { throwIfNoEntry: false });
   if (!stat) return;
   if (stat.isFile()) {
-    if (EXTENSIONS.has(path.extname(rel))) out.push(rel);
+    if (EXTENSIONS.has(path.extname(rel))) {
+      out.push(rel.split(path.sep).join("/"));
+    }
     return;
   }
   for (const entry of fs.readdirSync(abs).sort()) {

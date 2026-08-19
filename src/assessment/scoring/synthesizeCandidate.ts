@@ -19,6 +19,7 @@ import {
   ownershipV2ToLegacy,
 } from "../github/collectOwnershipEvidence.js";
 import { averageScores } from "../judges/scoreUtils.js";
+import { ageScalar, toOverallScore10 } from "../../scoring/ageScalar.js";
 
 export const PRIORITY_V2_VERSION = "priority-v2";
 export const PRIORITY_V2_REQUIRES_CALIBRATION = true;
@@ -409,6 +410,8 @@ export function computePriorityV2(input: {
   axes: AssessmentAxes;
   identitySupport?: OwnershipAssessmentV2["identity_support"];
   identityRisks?: string[];
+  /** Chronological age estimate; scales the final priority (younger → higher). */
+  estimatedAge?: number | null;
 }): {
   priority_score: number;
   components: Record<string, number>;
@@ -492,8 +495,11 @@ export function computePriorityV2(input: {
     caps_applied.push("high_signal_low_evidence_cap_0.8");
   }
 
+  const scalar = ageScalar(input.estimatedAge);
+  const ageScaled = base * scalar;
+
   return {
-    priority_score: clamp100(base * 100),
+    priority_score: clamp100(ageScaled * 100),
     components: {
       technical: tech,
       ownership: own,
@@ -512,7 +518,10 @@ export function computePriorityV2(input: {
       w_cory: wCory,
       w_evidence_completeness: wComp,
       base,
+      age_scalar: scalar,
+      age_scaled: ageScaled,
       requires_calibration: PRIORITY_V2_REQUIRES_CALIBRATION ? 1 : 0,
+      ...(input.estimatedAge != null ? { estimated_age: input.estimatedAge } : {}),
     },
     caps_applied,
     weight_version: PRIORITY_V2_VERSION,
@@ -630,6 +639,8 @@ export function synthesizeCandidate(input: {
   cory?: CoryRelevanceResult;
   evidenceCount: number;
   discoveryScore?: number;
+  /** Chronological age estimate for priority scalar (younger → higher). */
+  estimatedAge?: number | null;
 }): CandidateSynthesis {
   const ownershipV2 = normalizeOwnershipV2(input.ownership);
   const ownershipLegacy = normalizeOwnershipInput(input.ownership);
@@ -661,6 +672,7 @@ export function synthesizeCandidate(input: {
     axes,
     identitySupport: ownershipV2?.identity_support,
     identityRisks: ownershipV2?.identity_risks,
+    estimatedAge: input.estimatedAge,
   });
 
   const tech01 = axes.technical_strength?.score;
@@ -734,6 +746,7 @@ export function synthesizeCandidate(input: {
       evidence_completeness: evidenceCompleteness,
     },
     priority_score: priority.priority_score,
+    overall_score: toOverallScore10(priority.priority_score),
     priority_confidence,
     weight_version: PRIORITY_V2_VERSION,
   };

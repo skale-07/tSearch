@@ -19,6 +19,40 @@ import {
   computeIdentitySurfaceScore,
   SURFACE_SCORE_MAX,
 } from "../src/github/identitySurface.js";
+import { ageFromPublicIdentity } from "../src/assessment/stage/deriveStage.js";
+import { loadPerson } from "../src/storage/personStore.js";
+import { loadAllPeople } from "../src/pipeline/convergence.js";
+import { githubUsernameFromUrl } from "../src/linkedin/linkedinExtract.js";
+import type { Candidate, LinkedInProfile, OlympiadProfile } from "../src/types.js";
+
+/** Profile dirs are keyed by GitHub login when known, else name slug. */
+function seedSlugsForPerson(
+  name: string,
+  githubUrl: string | null | undefined
+): string[] {
+  const slugs = [slugify(name)];
+  const login = githubUsernameFromUrl(githubUrl ?? null);
+  if (login) {
+    const loginSlug = slugify(login);
+    if (!slugs.includes(loginSlug)) slugs.push(loginSlug);
+  }
+  return slugs;
+}
+
+function personHasHop1Tree(
+  name: string,
+  githubUrl: string | null | undefined,
+  withTree: Set<string>
+): boolean {
+  return seedSlugsForPerson(name, githubUrl).some((s) => withTree.has(s));
+}
+
+export interface TreeOption {
+  slug: string;
+  name: string;
+  age_label: string | null;
+  hasTree: boolean;
+}
 
 export interface TreeNodeSummary {
   id: string;
@@ -42,6 +76,8 @@ export interface TreeNodeSummary {
   /** Reachable from 2+ seed-set members (convergence heuristic). */
   bridge_seed_count?: number;
   bridge_seeds?: string[];
+  /** Stated age or ~estimate from LinkedIn/olympiad. Null when unknown. */
+  age_label: string | null;
 }
 
 export interface TreeEdge {
@@ -75,7 +111,77 @@ function listNeighborDirs(baseDir: string): string[] {
     .map((d) => d.name);
 }
 
-function toSummary(p: ProfileRecord): TreeNodeSummary {
+function normName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+type AgeSources = {
+  linkedin?: LinkedInProfile;
+  olympiad?: OlympiadProfile;
+};
+
+function candidateAgeIndex(): {
+  byName: Map<string, AgeSources>;
+  byGithub: Map<string, AgeSources>;
+} {
+  const byName = new Map<string, AgeSources>();
+  const byGithub = new Map<string, AgeSources>();
+  try {
+    const raw = JSON.parse(fs.readFileSync(OUTPUT_PATH, "utf-8")) as unknown;
+    if (!Array.isArray(raw)) return { byName, byGithub };
+    for (const c of raw as Candidate[]) {
+      const src: AgeSources = { linkedin: c.linkedin, olympiad: c.olympiad };
+      if (c.name) byName.set(normName(c.name), src);
+      const gh = c.github?.username?.toLowerCase();
+      if (gh) byGithub.set(gh, src);
+    }
+  } catch {
+    /* candidates.json missing — person/profile only */
+  }
+  return { byName, byGithub };
+}
+
+function ageLabelForProfile(
+  p: ProfileRecord,
+  index: ReturnType<typeof candidateAgeIndex>
+): string | null {
+  const direct = ageFromPublicIdentity({
+    linkedin: p.linkedin,
+    olympiad: p.olympiad,
+  });
+  if (direct.age_label) return direct.age_label;
+
+  const rec = loadPerson(p.name);
+  if (rec) {
+    const linkedin =
+      rec.identity.status !== "no_name_match" ? rec.linkedin : undefined;
+    const fromPerson = ageFromPublicIdentity({
+      linkedin,
+      olympiad: rec.olympiad ?? p.olympiad,
+    });
+    if (fromPerson.age_label) return fromPerson.age_label;
+  }
+
+  const fromName = index.byName.get(normName(p.name));
+  if (fromName) {
+    const hit = ageFromPublicIdentity(fromName);
+    if (hit.age_label) return hit.age_label;
+  }
+  const gh = p.github?.username?.toLowerCase();
+  if (gh) {
+    const fromGh = index.byGithub.get(gh);
+    if (fromGh) {
+      const hit = ageFromPublicIdentity(fromGh);
+      if (hit.age_label) return hit.age_label;
+    }
+  }
+  return null;
+}
+
+function toSummary(
+  p: ProfileRecord,
+  index: ReturnType<typeof candidateAgeIndex> = candidateAgeIndex()
+): TreeNodeSummary {
   const linkedin_url = linkedInUrlFromProfile(p) ?? undefined;
   const website_url =
     p.links?.personal_website?.trim() ||
@@ -114,6 +220,7 @@ function toSummary(p: ProfileRecord): TreeNodeSummary {
     surface_signals: surface.signals,
     surface_score_max: SURFACE_SCORE_MAX,
     can_expand: hop === 1 && !!linkedin_url,
+    age_label: ageLabelForProfile(p, index),
   };
 }
 
@@ -196,7 +303,8 @@ export function buildTree(seedSlug: string): TreeResponse | null {
   const seedProfile = loadProfile(seed, "seed");
   if (!seedProfile) return null;
 
-  const nodes: TreeNodeSummary[] = [toSummary({ ...seedProfile, hop: 0 })];
+  const index = candidateAgeIndex();
+  const nodes: TreeNodeSummary[] = [toSummary({ ...seedProfile, hop: 0 }, index)];
   const edges: TreeEdge[] = [];
   const seenNode = new Set<string>([seed]);
 
@@ -206,7 +314,7 @@ export function buildTree(seedSlug: string): TreeResponse | null {
     for (const login of listNeighborDirs(hop1Dir)) {
       const p = loadProfile(seed, parentRel, login, { hop: 1 });
       if (!p || !includeOnTree(p, 1)) continue;
-      const summary = toSummary({ ...p, hop: 1, parents: [seed] });
+      const summary = toSummary({ ...p, hop: 1, parents: [seed] }, index);
       if (!seenNode.has(summary.id)) {
         nodes.push(summary);
         seenNode.add(summary.id);
@@ -236,7 +344,7 @@ export function buildTree(seedSlug: string): TreeResponse | null {
             ...child,
             hop: 2,
             parents: [seed, login],
-          });
+          }, index);
           if (!seenNode.has(childSummary.id)) {
             nodes.push(childSummary);
             seenNode.add(childSummary.id);
@@ -275,7 +383,25 @@ export function buildTree(seedSlug: string): TreeResponse | null {
   return { seedSlug: seed, seed: seedProfile, nodes, edges };
 }
 
-export function listProfileSeeds(): string[] {
+export function seedHasHop1Neighbors(seedSlug: string): boolean {
+  const root = path.join(PROFILES_DIR, seedSlug);
+  for (const rel of ["collaborators", "followers"] as const) {
+    const dir = path.join(root, rel);
+    if (!fs.existsSync(dir)) continue;
+    const hasChild = fs
+      .readdirSync(dir, { withFileTypes: true })
+      .some(
+        (d) =>
+          d.isDirectory() &&
+          fs.existsSync(path.join(dir, d.name, "profile.json"))
+      );
+    if (hasChild) return true;
+  }
+  return false;
+}
+
+/** Every seed profile dir, including those with no hop-1 graph. Assess uses this. */
+export function listAllSeedProfileSlugs(): string[] {
   if (!fs.existsSync(PROFILES_DIR)) return [];
   return fs
     .readdirSync(PROFILES_DIR, { withFileTypes: true })
@@ -284,6 +410,48 @@ export function listProfileSeeds(): string[] {
       fs.existsSync(path.join(PROFILES_DIR, d.name, "profile.json"))
     )
     .map((d) => d.name);
+}
+
+/** Seed roots that have a hop-1 graph (collaborator and/or follower nodes). */
+export function listProfileSeeds(): string[] {
+  return listAllSeedProfileSlugs().filter((slug) => seedHasHop1Neighbors(slug));
+}
+
+export function listTreeOptions(): TreeOption[] {
+  const index = candidateAgeIndex();
+  return listProfileSeeds().map((slug) => {
+    const p = loadProfile(slug, "seed");
+    return {
+      slug,
+      name: p?.name ?? slug,
+      age_label: p ? ageLabelForProfile(p, index) : null,
+      hasTree: true,
+    };
+  });
+}
+
+export function listSeedOptions(): Array<{
+  name: string;
+  country: string;
+  hasTree: boolean;
+}> {
+  const withTree = new Set(listProfileSeeds());
+  const people = loadAllPeople();
+  const byName = new Map(people.map((p) => [p.name.trim().toLowerCase(), p]));
+  return loadSeedsFile().map((s) => {
+    const rec = byName.get(s.name.trim().toLowerCase());
+    const github = rec?.links.github_url ?? rec?.linkedin?.github_url;
+    return {
+      ...s,
+      hasTree: personHasHop1Tree(s.name, github, withTree),
+    };
+  });
+}
+
+export function profileWithAgeLabel(p: ProfileRecord): ProfileRecord & {
+  age_label: string | null;
+} {
+  return { ...p, age_label: ageLabelForProfile(p, candidateAgeIndex()) };
 }
 
 export function loadSeedsFile(): { name: string; country: string }[] {

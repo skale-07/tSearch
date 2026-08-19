@@ -107,6 +107,8 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
     let medalPts = 0;
     let recencyPts = 0;
     let agePts = 0;
+    let stated_age: number | undefined;
+    let stated_age_year = -1;
     const years = new Set<number>();
     const sources = new Set<string>();
     const prizes: string[] = [];
@@ -127,7 +129,12 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
       olympiadPts = Math.max(olympiadPts, OLY_SCORE[source] ?? 0);
       medalPts = Math.max(medalPts, medal.score);
       recencyPts = Math.max(recencyPts, year - 2020);
-      agePts = Math.max(agePts, ageScore(parseAge(row.age ?? "")));
+      const rowAge = parseAge(row.age ?? "");
+      agePts = Math.max(agePts, ageScore(rowAge));
+      if (rowAge != null && year >= stated_age_year) {
+        stated_age = rowAge;
+        stated_age_year = year;
+      }
       countryBonus(row.country ?? "");
     }
 
@@ -143,6 +150,7 @@ export function loadOlympiadCsv(csvPath: string): Map<string, OlympiadProfile> {
       medalScore: medalPts,
       recencyScore: recencyPts,
       ageScore: agePts,
+      stated_age,
     });
   }
 

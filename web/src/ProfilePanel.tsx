@@ -180,7 +180,15 @@ export function ProfilePanel({
             {profile.relation !== "seed" &&
               ` · context ${profile.context_score}`}
           </p>
-          <h2>{profile.name}</h2>
+          <h2>
+            {profile.name}
+            {(profile.age_label ?? node?.age_label) ? (
+              <span className="name-age">
+                {" "}
+                · {profile.age_label ?? node?.age_label}
+              </span>
+            ) : null}
+          </h2>
 
           <div className="surface-meter" aria-label="Identity surface score">
             <div className="surface-meter-head">

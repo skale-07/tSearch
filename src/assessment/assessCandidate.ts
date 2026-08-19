@@ -20,6 +20,7 @@ import {
   collectBlogArtifacts,
   collectBlogArtifactsFromFixture,
 } from "./blog/collectBlogArtifacts.js";
+import { firstWritingSurfaceUrl } from "./blog/writingHubs.js";
 import { deterministicTechnicalJudgeV2, runTechnicalJudgeV2 } from "./judges/technicalJudgeV2.js";
 import { deterministicWritingJudge, runWritingJudge, type WritingArtifactInput } from "./judges/writingJudge.js";
 import { deterministicCrossArtifactJudge, runCrossArtifactJudge } from "./judges/crossArtifactJudge.js";
@@ -82,11 +83,19 @@ function normalizeHttpUrl(raw: string): string {
 }
 
 function websiteOrBlogUrl(selected: SelectedCandidate): string | undefined {
+  const li = selected.candidate.linkedin;
+  const hub = firstWritingSurfaceUrl([
+    ...(li?.contact_links ?? []),
+    li?.substack_url,
+    selected.candidate.website?.medium_url,
+    selected.candidate.website?.substack_url,
+  ]);
   const raw =
     selected.source_snapshot.website_url ||
     selected.source_snapshot.blog_url ||
     selected.identity.website_url ||
-    selected.candidate.linkedin?.personal_website ||
+    hub ||
+    li?.personal_website ||
     selected.candidate.website?.url ||
     selected.candidate.github?.blog;
   return raw?.trim() ? normalizeHttpUrl(raw) : undefined;
@@ -630,6 +639,7 @@ export async function assessCandidate(input: {
     writing: record.judge_results.writing,
     crossArtifact: record.judge_results.cross_artifact,
     cory: record.judge_results.cory,
+    estimatedAge: stage.estimated_age,
   });
   record.synthesis_state = synthesisCompleted({
     valid_for_ranking: !fallbackOnly,

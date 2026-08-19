@@ -65,12 +65,7 @@ export function extractArticleFromHtml(
   if (published_at && modified_at) date_support = "high";
   else if (published_at || modified_at) date_support = "moderate";
 
-  const articleHtml =
-    extractByTag(html, "article") ??
-    extractByClass(html, /post-content|entry-content|article-body|content/i) ??
-    extractByTag(html, "main") ??
-    html;
-
+  const articleHtml = pickRichestContent(html);
   const cleaned = stripChrome(articleHtml);
   const sections = sectionsFromHtml(cleaned);
   let plain_text = sections.map((s) => s.text).join("\n\n").trim();
@@ -305,15 +300,59 @@ function extractByTag(html: string, tag: string): string | null {
   return m?.[1] ?? null;
 }
 
+function extractAllByTag(html: string, tag: string): string[] {
+  const out: string[] = [];
+  const re = new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    if (m[1]) out.push(m[1]);
+  }
+  return out;
+}
+
 function extractByClass(html: string, classRe: RegExp): string | null {
-  const re = /<div\b([^>]*)>([\s\S]*?)<\/div>/gi;
+  const all = extractAllByClass(html, classRe);
+  return all[0] ?? null;
+}
+
+function extractAllByClass(html: string, classRe: RegExp): string[] {
+  const out: string[] = [];
+  const re = /<(?:div|section|main|article)\b([^>]*)>([\s\S]*?)<\/(?:div|section|main|article)>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     const attrs = m[1];
     const cls = attrs.match(/class=["']([^"']+)["']/i)?.[1] ?? "";
-    if (classRe.test(cls)) return m[2];
+    if (classRe.test(cls) && m[2]) out.push(m[2]);
   }
-  return null;
+  return out;
+}
+
+/**
+ * Prefer the longest real content block. First <article> on WP themes is often
+ * a nav card / hello-world teaser — length beats first-match.
+ */
+function pickRichestContent(html: string): string {
+  const candidates = [
+    ...extractAllByTag(html, "article"),
+    ...extractAllByTag(html, "main"),
+    ...extractAllByClass(
+      html,
+      /wp-block-post-content|post-content|entry-content|article-body|site-content|content-area/i
+    ),
+  ];
+  if (candidates.length === 0) return html;
+  let best = candidates[0]!;
+  let bestLen = stripTags(best).length;
+  for (const c of candidates.slice(1)) {
+    const len = stripTags(c).length;
+    if (len > bestLen) {
+      best = c;
+      bestLen = len;
+    }
+  }
+  // If every candidate is still a stub, fall back to full document.
+  if (bestLen < 120) return html;
+  return best;
 }
 
 function normalizeDate(raw?: string): string | undefined {

@@ -5,6 +5,7 @@ import {
   judgeStatusTone,
   stageLabel,
 } from "./assessmentStatus";
+import { formatOverallScore } from "./ageDisplay";
 import type { AssessmentError, CandidateAssessmentDetail } from "./api";
 import {
   resolveEvidenceCitations,
@@ -195,7 +196,15 @@ export function AssessmentResultView({
       <div className="assessment-overview">
         {rankingValid && typeof synthesis.priority_score === "number" ? (
           <p className="assessment-priority">
-            Priority <strong>{synthesis.priority_score.toFixed(1)}</strong>
+            Overall{" "}
+            <strong>
+              {formatOverallScore(
+                synthesis.priority_score,
+                typeof synthesis.overall_score === "number"
+                  ? synthesis.overall_score
+                  : null
+              )}
+            </strong>
           </p>
         ) : (
           <p className="muted">Priority score not valid for ranking</p>

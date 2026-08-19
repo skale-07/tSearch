@@ -69,6 +69,8 @@ export interface WebsiteProfile {
   scraped_at: string;
   github_url: string | null;
   substack_url: string | null;
+  /** Medium profile / publication root when linked from the site. */
+  medium_url?: string | null;
   twitter_url: string | null;
   linkedin_url: string | null;
   email: string | null;
@@ -112,6 +114,11 @@ export interface LinkedInProfile {
   connections?: number | null;
   /** True when the profile showed "500+" rather than an exact count. */
   connections_saturated?: boolean;
+  /**
+   * Current age parsed from headline/About at scrape time. Re-parsed from
+   * headline in deriveStage so old profiles still work without a re-scrape.
+   */
+  stated_age?: number | null;
   /** Bumped when scrape logic changes; invalidates stale profile cache. */
   scrape_version?: number;
 }
@@ -128,6 +135,8 @@ export interface OlympiadProfile {
   medalScore: number;
   recencyScore: number;
   ageScore: number;
+  /** Raw age from the most recent CSV row that stated one. */
+  stated_age?: number;
 }
 
 export interface ResolvedIdentity {
@@ -150,6 +159,8 @@ export interface Candidate {
   website?: WebsiteProfile;
   olympiad?: OlympiadProfile;
   final_score: number;
+  /** Recruiter-facing 1–10 mapped from discovery `final_score`. */
+  overall_score?: number;
   score_breakdown: ScoreBreakdown;
 }
 
@@ -169,4 +180,13 @@ export interface ScoreBreakdown {
    */
   obscurity?: number;
   obscurity_confidence?: number;
+  /**
+   * Chronological age multiplier applied to the pre-age sum → `final_score`.
+   * 1.0 when age is unknown. See `ageScalar()`.
+   */
+  age_scalar?: number;
+  /** Estimated age used for `age_scalar`, when available. */
+  estimated_age?: number | null;
+  /** Recruiter-facing 1–10 after age scalar. */
+  overall_score?: number;
 }

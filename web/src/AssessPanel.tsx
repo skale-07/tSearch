@@ -2,11 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchAssessed,
   fetchCandidates,
-  fetchDigestSettings,
-  sendDigestEmail,
   fetchAssessmentRunCandidates,
   fetchRunCandidateAssessment,
-  generateDigest,
   pollAssessmentRun,
   retryAssessmentCandidate,
   retryFailedAssessment,
@@ -17,6 +14,7 @@ import {
   type CandidateAssessmentDetail,
 } from "./api";
 import { assessmentEligibility } from "./eligibility";
+import { formatOverallScore, withAge } from "./ageDisplay";
 import {
   candidateStatusTone,
   judgeAttemptsLabel,
@@ -49,11 +47,13 @@ interface Props {
   open: boolean;
   running: boolean;
   digestHint: string | null;
-  onClose: () => void;
+  onClose?: () => void;
   onStartRun: (jobId: string) => void;
   onError: (message: string) => void;
   preselectCandidateIds?: string[];
   mockLlm?: boolean;
+  embedded?: boolean;
+  onGoDigests?: () => void;
 }
 
 // Rough live-run cost preview: one call per judge stage, priced per candidate
@@ -71,6 +71,8 @@ export function AssessPanel({
   onError,
   preselectCandidateIds,
   mockLlm = true,
+  embedded = false,
+  onGoDigests,
 }: Props) {
   const [candidates, setCandidates] = useState<AssessmentCandidateRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,51 +83,6 @@ export function AssessPanel({
   const [sortDesc, setSortDesc] = useState(true);
   const [surfaceFilter, setSurfaceFilter] = useState<SurfaceFilter>("all");
   const [assessedAt, setAssessedAt] = useState<Map<string, string>>(new Map());
-  const [digestBusy, setDigestBusy] = useState(false);
-  const [digestLink, setDigestLink] = useState<{ id: string; url: string } | null>(null);
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendFrom, setSendFrom] = useState("");
-  const [sendTo, setSendTo] = useState("");
-  const [sendDryRun, setSendDryRun] = useState(true);
-  const [sendKeyPresent, setSendKeyPresent] = useState(false);
-  const [sendBusy, setSendBusy] = useState(false);
-  const [sendResult, setSendResult] = useState<string | null>(null);
-
-  const openSendDialog = () => {
-    setSendResult(null);
-    setSendDryRun(true);
-    setSendOpen(true);
-    fetchDigestSettings()
-      .then((s) => {
-        setSendFrom((prev) => prev || s.from);
-        setSendTo((prev) => prev || s.to);
-        setSendKeyPresent(s.provider_key_present);
-      })
-      .catch(() => {});
-  };
-
-  const doSend = () => {
-    if (!digestLink) return;
-    setSendBusy(true);
-    setSendResult(null);
-    sendDigestEmail({
-      digestId: digestLink.id,
-      from: sendFrom,
-      to: sendTo,
-      dryRun: sendDryRun,
-    })
-      .then((r) =>
-        setSendResult(
-          r.dryRun
-            ? `Dry run OK (${r.messageId}) — nothing was emailed. Recipients would be: ${r.to.join(", ")}`
-            : `✅ Sent to ${r.to.join(", ")} (${r.messageId})`
-        )
-      )
-      .catch((err) =>
-        setSendResult(`❌ ${err instanceof Error ? err.message : String(err)}`)
-      )
-      .finally(() => setSendBusy(false));
-  };
   const [useMockLlm, setUseMockLlm] = useState(mockLlm);
   const [confirming, setConfirming] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -333,19 +290,27 @@ export function AssessPanel({
 
   if (!open) return null;
 
-  return (
-    <aside className="panel assess-panel open">
-      <div className="panel-head">
-        <button type="button" className="panel-close" onClick={onClose}>
-          Close
-        </button>
-      </div>
+  const shellClass = embedded ? "score-pane" : "panel assess-panel open";
 
-      <p className="eyebrow">Assessment</p>
-      <h2>Assess</h2>
+  return (
+    <aside className={shellClass}>
+      {!embedded && onClose && (
+        <div className="panel-head">
+          <button type="button" className="panel-close" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      )}
+
+      {!embedded && (
+        <>
+          <p className="eyebrow">Assessment</p>
+          <h2>Assess</h2>
+        </>
+      )}
       <p className="muted assess-hint">
         Choose candidates with a GitHub path or writing surface. Assessment does
-        not run discovery, email collection, or digest generation.
+        not run discovery. Digests are generated and sent from the Digests tab.
       </p>
 
       <div className="assess-toolbar">
@@ -365,98 +330,12 @@ export function AssessPanel({
           onChange={(e) => setFilter(e.target.value)}
           disabled={running}
         />
-        <button
-          type="button"
-          className="chip assess-digest-btn"
-          title="Build the email digest (and Learn-more pages) from the latest completed run"
-          disabled={digestBusy || running}
-          onClick={() => {
-            setDigestBusy(true);
-            setDigestLink(null);
-            generateDigest()
-              .then((r) => setDigestLink({ id: r.digest_id, url: r.url }))
-              .catch((err) =>
-                onError(err instanceof Error ? err.message : String(err))
-              )
-              .finally(() => setDigestBusy(false));
-          }}
-        >
-          {digestBusy ? "Building digest…" : "📧 Generate digest"}
-        </button>
-        {digestLink && (
-          <>
-            <a
-              className="chip chip-strong"
-              href={digestLink.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open {digestLink.id.slice(0, 14)} ↗
-            </a>
-            <button
-              type="button"
-              className="chip"
-              disabled={sendBusy}
-              onClick={openSendDialog}
-            >
-              ✉️ Send…
-            </button>
-          </>
+        {onGoDigests && (
+          <button type="button" className="chip" onClick={onGoDigests}>
+            Digests →
+          </button>
         )}
       </div>
-
-      {sendOpen && digestLink && (
-        <div className="assess-modal-backdrop" role="presentation">
-          <section className="assess-modal" role="dialog" aria-modal="true" aria-labelledby="send-title">
-            <h3 id="send-title">Send digest {digestLink.id.slice(0, 14)}</h3>
-            <label className="send-field">
-              From
-              <input
-                type="text"
-                value={sendFrom}
-                onChange={(e) => setSendFrom(e.target.value)}
-                placeholder="tSearch <digest@yourdomain.com>"
-              />
-            </label>
-            <label className="send-field">
-              To (comma-separated)
-              <input
-                type="text"
-                value={sendTo}
-                onChange={(e) => setSendTo(e.target.value)}
-                placeholder="cory@example.com"
-              />
-            </label>
-            <label className="assess-live-toggle">
-              <input
-                type="checkbox"
-                checked={!sendDryRun}
-                onChange={(e) => setSendDryRun(!e.target.checked)}
-              />
-              Send for real
-            </label>
-            {!sendDryRun && (
-              <p className="error">
-                This emails the digest to the recipients above via Resend —
-                no further confirmation after you click Send.
-                {!sendKeyPresent && " (No RESEND_API_KEY configured — this will fall back to a dry run.)"}
-              </p>
-            )}
-            {sendDryRun && (
-              <p className="muted">Dry run: validates and logs, sends nothing.</p>
-            )}
-            {sendResult && <p className="assess-rerun-note">{sendResult}</p>}
-            <div className="assess-modal-actions">
-              <button type="button" className="chip" onClick={() => setSendOpen(false)} disabled={sendBusy}>
-                Close
-              </button>
-              <button type="button" className="run-btn" onClick={doSend} disabled={sendBusy || !sendTo.trim() || !sendFrom.trim()}>
-                {sendBusy ? "Sending…" : sendDryRun ? "Run dry-run" : "Send"}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
 
       {loadError && <p className="error">{loadError}</p>}
 
@@ -498,7 +377,9 @@ export function AssessPanel({
                           </span>
                         ))}
                         {candidate.synthesis_valid && typeof candidate.priority_score === "number" && (
-                          <span className="assess-score">Priority {candidate.priority_score.toFixed(1)}</span>
+                          <span className="assess-score">
+                            Overall {formatOverallScore(candidate.priority_score)}
+                          </span>
                         )}
                       </span>
                     </button>
@@ -615,7 +496,9 @@ export function AssessPanel({
                     disabled={running || !assessmentEligibility(c).eligible}
                   />
                   <span className="assess-row-main">
-                    <span className="assess-name">{c.name}</span>
+                    <span className="assess-name">
+                      {withAge(c.name, c.age_label)}
+                    </span>
                     <span className="assess-meta">
                       <span className="assess-score">
                         {c.final_score.toFixed(1)}
@@ -637,7 +520,17 @@ export function AssessPanel({
 
       {digestHint && (
         <p className="assess-digest">
-          Digest: <code>{digestHint}</code>
+          Digest artifact: <code>{digestHint}</code>
+          {onGoDigests ? (
+            <>
+              {" "}
+              — open{" "}
+              <button type="button" className="linkish" onClick={onGoDigests}>
+                Digests
+              </button>{" "}
+              to generate or send.
+            </>
+          ) : null}
         </p>
       )}
       {confirming && (

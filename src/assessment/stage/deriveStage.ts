@@ -1,3 +1,4 @@
+import { ageFromLinkedInProfile } from "../../linkedin/linkedinAge.js";
 import { ageFromAwardMatch, matchAwards } from "../../awards/awardRegistry.js";
 import type { LinkedInProfile, OlympiadProfile } from "../../types.js";
 
@@ -20,10 +21,12 @@ export type StageBucket =
   | "unknown";
 
 export type StageBasis =
+  | "linkedin_stated_age"
   | "olympiad_age_band"
   | "award_cohort"
   | "olympiad_year"
   | "linkedin_graduation_year"
+  | "linkedin_hs_year"
   | "none";
 
 export interface StageEstimate {
@@ -67,6 +70,20 @@ export function deriveStage(input: {
   const now = input.now ?? new Date();
   const currentYear = now.getFullYear();
   const { linkedin, olympiad } = input;
+
+  // 0. Stated age in LinkedIn headline/About, then education years.
+  if (linkedin) {
+    const fromLi = ageFromLinkedInProfile(linkedin, currentYear);
+    if (fromLi) {
+      return {
+        bucket: bucketForAge(fromLi.age),
+        estimated_age: fromLi.age,
+        confidence: fromLi.confidence,
+        basis: fromLi.basis,
+        explanation: fromLi.explanation,
+      };
+    }
+  }
 
   // 1. Olympiad CSV age band — the only source with a stated age.
   //    ageScore 2 => competitor was 16–17; 1 => 18–19; 0 is ambiguous
@@ -153,3 +170,25 @@ export const STAGE_NORMS: Record<Exclude<StageBucket, "unknown">, string> = {
   post_grad:
     "23+. Norm: professional work of decent quality is expected; only genuinely exceptional output reads as remarkable for stage.",
 };
+
+const STATED_BASES = new Set<StageBasis>(["linkedin_stated_age"]);
+
+/** Stated ages have no tilde; derived ages are approximate. */
+export function formatAgeLabel(stage: StageEstimate): string | null {
+  if (stage.estimated_age == null) return null;
+  if (STATED_BASES.has(stage.basis)) return String(stage.estimated_age);
+  return `~${stage.estimated_age}`;
+}
+
+export function ageFromPublicIdentity(input: {
+  linkedin?: LinkedInProfile;
+  olympiad?: OlympiadProfile;
+  now?: Date;
+}): { estimated_age: number | null; age_label: string | null; stage: StageEstimate } {
+  const stage = deriveStage(input);
+  return {
+    estimated_age: stage.estimated_age,
+    age_label: formatAgeLabel(stage),
+    stage,
+  };
+}

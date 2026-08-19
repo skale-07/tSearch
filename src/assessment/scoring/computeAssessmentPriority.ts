@@ -2,6 +2,7 @@ import {
   PRIORITY_WEIGHTS,
   PRIORITY_WEIGHT_VERSION,
 } from "../config.js";
+import { ageScalar, toOverallScore10 } from "../../scoring/ageScalar.js";
 
 export interface PriorityInput {
   technical?: number;
@@ -14,10 +15,14 @@ export interface PriorityInput {
   evidence_completeness: number;
   /** 0-1 aggregate confidence */
   aggregate_confidence: number;
+  /** Chronological age estimate; scales priority (younger → higher). */
+  estimated_age?: number | null;
 }
 
 export interface PriorityResult {
   priority_score: number;
+  /** Recruiter-facing 1–10. `priority_score` stays 0–100 for frozen artifacts. */
+  overall_score: number;
   weight_version: string;
   components: Record<string, number>;
 }
@@ -102,11 +107,13 @@ export function computeAssessmentPriority(input: PriorityInput): PriorityResult 
 
   const conf = clamp01(input.aggregate_confidence);
   const adjusted = base * (0.75 + 0.25 * conf);
-  // base is already ~0-1; scale to 0-100
-  const priority_score = clamp100(adjusted * 100);
+  const scalar = ageScalar(input.estimated_age);
+  // base is already ~0-1; scale to 0-100, then apply chronological age scalar
+  const priority_score = clamp100(adjusted * scalar * 100);
 
   return {
     priority_score,
+    overall_score: toOverallScore10(priority_score),
     weight_version: PRIORITY_WEIGHT_VERSION,
     components: {
       strongest: strongest ?? 0,
@@ -119,6 +126,7 @@ export function computeAssessmentPriority(input: PriorityInput): PriorityResult 
       aggregate_confidence: conf,
       base,
       adjusted,
+      age_scalar: scalar,
     },
   };
 }

@@ -109,6 +109,13 @@ export const LINKEDIN_SEARCH_CACHE_TTL_MS = Number(
 export const SUBSTACK_CACHE_TTL_MS = Number(
   process.env.SUBSTACK_CACHE_TTL_MS ?? 7 * DAY_MS
 );
+/** Pace between award-roster HTTP fetches. Do not drop this to zero. */
+export const AWARD_SCRAPE_DELAY_MS = Number(
+  process.env.AWARD_SCRAPE_DELAY_MS ?? 800
+);
+export const AWARD_SCRAPE_CACHE_TTL_MS = Number(
+  process.env.AWARD_SCRAPE_CACHE_TTL_MS ?? 7 * DAY_MS
+);
 export const FORCE_REFRESH = process.env.FORCE_REFRESH === "1";
 
 export const MAX_LINKEDIN_RESULTS = Number(process.env.MAX_LINKEDIN_RESULTS ?? 5);
@@ -118,6 +125,9 @@ export const MAX_GITHUB_STARGAZERS_PER_REPO = Number(
 export const MAX_REPOS_EXPAND = Number(process.env.MAX_REPOS_EXPAND ?? 5);
 export const MAX_CANDIDATES = Number(process.env.MAX_CANDIDATES ?? 80);
 export const MAX_IDENTITY_RESOLVES = Number(process.env.MAX_IDENTITY_RESOLVES ?? 40);
+/** Discover / `npm run resolve`: LinkedIn identity only — skip graph expand. */
+export const RESOLVE_ONLY = process.env.RESOLVE_ONLY === "1";
+
 
 export const WEIRD_TOPICS = [
   "ai",

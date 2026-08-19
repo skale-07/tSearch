@@ -56,3 +56,21 @@ export function olympiadHighSchool(
   const cleaned = normalizeSchoolForSearch(picked);
   return cleaned || undefined;
 }
+
+/** University-looking entry that is not the high school, when present. */
+export function olympiadCollege(
+  olympiad?: OlympiadProfile
+): string | undefined {
+  const schools = olympiad?.schools?.map((s) => s.trim()).filter(Boolean) ?? [];
+  if (!schools.length) return undefined;
+  const hs = olympiadHighSchool(olympiad);
+  const uni = schools.find(
+    (s) =>
+      s !== hs &&
+      /university|college|institute of technology|polytechnic/i.test(s)
+  );
+  const picked = uni;
+  if (!picked) return undefined;
+  const cleaned = normalizeSchoolForSearch(picked);
+  return cleaned || undefined;
+}

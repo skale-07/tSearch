@@ -78,6 +78,7 @@ import {
 } from "./judges/coryRelevanceJudge.js";
 import type { LlmJudgeClient } from "./judges/llmClient.js";
 import { synthesizeCandidate } from "./scoring/synthesizeCandidate.js";
+import { deriveStage } from "./stage/deriveStage.js";
 import type {
   AssessmentRunError,
   CandidateAssessmentRecord,
@@ -104,6 +105,7 @@ import {
   collectBlogArtifacts,
   collectBlogArtifactsFromFixture,
 } from "./blog/collectBlogArtifacts.js";
+import { firstWritingSurfaceUrl } from "./blog/writingHubs.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
 import { filterValidRelationships } from "./relationships/validateRelationships.js";
 import type { ArtifactRelationship } from "./relationships/types.js";
@@ -162,11 +164,19 @@ function normalizeHttpUrl(raw: string): string {
 }
 
 function websiteOrBlogUrl(selected: SelectedCandidate): string | undefined {
+  const li = selected.candidate.linkedin;
+  const hub = firstWritingSurfaceUrl([
+    ...(li?.contact_links ?? []),
+    li?.substack_url,
+    selected.candidate.website?.medium_url,
+    selected.candidate.website?.substack_url,
+  ]);
   const raw =
     selected.source_snapshot.website_url ||
     selected.source_snapshot.blog_url ||
     selected.identity.website_url ||
-    selected.candidate.linkedin?.personal_website ||
+    hub ||
+    li?.personal_website ||
     selected.candidate.website?.url ||
     selected.candidate.github?.blog ||
     undefined;
@@ -571,6 +581,11 @@ async function assessOne(
       ? ownershipV2ToLegacy(ownershipAggregate)
       : undefined;
 
+    const stage = deriveStage({
+      linkedin: selected.candidate.linkedin,
+      olympiad: selected.candidate.olympiad,
+    });
+
     const synthesis = synthesizeCandidate({
       name: selected.candidate.name,
       discoveryScore: selected.source_snapshot.discovery_score,
@@ -580,6 +595,7 @@ async function assessOne(
       writing,
       crossArtifact,
       cory,
+      estimatedAge: stage.estimated_age,
     });
     logStage(runId, "synthesis_completed", {
       candidate_id: selected.candidate_id,

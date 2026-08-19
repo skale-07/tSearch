@@ -18,6 +18,8 @@ export interface SeedCandidateRow {
   cohort_year?: number;
   /** Registry award_id when the source is an award roster. */
   award_id?: string;
+  /** Stated age at the award/competition, when the source publishes one. */
+  age_at_award?: number;
   /** Free-form provenance shown in logs and stored on the person record. */
   source_id: string;
   source_kind: SeedSourceKind;

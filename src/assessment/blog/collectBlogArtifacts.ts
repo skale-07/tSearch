@@ -24,6 +24,12 @@ import {
   type FeedEntry,
   type RobotsRules,
 } from "./types.js";
+import {
+  extractWritingHubProfiles,
+  extractWritingPlatformArticleLinks,
+  feedUrlsForWritingHub,
+  isWritingPlatformArticleUrl,
+} from "./writingHubs.js";
 
 export interface CollectBlogResult {
   corpus: BlogCorpus;
@@ -67,7 +73,13 @@ function emptyRobots(): RobotsRules {
 // Nav/boilerplate paths that pass looksLikeArticleUrl but are never articles;
 // only applied to the homepage-link fallback, where precision matters most.
 const NAV_PATHS =
-  /\/(about|contact|resume|cv|privacy|terms|subscribe|login|search|projects?)(\/|$)/i;
+  /\/(about|contact|resume|cv|privacy|terms|subscribe|login|search|projects?|outreach|publications?|research|portfolio|more-projects?)(\/|$)/i;
+
+const ASSET_PATH =
+  /\.(xml|json|css|js|mjs|map|png|jpe?g|gif|svg|webp|ico|pdf|woff2?|ttf|eot|otf|wasm|mp4|webm|mp3|wav)(\?|$)/i;
+
+const STATIC_BUNDLE_PATH =
+  /\/(_next\/static|wp-content\/(?:plugins|themes|mu-plugins)|_app\/immutable|static\/(?:css|js|media))\//i;
 
 /**
  * Fallback article discovery for sites with no feed and no sitemap: pull
@@ -100,14 +112,31 @@ function looksLikeArticleUrl(url: string): boolean {
     const u = new URL(url);
     const p = u.pathname.toLowerCase();
     if (p === "/" || p === "") return false;
-    if (/\/(tag|tags|category|categories|author|page|feed|rss|sitemap)(\/|$)/i.test(p)) {
+    if (/\/(tag|tags|category|categories|author|page|feed|rss|sitemap|comments)(\/|$)/i.test(p)) {
       return false;
     }
-    if (/\.(xml|json|css|js|png|jpg|gif|svg|pdf)$/i.test(p)) return false;
+    if (ASSET_PATH.test(p) || ASSET_PATH.test(u.pathname)) return false;
+    if (STATIC_BUNDLE_PATH.test(p)) return false;
     return true;
   } catch {
     return false;
   }
+}
+
+function articlePlainLength(a: BlogArticle): number {
+  return a.sections.reduce((n, s) => n + s.text.length, 0);
+}
+
+/**
+ * When a listing page (e.g. /blog) was fetched instead of posts, pull the
+ * same-host article links out of its HTML for a second fetch wave.
+ */
+function extractIndexArticleLinks(
+  html: string,
+  pageUrl: string,
+  robots: RobotsRules
+): string[] {
+  return extractHomepageArticleLinks(html, pageUrl, robots);
 }
 
 function buildArticleFromPage(
@@ -261,12 +290,15 @@ export function collectBlogArtifactsFromFixture(
 
   const candidateUrls: string[] = [];
   const seen = new Set<string>();
+  const siteOrigin = `https://${canonical_domain}/`;
   const pushUrl = (raw: string, base?: string) => {
     const c = canonicalizeUrl(raw, base) ?? raw;
     if (seen.has(c)) return;
-    if (!sameRegistrableHost(c, `https://${canonical_domain}/`)) return;
-    if (isDisallowed(c, robots)) return;
-    if (!looksLikeArticleUrl(c)) return;
+    const onSite = sameRegistrableHost(c, siteOrigin);
+    const offsiteWriting = isWritingPlatformArticleUrl(c);
+    if (!onSite && !offsiteWriting) return;
+    if (onSite && isDisallowed(c, robots)) return;
+    if (onSite && !looksLikeArticleUrl(c)) return;
     seen.add(c);
     candidateUrls.push(c);
   };
@@ -275,6 +307,13 @@ export function collectBlogArtifactsFromFixture(
   for (const u of sitemapEntries) pushUrl(u.loc);
   for (const u of fixture.article_urls ?? []) pushUrl(u, fixture.website_url);
   for (const p of fixture.pages ?? []) pushUrl(p.url);
+
+  // Homepage (and any fetched hub pages) may embed Medium/Substack story links.
+  for (const p of fixture.pages ?? []) {
+    for (const link of extractWritingPlatformArticleLinks(p.html, p.url)) {
+      pushUrl(link);
+    }
+  }
 
   if (fixture.article_urls?.length) discovery_sources.push("article_urls");
   if (fixture.pages?.length) discovery_sources.push("pages");
@@ -321,6 +360,60 @@ export function collectBlogArtifactsFromFixture(
       continue;
     }
     articles.push(buildArticleFromPage(url, html, feedByLink.get(url)));
+  }
+
+  // Index→post hop for fixture pages (mirrors live collector).
+  for (const p of fixture.pages ?? []) {
+    for (const link of extractIndexArticleLinks(p.html, p.url, robots)) {
+      pushUrl(link, p.url);
+    }
+  }
+  for (const url of candidateUrls.slice(0, maxPages)) {
+    if (articles.some((a) => a.canonical_url === url)) continue;
+    const html = pageByUrl.get(url);
+    if (!html) continue;
+    articles.push(buildArticleFromPage(url, html, feedByLink.get(url)));
+  }
+
+  // Portfolio/SPA sites often put the only prose on `/`. If nothing substantive
+  // was discovered, treat the homepage as a writing candidate.
+  {
+    const homeCanon =
+      canonicalizeUrl(fixture.website_url) ?? fixture.website_url;
+    let homeHtml: string | undefined;
+    for (const key of [
+      homeCanon,
+      homeCanon.replace(/\/$/, ""),
+      `${homeCanon.replace(/\/$/, "")}/`,
+      fixture.website_url,
+    ]) {
+      homeHtml = pageByUrl.get(key);
+      if (homeHtml) break;
+    }
+    if (!homeHtml) {
+      for (const [u, html] of pageByUrl) {
+        try {
+          const path = new URL(u).pathname;
+          if (path === "/" || path === "") {
+            homeHtml = html;
+            break;
+          }
+        } catch {
+          // skip
+        }
+      }
+    }
+    const hasSubstance = articles.some((a) => articlePlainLength(a) >= 400);
+    if (!hasSubstance && homeHtml) {
+      const homeArticle = buildArticleFromPage(homeCanon, homeHtml);
+      if (
+        articlePlainLength(homeArticle) >= 400 &&
+        !articles.some((a) => a.canonical_url === homeArticle.canonical_url)
+      ) {
+        articles.push(homeArticle);
+        discovery_sources.push("homepage_prose");
+      }
+    }
   }
 
   const topic_clusters = buildTopicClusters(articles);
@@ -437,7 +530,6 @@ export async function collectBlogArtifacts(
     }
   }
 
-  // Seed article URLs from feeds/sitemaps, then fetch HTML pages
   const feedEntries = feeds.length
     ? fetchFeedsFromBodies(feeds, { maxEntries: maxFeed })
     : parseFeedXml("", { maxEntries: maxFeed });
@@ -447,41 +539,147 @@ export async function collectBlogArtifacts(
 
   const urls: string[] = [];
   const seen = new Set<string>();
-  for (const e of [...feedEntries.map((x) => x.link), ...sitemapEntries.map((x) => x.loc)]) {
-    const c = canonicalizeUrl(e) ?? e;
-    if (seen.has(c)) continue;
-    if (!sameRegistrableHost(c, home.finalUrl)) continue;
-    if (isDisallowed(c, robots)) continue;
-    if (!looksLikeArticleUrl(c)) continue;
+  const pagesSeed: NonNullable<BlogFixture["pages"]> = [];
+  const pushLiveUrl = (raw: string, base?: string) => {
+    const c = canonicalizeUrl(raw, base) ?? raw;
+    if (seen.has(c)) return;
+    const onSite = sameRegistrableHost(c, home.finalUrl);
+    const offsiteWriting = isWritingPlatformArticleUrl(c);
+    if (!onSite && !offsiteWriting) return;
+    if (onSite && isDisallowed(c, robots)) return;
+    if (onSite && !looksLikeArticleUrl(c)) return;
     seen.add(c);
     urls.push(c);
+  };
+
+  for (const e of [
+    ...feedEntries.map((x) => x.link),
+    ...sitemapEntries.map((x) => x.loc),
+  ]) {
+    pushLiveUrl(e);
   }
 
-  if (urls.length === 0) {
-    const fallback = extractHomepageArticleLinks(home.body, home.finalUrl, robots);
-    for (const c of fallback) {
-      if (seen.has(c)) continue;
-      seen.add(c);
-      urls.push(c);
+  // Personal site is a hub: follow Medium / Substack / etc. profile links and
+  // ingest story URLs already listed on the homepage.
+  const hubProfiles = extractWritingHubProfiles(home.body, home.finalUrl).slice(
+    0,
+    3
+  );
+  for (const article of extractWritingPlatformArticleLinks(
+    home.body,
+    home.finalUrl
+  )) {
+    pushLiveUrl(article);
+  }
+  if (hubProfiles.length || urls.some((u) => isWritingPlatformArticleUrl(u))) {
+    console.log(
+      `  [assess] blog: writing hubs from personal site: ${hubProfiles.join(", ") || "—"} (${urls.filter((u) => isWritingPlatformArticleUrl(u)).length} story link(s) on homepage)`
+    );
+  }
+
+  for (const hub of hubProfiles) {
+    for (const feedUrl of feedUrlsForWritingHub(hub).slice(0, 2)) {
+      try {
+        const res = await blogFetch(feedUrl, clientOpts);
+        if (res.status < 200 || res.status >= 300) continue;
+        feeds.push({ url: res.finalUrl, body: res.body });
+        const hubEntries = parseFeedXml(res.body, { maxEntries: maxFeed });
+        for (const e of hubEntries) pushLiveUrl(e.link);
+        console.log(
+          `  [assess] blog: hub feed ${feedUrl} → ${hubEntries.length} entries`
+        );
+      } catch {
+        // optional
+      }
     }
-    if (fallback.length > 0) {
+    // Also scrape the hub profile page for story links (feeds sometimes empty).
+    try {
+      const hubPage = await blogFetch(hub, clientOpts);
+      if (hubPage.status >= 200 && hubPage.status < 300) {
+        pagesSeed.push({
+          url: hubPage.finalUrl,
+          html: hubPage.body,
+          status: hubPage.status,
+        });
+        for (const article of extractWritingPlatformArticleLinks(
+          hubPage.body,
+          hubPage.finalUrl
+        )) {
+          pushLiveUrl(article);
+        }
+      }
+    } catch {
+      // optional
+    }
+  }
+
+  // Always harvest same-host article links from the homepage — feeds/sitemaps
+  // often miss hand-rolled blogs, and never hurt when they already found posts.
+  {
+    const homeLinks = extractHomepageArticleLinks(
+      home.body,
+      home.finalUrl,
+      robots
+    );
+    const before = urls.length;
+    for (const c of homeLinks) pushLiveUrl(c);
+    if (urls.length > before) {
       console.log(
-        `  [assess] blog: no feed/sitemap articles; homepage-link fallback found ${fallback.length}`
+        `  [assess] blog: homepage-link harvest found ${urls.length - before}`
       );
     }
   }
 
   const pages: BlogFixture["pages"] = [
     { url: home.finalUrl, html: home.body, status: home.status },
+    ...pagesSeed,
   ];
-  for (const url of urls.slice(0, maxPages)) {
-    try {
-      const res = await blogFetch(url, clientOpts);
-      if (res.status >= 200 && res.status < 300) {
-        pages.push({ url: res.finalUrl, html: res.body, status: res.status });
+  const fetched = new Set(
+    pages.map((p) => canonicalizeUrl(p.url) ?? p.url)
+  );
+
+  const fetchWave = async (candidates: string[]) => {
+    for (const url of candidates) {
+      if (pages.length >= maxPages + 1) break; // +1 for homepage already present
+      const key = canonicalizeUrl(url) ?? url;
+      if (fetched.has(key)) continue;
+      try {
+        const res = await blogFetch(url, clientOpts);
+        if (res.status >= 200 && res.status < 300) {
+          const finalKey = canonicalizeUrl(res.finalUrl) ?? res.finalUrl;
+          fetched.add(key);
+          fetched.add(finalKey);
+          pages.push({
+            url: res.finalUrl,
+            html: res.body,
+            status: res.status,
+          });
+        }
+      } catch {
+        // skip
       }
-    } catch {
-      // skip
+    }
+  };
+
+  await fetchWave(urls);
+
+  // Second hop: listing pages (/blog, /posts) → individual post URLs.
+  {
+    const before = urls.length;
+    for (const page of pages) {
+      if (!sameRegistrableHost(page.url, home.finalUrl)) continue;
+      for (const link of extractIndexArticleLinks(
+        page.html,
+        page.url,
+        robots
+      )) {
+        pushLiveUrl(link);
+      }
+    }
+    const gained = urls.length - before;
+    if (gained > 0) {
+      console.log(`  [assess] blog: index→post hop found ${gained}`);
+      await fetchWave(urls);
     }
   }
 

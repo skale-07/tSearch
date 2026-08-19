@@ -1,17 +1,19 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
-// config.ts reads env at import time, so the cache dir must be set before
-// the module graph loads — hence the dynamic import below.
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tsearch-jsonstore-"));
 process.env.CACHE_DIR = tmpDir;
+// dotenv will not override existing keys. Must be "0", not deleted — otherwise
+// an operator .env with FORCE_REFRESH=1 makes every readCache miss.
+process.env.FORCE_REFRESH = "0";
 
 type JsonStore = typeof import("../../src/storage/jsonStore.js");
 let store: JsonStore;
 
 beforeAll(async () => {
+  vi.resetModules();
   store = await import("../../src/storage/jsonStore.js");
 });
 

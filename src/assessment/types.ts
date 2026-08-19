@@ -295,9 +295,10 @@ export interface CandidateSynthesis {
   /** Tiered recruiter-facing label (label-judge); absent on records assessed before it existed. */
   label_assignment?: CandidateLabelAssignment;
   /**
-   * Surfacing dials. Deliberately OUTSIDE `priority_score` so discovery-side
-   * footprint and stage never contaminate the assessment score — they change
-   * what gets surfaced, not how good the work is judged to be.
+   * Surfacing dials. Obscurity / connections stay outside `priority_score`.
+   * Chronological age is applied as a multiplier on `priority_score` itself
+   * (see `ageScalar`); age-relative impressiveness remains a separate 1–10
+   * stage-gap read for Cory / digest chips.
    */
   surfacing?: {
     /** 1–10 relative to stage norm; null when unscoreable. */
@@ -332,7 +333,10 @@ export interface CandidateSynthesis {
     ownership?: number;
     evidence_completeness: number;
   };
+  /** 0–100 internal ranking (frozen artifacts). Prefer `overall_score`. */
   priority_score: number;
+  /** Recruiter-facing 1–10. */
+  overall_score?: number;
   priority_confidence: number;
   weight_version: string;
 }
