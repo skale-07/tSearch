@@ -52,6 +52,10 @@ export const CHANNEL_META: Record<
     title: "Manual cohort",
     hint: "Download the template, save as data/manual-cohort.json, then scan.",
   },
+  website_page: {
+    title: "Website page",
+    hint: "Names nominated from a seed's lab/personal site. LinkedIn is still identity.",
+  },
 };
 
 export interface ChannelSnapshot {
@@ -67,6 +71,7 @@ export function pendingKind(seed: PendingSeed): SeedSourceKind {
   if (seed.source_kind) return seed.source_kind;
   if (seed.source_id.startsWith("olympiad:")) return "olympiad_csv";
   if (seed.source_id.startsWith("manual")) return "manual_cohort";
+  if (seed.source_id.startsWith("website:")) return "website_page";
   return "award_roster";
 }
 
@@ -313,6 +318,37 @@ export function loadPendingSeeds(
   pendingPath = PENDING_SEEDS_PATH
 ): PendingSeed[] {
   return readJson<PendingSeed[]>(pendingPath) ?? [];
+}
+
+/** Append nominations without re-reading olympiad/roster sources. */
+export function appendPendingSeeds(
+  rows: Array<{
+    name: string;
+    country?: string;
+    source_id: string;
+    source_kind: SeedSourceKind;
+  }>,
+  pendingPath = PENDING_SEEDS_PATH
+): PendingSeed[] {
+  const existing = loadPendingSeeds(pendingPath);
+  const seen = new Set(existing.map((s) => pendingNameKey(s.name)));
+  const now = new Date().toISOString();
+  const next = [...existing];
+  for (const row of rows) {
+    const name = row.name.trim();
+    const key = pendingNameKey(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    next.push({
+      name,
+      country: row.country,
+      source_id: row.source_id,
+      source_kind: row.source_kind,
+      first_seen: now,
+    });
+  }
+  writeJsonAtomic(pendingPath, next);
+  return next;
 }
 
 /** Next unresolved nominations. Skip is for recent LinkedIn failures. */

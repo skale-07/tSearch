@@ -50,6 +50,8 @@ export interface ResolveOptions {
   olympiadIndex: Map<string, OlympiadProfile>;
   school?: string;
   country?: string;
+  /** Skip name-only / empty olympiad fallback. Website ingest uses this. */
+  requireTargetedSearch?: boolean;
 }
 
 export type ResolveFailureReason =
@@ -112,6 +114,7 @@ export async function resolveIdentity(
   const college = collegeRaw
     ? normalizeSchoolForSearch(collegeRaw) || undefined
     : undefined;
+  const org_hint = seed.org_hint?.trim() || undefined;
   const matchCtx = {
     query_name: queryName,
     expected_country: country,
@@ -119,32 +122,48 @@ export async function resolveIdentity(
     olympiad,
     olympiad_hints,
     award_hint,
+    org_hint,
   };
 
-  // Award → college → school → olympiad/country. One token besides the name.
+  // Website ingest: org/award only. The seed's school is not a shared org.
   const attempts: { label: string; context: LinkedInSearchContext }[] = [];
+  if (org_hint) {
+    attempts.push({
+      label: "name+org",
+      context: { org_hint },
+    });
+  }
   if (award_hint) {
     attempts.push({
       label: "name+award",
       context: { award_hint },
     });
   }
-  if (college) {
+  const targetedOnly = opts.requireTargetedSearch === true;
+  if (!targetedOnly) {
+    if (college) {
+      attempts.push({
+        label: "name+college",
+        context: { college },
+      });
+    }
+    if (highSchool) {
+      attempts.push({
+        label: "name+school",
+        context: { school: highSchool },
+      });
+    }
     attempts.push({
-      label: "name+college",
-      context: { college },
+      label: "name+olympiad",
+      context: { country, olympiad_hints },
     });
   }
-  if (highSchool) {
-    attempts.push({
-      label: "name+school",
-      context: { school: highSchool },
-    });
+  if (!attempts.length) {
+    console.log(
+      `  [linkedin] no targeted query for "${queryName}" — refusing name-only search`
+    );
+    return { ok: false, reason: "no_results" };
   }
-  attempts.push({
-    label: "name+olympiad",
-    context: { country, olympiad_hints },
-  });
 
   let hits: LinkedInSearchHit[] = [];
   let picked: { hit: LinkedInSearchHit; confidence: number } | null = null;
@@ -271,7 +290,7 @@ export async function resolveIdentity(
   };
 }
 
-async function enrichIdentityFromWebsite(
+export async function enrichIdentityFromWebsite(
   identity: ResolvedIdentity
 ): Promise<void> {
   if (identity.website?.github_url || identity.website?.email) return;
@@ -317,7 +336,8 @@ async function enrichIdentityFromWebsite(
 export async function resolveIdentities(
   seeds: SeedQuery[],
   olympiadIndex: Map<string, OlympiadProfile>,
-  existingCandidates: Candidate[] = []
+  existingCandidates: Candidate[] = [],
+  opts?: { requireTargetedSearch?: boolean }
 ): Promise<ResolveResults> {
   const resolved: ResolvedIdentity[] = [];
   const failed: ResolveResults["failed"] = [];
@@ -348,6 +368,7 @@ export async function resolveIdentities(
           getSession,
           olympiadIndex,
           existingCandidates,
+          requireTargetedSearch: opts?.requireTargetedSearch,
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

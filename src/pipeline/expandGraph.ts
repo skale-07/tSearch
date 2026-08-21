@@ -46,7 +46,7 @@ export interface SeedTreeEdge {
   from: string;
   from_github: string;
   to_github: string;
-  via: "github-collaborator" | "github-follower";
+  via: "github-collaborator" | "github-follower" | "website-colocated";
   context_score?: number;
   context_signals?: string[];
   /** 1 = off seed, 2 = off a branch neighbor */
@@ -56,7 +56,7 @@ export interface SeedTreeEdge {
   /** Root seed github when hop=2 (from_github may be the branch parent) */
   root_github?: string;
   /** Hop-1 folder relation of the branch parent */
-  parent_relation?: "collaborator" | "follower";
+  parent_relation?: "collaborator" | "follower" | "website";
 }
 
 const MAX_COLLABORATOR_PROFILES = Number(

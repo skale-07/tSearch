@@ -53,15 +53,18 @@ function isBotish(id: string, name: string): boolean {
 function keepOnTree(n: TreeNodeSummary): boolean {
   if (n.relation === "seed" || n.hop === 0) return true;
   if (isBotish(n.id, n.name)) return false;
+  if (n.relation === "website") return true;
   return Number(n.context_score ?? 0) >= MIN_TREE_DISPLAY_SCORE;
 }
 
 const COLLAB = "#3dba9c";
 const FOLLOWER = "#e07a5f";
+const WEBSITE = "#7eb6d9";
 const SEED = "#f4e8c1";
 const HOP2 = "#8b9bb4";
 const LINK_COLLAB = "rgba(61, 186, 156, 0.45)";
 const LINK_FOLLOWER = "rgba(224, 122, 95, 0.4)";
+const LINK_WEBSITE = "rgba(126, 182, 217, 0.5)";
 const LINK_HOP2 = "rgba(139, 155, 180, 0.35)";
 
 const RING1_MIN = 90;
@@ -186,13 +189,18 @@ function layoutNodes(
   };
   placePrefer(
     hop1All.filter((n) => n.relation === "collaborator"),
-    -Math.PI / 2 + 0.25,
-    Math.PI / 2 - 0.25
+    -Math.PI / 2 + 0.2,
+    Math.PI / 2 - 0.7
+  );
+  placePrefer(
+    hop1All.filter((n) => n.relation === "website"),
+    Math.PI / 2 - 0.55,
+    Math.PI / 2 + 0.55
   );
   placePrefer(
     hop1All.filter((n) => n.relation === "follower"),
-    Math.PI / 2 + 0.25,
-    (3 * Math.PI) / 2 - 0.25
+    Math.PI / 2 + 0.7,
+    (3 * Math.PI) / 2 - 0.2
   );
 
   const hop1Angles = new Map<string, number>();
@@ -516,9 +524,9 @@ export function RadialTree({
           linkColor={(l) => {
             const link = l as GraphLink;
             if (link.hop === 2) return LINK_HOP2;
-            return link.via === "github-collaborator"
-              ? LINK_COLLAB
-              : LINK_FOLLOWER;
+            if (link.via === "github-collaborator") return LINK_COLLAB;
+            if (link.via === "website-colocated") return LINK_WEBSITE;
+            return LINK_FOLLOWER;
           }}
           linkWidth={(l) => {
             const link = l as GraphLink;
@@ -560,7 +568,9 @@ export function RadialTree({
                 ? HOP2
                 : n.relation === "collaborator"
                   ? COLLAB
-                  : FOLLOWER;
+                  : n.relation === "website"
+                    ? WEBSITE
+                    : FOLLOWER;
             const r = isSeed
               ? 14
               : n.hop === 2
@@ -681,13 +691,16 @@ export function RadialTree({
           <i style={{ background: FOLLOWER }} /> follower
         </span>
         <span>
+          <i style={{ background: WEBSITE }} /> same site
+        </span>
+        <span>
           <i style={{ background: HOP2 }} /> hop-2 cluster
         </span>
         <span className="surface-legend" title="Identity surface: LinkedIn + site/blog weigh more than X">
           <i className="surface-grad" /> surface low→high
         </span>
         <span className="hint">
-          click branch to fan · drag pan · scroll zoom · score ≥ 4
+          click branch to fan · drag pan · scroll zoom · score ≥ 4 · same-site always shown
         </span>
       </div>
     </div>

@@ -1,17 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  fetchDigestDocument,
   fetchDigestSettings,
   fetchDigests,
   generateDigest,
+  locateWebsiteGraphHost,
   sendDigestEmail,
+  type DigestCandidateCard,
+  type DigestDocument,
   type DigestListItem,
+  type WebsiteGraphHostInfo,
 } from "./api";
+import { WebsiteGraphPanel } from "./WebsiteGraphPanel";
 
 interface Props {
   open: boolean;
   /** When true, render as Score page content (not a slide-over). */
   embedded?: boolean;
+  running?: boolean;
   onClose?: () => void;
+  onStartRun?: (runId: string) => Promise<void>;
+  onError?: (message: string) => void;
 }
 
 function timeAgo(iso: string): string {
@@ -37,7 +46,14 @@ function formatWhen(iso: string): string {
 }
 
 /** Browse, open, and email generated talent digests. */
-export function DigestsPanel({ open, embedded = false, onClose }: Props) {
+export function DigestsPanel({
+  open,
+  embedded = false,
+  running = false,
+  onClose,
+  onStartRun,
+  onError,
+}: Props) {
   const [rows, setRows] = useState<DigestListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +68,20 @@ export function DigestsPanel({ open, embedded = false, onClose }: Props) {
   const [sendKeyPresent, setSendKeyPresent] = useState(false);
   const [sendBusy, setSendBusy] = useState(false);
   const [sendResult, setSendResult] = useState<string | null>(null);
+  const [digestDoc, setDigestDoc] = useState<DigestDocument | null>(null);
+  const [pickedId, setPickedId] = useState<string>("");
+  const [host, setHost] = useState<WebsiteGraphHostInfo | null>(null);
+  const [hostError, setHostError] = useState<string | null>(null);
+  const [hostLoading, setHostLoading] = useState(false);
+
+  const websiteCandidates = useMemo(
+    () =>
+      (digestDoc?.candidates ?? []).filter((c) => Boolean(c.links.website)),
+    [digestDoc]
+  );
+  const picked: DigestCandidateCard | undefined = websiteCandidates.find(
+    (c) => c.candidate_id === pickedId
+  );
 
   const reload = () => {
     setLoading(true);
@@ -98,6 +128,60 @@ export function DigestsPanel({ open, embedded = false, onClose }: Props) {
       })
       .catch(() => {});
   };
+
+  useEffect(() => {
+    if (!viewing) {
+      setDigestDoc(null);
+      setPickedId("");
+      setHost(null);
+      setHostError(null);
+      return;
+    }
+    let cancelled = false;
+    setDigestDoc(null);
+    setHost(null);
+    setHostError(null);
+    fetchDigestDocument(viewing.digest_id)
+      .then((doc) => {
+        if (cancelled) return;
+        setDigestDoc(doc);
+        const first = doc.candidates.find((c) => c.links.website);
+        setPickedId(first?.candidate_id ?? "");
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setHostError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewing]);
+
+  useEffect(() => {
+    if (!pickedId) {
+      setHost(null);
+      return;
+    }
+    let cancelled = false;
+    setHostLoading(true);
+    setHostError(null);
+    locateWebsiteGraphHost({ candidate_id: pickedId })
+      .then((info) => {
+        if (!cancelled) setHost(info);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setHost(null);
+          setHostError(err instanceof Error ? err.message : String(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setHostLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pickedId]);
 
   const doSend = () => {
     if (!sendTarget) return;
@@ -221,7 +305,7 @@ export function DigestsPanel({ open, embedded = false, onClose }: Props) {
       </aside>
 
       {viewing && (
-        <div className="report-viewer" role="dialog" aria-modal="true">
+        <div className="report-viewer digest-viewer" role="dialog" aria-modal="true">
           <div className="report-viewer-bar">
             <strong>{viewing.digest_id}</strong>
             <span>
@@ -249,7 +333,56 @@ export function DigestsPanel({ open, embedded = false, onClose }: Props) {
               </button>
             </span>
           </div>
-          <iframe title={`Digest: ${viewing.digest_id}`} src={viewing.url} />
+          <div className="digest-viewer-body">
+            <iframe title={`Digest: ${viewing.digest_id}`} src={viewing.url} />
+            <aside className="digest-teammates" aria-label="Teammates">
+              <h3>Teammates</h3>
+              <p className="muted">
+                Pull people from a digest candidate’s site. Confirm runs
+                LinkedIn + corroborated GitHub. Does not start until you
+                confirm.
+              </p>
+              {websiteCandidates.length === 0 && (
+                <p className="muted">
+                  No digest candidates have a website URL.
+                </p>
+              )}
+              {websiteCandidates.length > 0 && (
+                <label className="website-graph-field">
+                  Candidate
+                  <select
+                    value={pickedId}
+                    onChange={(e) => setPickedId(e.target.value)}
+                  >
+                    {websiteCandidates.map((c) => (
+                      <option key={c.candidate_id} value={c.candidate_id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {hostLoading && <p className="muted">Finding graph root…</p>}
+              {hostError && <p className="error">{hostError}</p>}
+              {picked && host && onStartRun && (
+                <WebsiteGraphPanel
+                  key={picked.candidate_id}
+                  seedSlug={host.seed_slug}
+                  hostSlug={
+                    host.host_slug !== host.seed_slug
+                      ? host.host_slug
+                      : undefined
+                  }
+                  defaultUrl={picked.links.website || host.websiteUrl || ""}
+                  defaultOrgHint={host.org_hint ?? undefined}
+                  running={running}
+                  compact
+                  onStartRun={onStartRun}
+                  onError={onError ?? setError}
+                />
+              )}
+            </aside>
+          </div>
         </div>
       )}
 

@@ -49,6 +49,17 @@ npm run dev                   # API :8787 + Vite :5173 — Run pipeline / Assess
 
 Do not commit `.env` or `cookies.json`.
 
+### Local vs hosted (Supabase scaffolding)
+
+**Source of truth today is still local JSON** (`data/`, `profiles/`, `output/`). `TSEARCH_STORE` defaults to `fs`. Do not set it to `supabase` yet — client getters throw until dual-write lands ([`docs/prompts/integrate-supabase.md`](docs/prompts/integrate-supabase.md)).
+
+| Where | What runs | Data |
+|-------|-----------|------|
+| Your machine (`npm run dev`) | Express `:8787` + Vite `:5173` + Playwright pipeline | gitignored JSON |
+| Vercel (Root Directory = `web`) | Static Vite UI only | Future: Supabase **anon** + RLS. No Express, no cookies, no scrape |
+
+Never put `SUPABASE_SERVICE_ROLE_KEY` in `VITE_` env or Vercel frontend env. Schema is [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) (RLS on, deny-all). No person rows in git.
+
 ---
 
 ## Architecture overview
@@ -290,6 +301,9 @@ Discovery ([`src/config.ts`](src/config.ts)):
 | `MAX_REPOS_EXPAND` | `5` | Repos per expand |
 | `FORCE_REFRESH` | off | Ignore cache TTLs |
 | `API_PORT` | `8787` | Express |
+| `TSEARCH_STORE` | `fs` | Persistence backend; only `fs` is implemented |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | empty | Scaffolding; unused by stores |
+| `SUPABASE_SERVICE_ROLE_KEY` | empty | Local writes later; never `VITE_` |
 
 Assessment / digest — see [`.env.example`](.env.example) (`ASSESSMENT_*`, `DIGEST_*`, `RESEND_API_KEY`). Ignore placeholder `EMAIL_PROVIDER_API_KEY=re_...`.
 
@@ -321,6 +335,8 @@ npm run typecheck
 | `scripts/` | CLI wrappers |
 | `rubrics/` | Judge YAML |
 | `docs/` | Specs / audits |
+| `docs/prompts/` | Agent prompts (Supabase integration) |
+| `supabase/migrations/` | Empty RLS-on schema (no person data) |
 | `output/` | Candidates, runs, digests (local) |
 | `profiles/` | UI tree on disk |
 | `cache/` | Scrape / API caches |

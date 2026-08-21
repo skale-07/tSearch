@@ -25,6 +25,11 @@ __pycache__/
 *.pyc
 *.txt
 .env
+web/.env
+
+# Local supabase CLI — never commit dumps or person data
+supabase/.temp/
+supabase/.branches/
 # Scraped third-party PII — never commit (see docs/product-vision-and-direction.md §4)
 profiles/
 backup/

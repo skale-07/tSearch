@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   cancelRun,
+  deleteMark,
+  fetchMarks,
   fetchProfile,
   fetchSeeds,
   fetchTree,
   parseNodeId,
+  type MarkRecord,
   startBranchRun,
   startRunBatch,
   subscribeRunEvents,
@@ -16,6 +19,7 @@ import {
   type TreeResponse,
 } from "./api";
 import { DiscoverPage } from "./DiscoverPage";
+import { MarksList } from "./MarksList";
 import { PipelineBatchModal } from "./PipelineBatchModal";
 import { ProfilePanel } from "./ProfilePanel";
 import { RadialTree } from "./RadialTree";
@@ -71,7 +75,10 @@ export default function App() {
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [treeSearch, setTreeSearch] = useState("");
+  const [marks, setMarks] = useState<MarkRecord[]>([]);
   const logBodyRef = useRef<HTMLPreElement | null>(null);
+  const workspaceRef = useRef(workspace);
+  workspaceRef.current = workspace;
 
   useEffect(() => {
     if (status !== "running") {
@@ -98,6 +105,13 @@ export default function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+
+  useEffect(() => {
+    if (workspace !== "graph") return;
+    void fetchMarks()
+      .then(setMarks)
+      .catch(() => {});
+  }, [workspace]);
 
   const openWorkspace = (next: Workspace) => {
     setWorkspace(next);
@@ -154,6 +168,35 @@ export default function App() {
     }
   }, []);
 
+  const refreshTrees = useCallback(async () => {
+    const refreshed = await fetchSeeds();
+    setSeeds(refreshed.seeds);
+    setTrees(
+      refreshed.trees ??
+        refreshed.profileSeeds.map((s) => ({ slug: s, name: s }))
+    );
+    return refreshed;
+  }, []);
+
+  const revealGraphAfterRun = useCallback(
+    async (slug: string | null) => {
+      try {
+        await refreshTrees();
+        void fetchMarks()
+          .then(setMarks)
+          .catch(() => {});
+      } catch {
+        /* tree list is optional after a run; loadTree still tries the slug */
+      }
+      if (!slug) return;
+      await loadTree(slug);
+      if (workspaceRef.current === "discover") {
+        openWorkspace("graph");
+      }
+    },
+    [loadTree, refreshTrees]
+  );
+
   const watchRun = (runId: string): Promise<string | null> =>
     new Promise((resolve) => {
       const unsub = subscribeRunEvents(runId, (ev) => {
@@ -204,16 +247,7 @@ export default function App() {
       ]);
       setActiveRunId(runId);
       const slug = await watchRun(runId);
-      const refreshed = await fetchSeeds();
-      setSeeds(refreshed.seeds);
-      setTrees(
-        refreshed.trees ??
-          refreshed.profileSeeds.map((s) => ({ slug: s, name: s }))
-      );
-      if (slug) {
-        setSeedSlug(slug);
-        await loadTree(slug);
-      }
+      await revealGraphAfterRun(slug);
     } catch (err) {
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
@@ -239,7 +273,8 @@ export default function App() {
     setLogsOpen(true);
     setActiveRunId(runId);
     try {
-      await watchRun(runId);
+      const slug = await watchRun(runId);
+      await revealGraphAfterRun(slug);
     } catch (err) {
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
@@ -259,12 +294,13 @@ export default function App() {
       const { slug, parentSlug: parsedParent } = parseNodeId(node.id);
       const parentSlug = node.parentId ?? parsedParent;
 
-      let parentRelation: "collaborator" | "follower" | undefined;
+      let parentRelation: "collaborator" | "follower" | "website" | undefined;
       if (node.hop === 2 && parentSlug && tree) {
         const parentNode = tree.nodes.find((n) => n.id === parentSlug);
         if (
           parentNode?.relation === "collaborator" ||
-          parentNode?.relation === "follower"
+          parentNode?.relation === "follower" ||
+          parentNode?.relation === "website"
         ) {
           parentRelation = parentNode.relation;
         } else {
@@ -275,6 +311,8 @@ export default function App() {
             parentRelation = "collaborator";
           } else if (hop1Edge?.via === "github-follower") {
             parentRelation = "follower";
+          } else if (hop1Edge?.via === "website-colocated") {
+            parentRelation = "website";
           }
         }
       }
@@ -489,7 +527,7 @@ export default function App() {
             initialTab={scoreTab}
             navEpoch={scoreMountId}
             preselectCandidateIds={assessmentPreselect}
-            onStartRun={(runId) => void onWatchJob(runId)}
+            onStartRun={onWatchJob}
             onError={(message) => {
               setStatus("failed");
               setError(message);
@@ -508,6 +546,27 @@ export default function App() {
                 value={treeSearch}
                 onChange={(e) => setTreeSearch(e.target.value)}
               />
+              {marks.length > 0 && (
+                <div className="graph-marks">
+                  <MarksList
+                    marks={marks}
+                    onUnmark={(id) => {
+                      void deleteMark(id)
+                        .then(() =>
+                          setMarks((rows) => rows.filter((m) => m.id !== id))
+                        )
+                        .catch((err) =>
+                          setError(
+                            err instanceof Error ? err.message : String(err)
+                          )
+                        );
+                    }}
+                    onOpen={(m) => {
+                      if (m.seed_slug) void loadTree(m.seed_slug);
+                    }}
+                  />
+                </div>
+              )}
               <RadialTree
                 nodes={tree.nodes}
                 edges={tree.edges}
@@ -534,10 +593,14 @@ export default function App() {
             loading={panelLoading}
             error={panelError}
             expanding={expanding}
+            pipelineRunning={status === "running"}
+            seedSlug={seedSlug}
             onExpandBranch={onExpandBranch}
             onAssessCandidate={(candidateId) => {
               openScore("assess", [candidateId]);
             }}
+            onWebsiteRun={onWatchJob}
+            onError={(message) => setError(message)}
             onClose={() => {
               setPanelProfile(null);
               setPanelNode(null);

@@ -1,7 +1,7 @@
 {
   "name": "tsearch",
   "version": "2.0.0",
-  "description": "Unseen talent discovery \u2014 GitHub + Substack graph expansion + Olympiad enrichment",
+  "description": "Unseen talent discovery — GitHub + Substack graph expansion + Olympiad enrichment",
   "main": "index.js",
   "scripts": {
     "pipeline": "tsx src/pipeline/runPipeline.ts",
@@ -34,6 +34,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@supabase/supabase-js": "^2.112.3",
     "concurrently": "^10.0.3",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",

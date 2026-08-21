@@ -68,6 +68,12 @@ export const FEEDBACK_DIR = path.resolve(
   process.env.FEEDBACK_DIR ?? "data/feedback"
 );
 
+/** Operator watchlist — look-at-later, not digest ranking. */
+export const MARKS_DIR = path.resolve(
+  process.cwd(),
+  process.env.MARKS_DIR ?? "data/marks"
+);
+
 export const CONVERGENCE_PATH = path.resolve(
   process.cwd(),
   process.env.CONVERGENCE_PATH ?? "data/convergence.json"
@@ -117,6 +123,27 @@ export const AWARD_SCRAPE_CACHE_TTL_MS = Number(
   process.env.AWARD_SCRAPE_CACHE_TTL_MS ?? 7 * DAY_MS
 );
 export const FORCE_REFRESH = process.env.FORCE_REFRESH === "1";
+
+/**
+ * Persistence backend. Only `fs` is implemented (gitignored JSON trees).
+ * `supabase` is scaffolding — client getters throw until the integration
+ * prompt dual-writes. Service-role key is server/pipeline only; never expose
+ * it as VITE_. Hosted UI is read-only via anon + RLS.
+ */
+export type TsearchStore = "fs" | "supabase";
+
+export function parseTsearchStore(raw: string | undefined): TsearchStore {
+  const v = (raw ?? "fs").trim().toLowerCase();
+  return v === "supabase" ? "supabase" : "fs";
+}
+
+export const TSEARCH_STORE = parseTsearchStore(process.env.TSEARCH_STORE);
+
+export const SUPABASE_URL = process.env.SUPABASE_URL?.trim() ?? "";
+export const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY?.trim() ?? "";
+/** Server/pipeline only. Never ship this to the Vite bundle. */
+export const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
 
 export const MAX_LINKEDIN_RESULTS = Number(process.env.MAX_LINKEDIN_RESULTS ?? 5);
 export const MAX_GITHUB_STARGAZERS_PER_REPO = Number(

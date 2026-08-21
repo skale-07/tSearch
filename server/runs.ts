@@ -297,6 +297,114 @@ export function startSeedBatchRun(input: {
   return { runId: id, batch: input.seeds };
 }
 
+export function startWebsiteGraphRun(input: {
+  seed_slug: string;
+  host_slug?: string;
+  url: string;
+  names: string[];
+  org_hint?: string;
+  hints?: Record<
+    string,
+    { linkedin_url?: string; github_url?: string; org_hint?: string }
+  >;
+}):
+  | { runId: string; batch: string[] }
+  | { error: string; status: number } {
+  if (activeRunId) {
+    return {
+      error: `A run is already in progress (${activeRunId}). Wait for it to finish.`,
+      status: 409,
+    };
+  }
+  if (!input.names.length) {
+    return { error: "Select at least one name to resolve.", status: 400 };
+  }
+  if (!fs.existsSync(COOKIES_PATH)) {
+    return {
+      error: `Missing ${COOKIES_PATH}. Run "npm run login" before starting a pipeline.`,
+      status: 400,
+    };
+  }
+
+  const id = crypto.randomBytes(6).toString("hex");
+  const tmpDir = path.resolve(process.cwd(), "tmp");
+  fs.mkdirSync(tmpDir, { recursive: true });
+  const jobFile = path.join(tmpDir, `website-graph-${id}.json`);
+  fs.writeFileSync(
+    jobFile,
+    JSON.stringify(
+      {
+        seed_slug: input.seed_slug,
+        ...(input.host_slug ? { host_slug: input.host_slug } : {}),
+        url: input.url,
+        names: input.names,
+        ...(input.org_hint ? { org_hint: input.org_hint } : {}),
+        ...(input.hints ? { hints: input.hints } : {}),
+      },
+      null,
+      2
+    ),
+    "utf-8"
+  );
+
+  const run: RunRecord = {
+    id,
+    name: `website:${input.seed_slug}`,
+    country: "",
+    status: "running",
+    startedAt: new Date().toISOString(),
+    logs: [],
+    listeners: new Set(),
+    kind: "seed",
+    seedSlug: input.seed_slug,
+  };
+  runs.set(id, run);
+  activeRunId = id;
+
+  const child = spawn("npx", ["tsx", "src/pipeline/runPipeline.ts"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      WEBSITE_GRAPH: "1",
+      WEBSITE_GRAPH_JOB: jobFile,
+      MAX_IDENTITY_RESOLVES: String(input.names.length),
+    },
+    shell: true,
+  });
+
+  pushLog(
+    run,
+    `[ui] started website-graph ${id} under ${input.seed_slug} (${input.names.length}): ${input.names.join(", ")}`
+  );
+  attachChild(run, child, (code) => {
+    try {
+      fs.unlinkSync(jobFile);
+    } catch {
+      /* ignore */
+    }
+    if (code === 0) {
+      run.status = "done";
+      pushLog(run, `[ui] website-graph finished ok seedSlug=${input.seed_slug}`);
+      notifyDone(run, {
+        type: "done",
+        seedSlug: input.seed_slug,
+        exitCode: code,
+      });
+    } else {
+      run.status = "failed";
+      run.error = `Pipeline exited with code ${code}`;
+      pushLog(run, `[ui] failed with exit code ${code}`);
+      notifyDone(run, {
+        type: "error",
+        message: run.error,
+        exitCode: code,
+      });
+    }
+  });
+
+  return { runId: id, batch: input.names };
+}
+
 export function startBranchRun(input: {
   rootSeedSlug: string;
   parentSlug: string;

@@ -11,6 +11,8 @@ export interface LinkedInSearchContext {
   olympiad_hints?: string[];
   /** Registry display name — scholarships search name + award, not country. */
   award_hint?: string;
+  /** Short org / lab token — same shape as award_hint. */
+  org_hint?: string;
 }
 
 export interface LinkedInSearchHit {
@@ -37,6 +39,10 @@ function buildSearchTerms(
   context?: LinkedInSearchContext
 ): string[] {
   const terms = [`"${name}"`];
+  if (context?.org_hint) {
+    terms.push(context.org_hint.trim());
+    return terms;
+  }
   if (context?.award_hint) {
     // Name is an exact phrase; award stays unquoted so LinkedIn can match
     // partial/token forms ("Davidson Fellows" → Davidson Fellows).

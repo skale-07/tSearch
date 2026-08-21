@@ -37,6 +37,7 @@ const KINDS = new Set<SeedSourceKind>([
   "olympiad_csv",
   "award_roster",
   "manual_cohort",
+  "website_page",
 ]);
 
 function listGithubReadyPeople(): Array<{

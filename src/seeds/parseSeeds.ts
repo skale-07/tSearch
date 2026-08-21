@@ -3,6 +3,8 @@ export interface SeedQuery {
   country?: string;
   /** Registry award_id — LinkedIn search uses the award name, not country. */
   award_id?: string;
+  /** Short org / lab token for LinkedIn people search (not a legal name). */
+  org_hint?: string;
 }
 
 export function parseSeeds(raw: unknown): SeedQuery[] {
@@ -18,11 +20,13 @@ export function parseSeeds(raw: unknown): SeedQuery[] {
         name: string;
         country?: string;
         award_id?: string;
+        org_hint?: string;
       };
       return {
         name: String(obj.name).trim(),
         country: obj.country?.trim() || undefined,
         award_id: obj.award_id?.trim() || undefined,
+        org_hint: obj.org_hint?.trim() || undefined,
       };
     }
     throw new Error(

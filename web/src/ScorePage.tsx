@@ -12,7 +12,7 @@ interface Props {
   initialTab?: ScoreTab;
   /** Bumps when App navigates into Score (or deep-links a candidate). */
   navEpoch?: number;
-  onStartRun: (runId: string) => void;
+  onStartRun: (runId: string) => void | Promise<void>;
   onError: (message: string) => void;
 }
 
@@ -88,7 +88,17 @@ export function ScorePage({
         />
       )}
       {tab === "reports" && <ReportsPanel open embedded />}
-      {tab === "digests" && <DigestsPanel open embedded />}
+      {tab === "digests" && (
+        <DigestsPanel
+          open
+          embedded
+          running={running}
+          onStartRun={async (runId) => {
+            await Promise.resolve(onStartRun(runId));
+          }}
+          onError={onError}
+        />
+      )}
     </div>
   );
 }

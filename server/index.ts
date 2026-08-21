@@ -52,6 +52,7 @@ import { loadCandidateAssessment } from "../src/assessment/storage/assessmentRun
 import {
   buildTree,
   cookiesExist,
+  listHangSeedOptions,
   listProfileSeeds,
   listSeedOptions,
   listTreeOptions,
@@ -77,6 +78,19 @@ import {
   loadFeedback,
   recordFeedback,
 } from "../src/digest/feedbackStore.js";
+import {
+  deleteMark,
+  loadAllMarks,
+  loadMark,
+  MARK_SOURCES,
+  upsertMark,
+} from "../src/marks/markStore.js";
+import {
+  isMarkSource,
+  postWebsiteGraphHost,
+  postWebsiteGraphIngest,
+  postWebsiteGraphPreview,
+} from "./websiteGraphApi.js";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
 
@@ -100,6 +114,7 @@ app.get("/api/seeds", (_req, res) => {
       seeds: listSeedOptions(),
       profileSeeds: trees.map((t) => t.slug),
       trees,
+      hangSeeds: listHangSeedOptions(),
     });
   } catch (err) {
     res.status(500).json({
@@ -600,8 +615,12 @@ app.get(
     const parentRelation = req.params.parentRelation as ProfileRelation;
     const relation = req.params.relation as ProfileRelation;
     if (
-      (parentRelation !== "collaborator" && parentRelation !== "follower") ||
-      (relation !== "collaborator" && relation !== "follower")
+      (parentRelation !== "collaborator" &&
+        parentRelation !== "follower" &&
+        parentRelation !== "website") ||
+      (relation !== "collaborator" &&
+        relation !== "follower" &&
+        relation !== "website")
     ) {
       res.status(400).json({ error: "invalid relation" });
       return;
@@ -626,8 +645,12 @@ app.get(
 
 app.get("/api/profile/:seedSlug/:relation/:slug", (req, res) => {
   const relation = req.params.relation as ProfileRelation;
-  if (relation !== "collaborator" && relation !== "follower") {
-    res.status(400).json({ error: "relation must be collaborator|follower" });
+  if (
+    relation !== "collaborator" &&
+    relation !== "follower" &&
+    relation !== "website"
+  ) {
+    res.status(400).json({ error: "relation must be collaborator|follower|website" });
     return;
   }
   const profile = loadProfile(req.params.seedSlug, relation, req.params.slug, {
@@ -859,6 +882,93 @@ app.get("/api/feedback/candidate/:candidateId", (req, res) => {
 // Candidates the reviewer marked explore_network — input for branch expands.
 app.get("/api/feedback/explore-queue", (_req, res) => {
   res.json({ queue: exploreQueue() });
+});
+
+app.get("/api/marks", (_req, res) => {
+  res.json({ marks: loadAllMarks() });
+});
+
+app.put("/api/marks/:id", (req, res) => {
+  const id = decodeURIComponent(req.params.id ?? "").trim();
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  if (!id || !name) {
+    res.status(400).json({ error: "Body requires { name, source }" });
+    return;
+  }
+  if (!isMarkSource(req.body?.source)) {
+    res.status(400).json({
+      error: `source must be one of: ${MARK_SOURCES.join("|")}`,
+    });
+    return;
+  }
+  try {
+    const mark = upsertMark({
+      id,
+      name,
+      source: req.body.source,
+      note: typeof req.body?.note === "string" ? req.body.note : undefined,
+      seed_slug:
+        typeof req.body?.seed_slug === "string" ? req.body.seed_slug : undefined,
+      page_url:
+        typeof req.body?.page_url === "string" ? req.body.page_url : undefined,
+      candidate_id:
+        typeof req.body?.candidate_id === "string"
+          ? req.body.candidate_id
+          : undefined,
+    });
+    res.json({ mark });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete("/api/marks/:id", (req, res) => {
+  const id = decodeURIComponent(req.params.id ?? "").trim();
+  if (!id) {
+    res.status(400).json({ error: "id required" });
+    return;
+  }
+  const existed = Boolean(loadMark(id));
+  deleteMark(id);
+  res.json({ ok: true, deleted: existed });
+});
+
+app.post("/api/website-graph/host", (req, res) => {
+  const result = postWebsiteGraphHost(req.body ?? {});
+  if (result && typeof result === "object" && "error" in result) {
+    const err = result as { error: string; status: number };
+    res.status(err.status).json({ error: err.error });
+    return;
+  }
+  res.json(result);
+});
+
+app.post("/api/website-graph/preview", (req, res) => {
+  postWebsiteGraphPreview(req.body ?? {})
+    .then((result) => {
+      if (result && typeof result === "object" && "error" in result) {
+        const err = result as { error: string; status: number };
+        res.status(err.status).json({ error: err.error });
+        return;
+      }
+      res.json(result);
+    })
+    .catch((err) =>
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
+    );
+});
+
+app.post("/api/website-graph/ingest", (req, res) => {
+  const result = postWebsiteGraphIngest(req.body ?? {});
+  if ("error" in result) {
+    res.status(result.status).json({ error: result.error });
+    return;
+  }
+  res.status(202).json(result);
 });
 
 app.listen(PORT, "127.0.0.1", () => {

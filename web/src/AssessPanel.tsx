@@ -3,8 +3,11 @@ import {
   fetchAssessed,
   fetchCandidates,
   fetchAssessmentRunCandidates,
+  fetchMarks,
   fetchRunCandidateAssessment,
   pollAssessmentRun,
+  putMark,
+  deleteMark,
   retryAssessmentCandidate,
   retryFailedAssessment,
   startAssessmentRun,
@@ -26,7 +29,7 @@ import {
 import { AssessmentResultView } from "./AssessmentResultView";
 
 type SortKey = "name" | "final_score" | "context" | "age";
-type SurfaceFilter = "all" | "both" | "github" | "writing" | "youth";
+type SurfaceFilter = "all" | "both" | "github" | "writing" | "youth" | "marked";
 
 /** Assessable context breadth: both surfaces > one > none. */
 function surfaceRank(c: AssessmentCandidateRow): number {
@@ -42,12 +45,14 @@ function estimatedAge(c: AssessmentCandidateRow): number | null {
 
 function matchesSurfaceFilter(
   c: AssessmentCandidateRow,
-  f: SurfaceFilter
+  f: SurfaceFilter,
+  markedIds: Set<string>
 ): boolean {
   if (f === "all") return true;
   if (f === "both") return c.has_github && c.has_writing_surface;
   if (f === "github") return c.has_github && !c.has_writing_surface;
   if (f === "youth") return Boolean(c.youth_wildcard);
+  if (f === "marked") return markedIds.has(c.candidate_id);
   return c.has_writing_surface && !c.has_github;
 }
 
@@ -99,6 +104,7 @@ export function AssessPanel({
   const [detailCandidateId, setDetailCandidateId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CandidateAssessmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,6 +118,11 @@ export function AssessPanel({
           setAssessedAt(
             new Map(rows.map((r) => [r.candidate_id, r.updated_at]))
           )
+        )
+        .catch(() => {});
+      fetchMarks()
+        .then((rows) =>
+          setMarkedIds(new Set(rows.map((m) => m.candidate_id ?? m.id)))
         )
         .catch(() => {});
       setSelected(
@@ -173,7 +184,9 @@ export function AssessPanel({
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    let rows = candidates.filter((c) => matchesSurfaceFilter(c, surfaceFilter));
+    let rows = candidates.filter((c) =>
+      matchesSurfaceFilter(c, surfaceFilter, markedIds)
+    );
     if (q) {
       rows = rows.filter(
         (c) =>
@@ -208,7 +221,7 @@ export function AssessPanel({
       const cmp = (a.final_score ?? 0) - (b.final_score ?? 0);
       return sortDesc ? -cmp : cmp;
     });
-  }, [candidates, filter, sortKey, sortDesc, surfaceFilter]);
+  }, [candidates, filter, sortKey, sortDesc, surfaceFilter, markedIds]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -524,6 +537,7 @@ export function AssessPanel({
               <option value="github">GitHub only</option>
               <option value="writing">Blog/site only</option>
               <option value="youth">Youth wildcard</option>
+              <option value="marked">Marked (look at later)</option>
             </select>
             <button type="button" className="chip" onClick={toggleAllVisible}>
               Select visible eligible
@@ -532,7 +546,7 @@ export function AssessPanel({
 
           <ul className="assess-list">
             {filtered.map((c) => (
-              <li key={c.candidate_id}>
+              <li key={c.candidate_id} className="assess-list-item">
                 <label className={`assess-row ${assessmentEligibility(c).eligible ? "" : "assess-ineligible"}`}>
                   <input
                     type="checkbox"
@@ -555,6 +569,11 @@ export function AssessPanel({
                           Youth wildcard
                         </span>
                       )}
+                      {markedIds.has(c.candidate_id) && (
+                        <span className="chip" title="Look at later — not digest feedback">
+                          Marked
+                        </span>
+                      )}
                       {assessedAt.has(c.candidate_id) && (
                         <span className="chip chip-strong" title="A finished report exists — selecting will re-run the judge">📄 report available</span>
                       )}
@@ -562,6 +581,38 @@ export function AssessPanel({
                     </span>
                   </span>
                 </label>
+                <button
+                  type="button"
+                  className={`mark-star ${markedIds.has(c.candidate_id) ? "on" : ""}`}
+                  title="Mark to look at later — does not enqueue LinkedIn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const id = c.candidate_id;
+                    const on = markedIds.has(id);
+                    const op = on
+                      ? deleteMark(id)
+                      : putMark({
+                          id,
+                          name: c.name,
+                          source: "assess",
+                          candidate_id: id,
+                        });
+                    void op
+                      .then(() => {
+                        setMarkedIds((prev) => {
+                          const next = new Set(prev);
+                          if (on) next.delete(id);
+                          else next.add(id);
+                          return next;
+                        });
+                      })
+                      .catch((err) =>
+                        onError(err instanceof Error ? err.message : String(err))
+                      );
+                  }}
+                >
+                  ★
+                </button>
               </li>
             ))}
           </ul>

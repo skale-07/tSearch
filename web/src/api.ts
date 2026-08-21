@@ -1,4 +1,6 @@
-export type ProfileRelation = "seed" | "collaborator" | "follower";
+import { assertViteStoreImplemented } from "./dataSource";
+
+export type ProfileRelation = "seed" | "collaborator" | "follower" | "website";
 
 export interface SeedOption {
   name: string;
@@ -35,7 +37,7 @@ export interface TreeNodeSummary {
 export interface TreeEdge {
   from: string;
   to: string;
-  via: "github-collaborator" | "github-follower";
+  via: "github-collaborator" | "github-follower" | "website-colocated";
   context_score: number;
   hop: 1 | 2;
 }
@@ -119,6 +121,7 @@ export function sanitizeTree(tree: TreeResponse): TreeResponse {
   const nodes = tree.nodes.filter((n) => {
     if (n.relation === "seed" || n.hop === 0) return true;
     if (isBotishNode(n.id, n.name)) return false;
+    if (n.relation === "website") return true;
     return Number(n.context_score ?? 0) >= MIN_TREE_DISPLAY_SCORE;
   });
   const ids = new Set(nodes.map((n) => n.id));
@@ -135,6 +138,7 @@ export interface TreeOption {
 
 /** Vite is up before tsx watch; retry GETs through a dead proxy instead of failing the shell. */
 async function getWithRetry(path: string, attempts = 10): Promise<Response> {
+  assertViteStoreImplemented();
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
@@ -153,13 +157,18 @@ export async function fetchSeeds(): Promise<{
   seeds: SeedOption[];
   profileSeeds: string[];
   trees?: TreeOption[];
+  hangSeeds?: TreeOption[];
 }> {
   const res = await getWithRetry("/api/seeds");
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-export type SeedSourceKind = "olympiad_csv" | "award_roster" | "manual_cohort";
+export type SeedSourceKind =
+  | "olympiad_csv"
+  | "award_roster"
+  | "manual_cohort"
+  | "website_page";
 
 export interface ChannelSnapshot {
   source_id: string;
@@ -406,7 +415,7 @@ export async function fetchProfile(
   slug?: string,
   opts?: {
     parentSlug?: string;
-    parentRelation?: "collaborator" | "follower";
+    parentRelation?: "collaborator" | "follower" | "website";
   }
 ): Promise<ProfileRecord> {
   let path: string;
@@ -801,6 +810,160 @@ export async function sendCandidateFeedback(body: {
   return data.feedback;
 }
 
+export type MarkSource = "graph" | "assess" | "website_preview" | "discover";
+
+export interface MarkRecord {
+  id: string;
+  name: string;
+  note?: string;
+  source: MarkSource;
+  created_at: string;
+  updated_at: string;
+  seed_slug?: string;
+  page_url?: string;
+  candidate_id?: string;
+}
+
+export async function fetchMarks(): Promise<MarkRecord[]> {
+  const res = await fetch("/api/marks");
+  const data = await readApiJson<{ marks?: MarkRecord[]; error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data.marks ?? [];
+}
+
+export async function putMark(body: {
+  id: string;
+  name: string;
+  source: MarkSource;
+  note?: string;
+  seed_slug?: string;
+  page_url?: string;
+  candidate_id?: string;
+}): Promise<MarkRecord> {
+  const res = await fetch(`/api/marks/${encodeURIComponent(body.id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{ mark?: MarkRecord; error?: string }>(res);
+  if (!res.ok || !data.mark) throw new Error(data.error || res.statusText);
+  return data.mark;
+}
+
+export async function deleteMark(id: string): Promise<void> {
+  const res = await fetch(`/api/marks/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await readApiJson<{ error?: string }>(res);
+    throw new Error(data.error || res.statusText);
+  }
+}
+
+export interface PagePersonRow {
+  name: string;
+  linkedin_url?: string;
+  github_url?: string;
+  confidence: "high" | "medium" | "low";
+  evidence: string;
+  checked_default: boolean;
+  mark_id?: string;
+}
+
+export async function previewWebsiteGraph(body: {
+  seed_slug: string;
+  host_slug?: string;
+  url?: string;
+}): Promise<{
+  page_url: string;
+  seed: { slug: string; name: string };
+  host?: { slug: string; name: string; hop: 0 | 1 };
+  org_hint?: string | null;
+  people: PagePersonRow[];
+  low_confidence_count: number;
+}> {
+  const res = await fetch("/api/website-graph/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{
+    page_url?: string;
+    seed?: { slug: string; name: string };
+    host?: { slug: string; name: string; hop: 0 | 1 };
+    org_hint?: string | null;
+    people?: PagePersonRow[];
+    low_confidence_count?: number;
+    error?: string;
+  }>(res);
+  if (!res.ok || !data.page_url || !data.seed) {
+    throw new Error(data.error || res.statusText);
+  }
+  return {
+    page_url: data.page_url,
+    seed: data.seed,
+    host: data.host,
+    org_hint: data.org_hint,
+    people: data.people ?? [],
+    low_confidence_count: data.low_confidence_count ?? 0,
+  };
+}
+
+export async function ingestWebsiteGraph(body: {
+  seed_slug: string;
+  host_slug?: string;
+  url: string;
+  names: string[];
+  org_hint?: string;
+  hints?: Record<
+    string,
+    { linkedin_url?: string; github_url?: string; org_hint?: string }
+  >;
+}): Promise<{ runId: string; batch: string[] }> {
+  const res = await fetch("/api/website-graph/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{
+    runId?: string;
+    batch?: string[];
+    error?: string;
+  }>(res);
+  if (!res.ok || !data.runId) throw new Error(data.error || res.statusText);
+  return { runId: data.runId, batch: data.batch ?? [] };
+}
+
+export interface WebsiteGraphHostInfo {
+  seed_slug: string;
+  host_slug: string;
+  host_name: string;
+  host_hop: 0 | 1;
+  host_relation: ProfileRelation;
+  websiteUrl: string | null;
+  github: string | null;
+  org_hint: string | null;
+}
+
+export async function locateWebsiteGraphHost(body: {
+  seed_slug?: string;
+  host_slug?: string;
+  candidate_id?: string;
+}): Promise<WebsiteGraphHostInfo> {
+  const res = await fetch("/api/website-graph/host", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<WebsiteGraphHostInfo & { error?: string }>(
+    res
+  );
+  if (!res.ok || !data.seed_slug) {
+    throw new Error(data.error || res.statusText);
+  }
+  return data;
+}
+
 export interface AssessedRow {
   candidate_id: string;
   name: string;
@@ -877,6 +1040,35 @@ export interface DigestListItem {
   assessment_run_id: string | null;
   candidate_count: number | null;
   assessed_candidate_count: number | null;
+}
+
+export interface DigestCandidateCard {
+  candidate_id: string;
+  name: string;
+  headline?: string;
+  links: {
+    linkedin?: string;
+    github?: string;
+    website?: string;
+    blog?: string;
+  };
+}
+
+export interface DigestDocument {
+  digest_id: string;
+  generated_at: string;
+  candidates: DigestCandidateCard[];
+}
+
+export async function fetchDigestDocument(
+  digestId: string
+): Promise<DigestDocument> {
+  const res = await fetch(`/api/digests/${encodeURIComponent(digestId)}.json`);
+  const data = await readApiJson<DigestDocument & { error?: string }>(res);
+  if (!res.ok || !data.digest_id) {
+    throw new Error(data.error || res.statusText);
+  }
+  return data;
 }
 
 export async function fetchDigests(): Promise<DigestListItem[]> {

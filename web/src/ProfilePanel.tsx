@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  deleteMark,
   fetchCandidates,
   fetchCandidateFeedback,
   fetchLatestCandidateAssessment,
+  fetchMarks,
+  putMark,
   sendCandidateFeedback,
   type CandidateAssessmentDetail,
   type FeedbackVerdict,
@@ -11,6 +14,7 @@ import {
 } from "./api";
 import { surfaceScoreToCss } from "./surfaceColor";
 import { AssessmentResultView } from "./AssessmentResultView";
+import { WebsiteGraphPanel } from "./WebsiteGraphPanel";
 
 interface Props {
   profile: ProfileRecord | null;
@@ -18,9 +22,13 @@ interface Props {
   loading: boolean;
   error: string | null;
   expanding: boolean;
+  pipelineRunning?: boolean;
+  seedSlug?: string | null;
   onClose: () => void;
   onExpandBranch?: () => void;
   onAssessCandidate?: (candidateId: string) => void;
+  onWebsiteRun?: (runId: string) => Promise<void>;
+  onError?: (message: string) => void;
 }
 
 function LinkRow({ href, label }: { href?: string; label: string }) {
@@ -38,15 +46,44 @@ export function ProfilePanel({
   loading,
   error,
   expanding,
+  pipelineRunning = false,
+  seedSlug,
   onClose,
   onExpandBranch,
   onAssessCandidate,
+  onWebsiteRun,
+  onError,
 }: Props) {
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<CandidateAssessmentDetail | null>(null);
   const [assessmentLoading, setAssessmentLoading] = useState(false);
   const [feedbackVerdict, setFeedbackVerdict] = useState<FeedbackVerdict | null>(null);
   const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [marked, setMarked] = useState(false);
+  const [markBusy, setMarkBusy] = useState(false);
+  const [siteOpen, setSiteOpen] = useState(false);
+
+  const markId = candidateId ?? profile?.slug ?? null;
+
+  useEffect(() => {
+    const url =
+      node?.website_url ||
+      profile?.links?.personal_website ||
+      profile?.website?.url ||
+      undefined;
+    setSiteOpen(profile?.relation === "seed" && Boolean(url));
+    setMarked(false);
+    if (!markId) return;
+    let cancelled = false;
+    void fetchMarks()
+      .then((rows) => {
+        if (!cancelled) setMarked(rows.some((m) => m.id === markId));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [markId, node, profile]);
 
   useEffect(() => {
     setFeedbackVerdict(null);
@@ -156,7 +193,7 @@ export function ProfilePanel({
   const canExpand =
     !!onExpandBranch &&
     hop === 1 &&
-    node?.relation !== "seed" &&
+    (node?.relation === "collaborator" || node?.relation === "follower") &&
     hasLinkedIn;
 
   return (
@@ -173,11 +210,12 @@ export function ProfilePanel({
       {profile && (
         <div className="panel-body">
           <p className="eyebrow">
-            {profile.relation}
+            {profile.relation === "website" ? "same site" : profile.relation}
             {typeof profile.hop === "number" && profile.hop > 0
               ? ` · hop ${profile.hop}`
               : ""}
             {profile.relation !== "seed" &&
+              profile.relation !== "website" &&
               ` · context ${profile.context_score}`}
           </p>
           <h2>
@@ -188,6 +226,37 @@ export function ProfilePanel({
                 · {profile.age_label ?? node?.age_label}
               </span>
             ) : null}
+            {markId && (
+              <button
+                type="button"
+                className={`mark-star ${marked ? "on" : ""}`}
+                title="Mark to look at later — does not enqueue LinkedIn"
+                disabled={markBusy}
+                onClick={() => {
+                  if (!markId || markBusy) return;
+                  setMarkBusy(true);
+                  const op = marked
+                    ? deleteMark(markId)
+                    : putMark({
+                        id: markId,
+                        name: profile.name,
+                        source: "graph",
+                        seed_slug: seedSlug ?? profile.seed,
+                        candidate_id: candidateId ?? undefined,
+                      });
+                  void op
+                    .then(() => setMarked(!marked))
+                    .catch((err) =>
+                      onError?.(
+                        err instanceof Error ? err.message : String(err)
+                      )
+                    )
+                    .finally(() => setMarkBusy(false));
+                }}
+              >
+                ★
+              </button>
+            )}
           </h2>
 
           <div className="surface-meter" aria-label="Identity surface score">
@@ -260,9 +329,17 @@ export function ProfilePanel({
             </button>
           )}
 
-          {!canExpand && hop === 1 && node?.relation !== "seed" && (
+          {!canExpand &&
+            hop === 1 &&
+            node?.relation !== "seed" &&
+            node?.relation !== "website" && (
             <p className="muted" style={{ marginTop: "0.5rem" }}>
               No LinkedIn on this GitHub profile — branch expand unavailable.
+            </p>
+          )}
+          {node?.relation === "website" && (
+            <p className="muted" style={{ marginTop: "0.5rem" }}>
+              Same-site neighbor. GitHub is profile-only — no collab expand.
             </p>
           )}
 
@@ -353,6 +430,43 @@ export function ProfilePanel({
               <h3>Website scrape</h3>
               <p className="muted">{profile.website.url}</p>
               {profile.website.email && <p>{profile.website.email}</p>}
+            </section>
+          )}
+
+          {websiteUrl && seedSlug && onWebsiteRun && (
+            <section>
+              <h3>People on this site</h3>
+              <p className="muted">
+                Preview names, then confirm LinkedIn resolve (org token required
+                unless the page already has a LinkedIn URL). Star only saves a
+                reminder.
+              </p>
+              {!siteOpen ? (
+                <button
+                  type="button"
+                  className="expand-btn"
+                  onClick={() => setSiteOpen(true)}
+                >
+                  People on this site
+                </button>
+              ) : (
+                <WebsiteGraphPanel
+                  seedSlug={seedSlug}
+                  hostSlug={
+                    node && node.hop !== 0
+                      ? node.id.includes(":")
+                        ? node.id.slice(node.id.indexOf(":") + 1)
+                        : node.id
+                      : undefined
+                  }
+                  defaultUrl={websiteUrl}
+                  defaultOrgHint={profile.linkedin?.college || undefined}
+                  running={expanding || pipelineRunning}
+                  compact
+                  onStartRun={onWebsiteRun}
+                  onError={onError ?? (() => {})}
+                />
+              )}
             </section>
           )}
 

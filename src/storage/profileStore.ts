@@ -11,7 +11,8 @@ import type {
 import type { SeedTreeEdge } from "../pipeline/expandGraph.js";
 import { slugify, writeJsonAtomic } from "./jsonStore.js";
 
-export type ProfileRelation = "seed" | "collaborator" | "follower";
+export type ProfileRelation = "seed" | "collaborator" | "follower" | "website";
+export type NeighborRelation = Exclude<ProfileRelation, "seed">;
 
 export interface ProfileRecord {
   slug: string;
@@ -52,7 +53,7 @@ export interface ProfilePathArgs {
   slug?: string;
   hop?: 0 | 1 | 2;
   /** Hop-1 relation folder when writing/reading hop-2 nodes. */
-  parentRelation?: "collaborator" | "follower";
+  parentRelation?: NeighborRelation;
   parentSlug?: string;
 }
 
@@ -66,6 +67,7 @@ function githubLoginFromUrl(url: string | null | undefined): string | null {
 export function relationDir(relation: ProfileRelation): string | null {
   if (relation === "collaborator") return "collaborators";
   if (relation === "follower") return "followers";
+  if (relation === "website") return "website";
   return null;
 }
 
@@ -148,7 +150,7 @@ export function upsertProfile(input: {
   seed: string;
   relation: ProfileRelation;
   hop?: 0 | 1 | 2;
-  parentRelation?: "collaborator" | "follower";
+  parentRelation?: NeighborRelation;
   parentSlug?: string;
   discovered_via?: string[];
   parents?: string[];
@@ -270,15 +272,18 @@ export function writeSeedTreeProfiles(
   for (const edge of tree.edges) {
     const hop = edge.hop ?? 1;
     const relation: ProfileRelation =
-      edge.via === "github-collaborator" ? "collaborator" : "follower";
+      edge.via === "github-collaborator"
+        ? "collaborator"
+        : edge.via === "website-colocated"
+          ? "website"
+          : "follower";
     const neighborLogin = slugify(edge.to_github);
     const cand =
       byGh.get(edge.to_github.toLowerCase()) ?? byGh.get(neighborLogin);
 
     if (hop === 2 && edge.via_node) {
       const parentLogin = slugify(edge.via_node);
-      const parentRel: "collaborator" | "follower" =
-        edge.parent_relation ?? "follower";
+      const parentRel: NeighborRelation = edge.parent_relation ?? "follower";
       const rootLogin = slugify(edge.root_github ?? edge.from_github);
 
       upsertProfile({

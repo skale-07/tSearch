@@ -8,6 +8,7 @@ export interface MatchContext {
   olympiad?: OlympiadProfile;
   olympiad_hints?: string[];
   award_hint?: string;
+  org_hint?: string;
 }
 
 /** Strip connection degree and keep only the first line / name portion. */
@@ -65,7 +66,8 @@ export function isTargetedSearch(ctx: MatchContext): boolean {
     ctx.school ||
     ctx.expected_country ||
     (ctx.olympiad_hints && ctx.olympiad_hints.length > 0) ||
-    ctx.award_hint
+    ctx.award_hint ||
+    ctx.org_hint
   );
 }
 

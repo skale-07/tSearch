@@ -24,6 +24,14 @@ function profile(partial: Partial<OlympiadProfile>): OlympiadProfile {
 }
 
 describe("LinkedIn search query strategy", () => {
+  it("org query is name + short org token, unquoted", () => {
+    expect(
+      formatSearchQuery("Ada Lovelace", {
+        org_hint: "Berkeley",
+      })
+    ).toBe('"Ada Lovelace" Berkeley');
+  });
+
   it("award query is name + award display name, unquoted award token", () => {
     expect(
       formatSearchQuery("Christine Song", {

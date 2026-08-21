@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   fetchDiscovery,
+  fetchMarks,
+  fetchSeeds,
   pullDiscoveryOlympiads,
   refreshDiscovery,
   saveDiscoveryRoster,
   scrapeDiscoveryRosters,
   startDiscoveryResolve,
   startRunBatch,
+  deleteMark,
   type ChannelSnapshot,
   type DiscoverySnapshot,
+  type MarkRecord,
   type SeedSourceKind,
+  type TreeOption,
 } from "./api";
 import { withAge } from "./ageDisplay";
+import { MarksList } from "./MarksList";
 import {
   clampResolveLimit,
   findPendingByName,
@@ -25,6 +31,7 @@ import {
   uniquePendingPrograms,
   uniquePendingYears,
 } from "./discovery";
+import { WebsiteGraphPanel } from "./WebsiteGraphPanel";
 
 const OLYMPIAD_SOURCE_OPTIONS: Array<{ id: string; label: string }> = [
   { id: "ISEF", label: "ISEF" },
@@ -134,6 +141,8 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
   const [olySkipIbo, setOlySkipIbo] = useState(false);
   const [resolveName, setResolveName] = useState("");
   const [oneNameError, setOneNameError] = useState<string | null>(null);
+  const [treeOptions, setTreeOptions] = useState<TreeOption[]>([]);
+  const [marks, setMarks] = useState<MarkRecord[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -154,6 +163,16 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    void fetchSeeds()
+      .then((s) => {
+        if (!cancelled) setTreeOptions(s.hangSeeds ?? s.trees ?? []);
+      })
+      .catch(() => {});
+    void fetchMarks()
+      .then((rows) => {
+        if (!cancelled) setMarks(rows);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -417,6 +436,7 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
             <option value="olympiad_csv">Olympiads</option>
             <option value="award_roster">Scholarships</option>
             <option value="manual_cohort">Manual</option>
+            <option value="website_page">Website graph</option>
           </select>
           <select
             aria-label="Competition or cohort year"
@@ -769,6 +789,40 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
             Download {MANUAL_COHORT_FILENAME}
           </button>
         </ChannelCard>
+        <ChannelCard
+          title="Website graph"
+          hint="Paste a lab or personal site. Preview names, then confirm with an org/award token (or on-page LinkedIn URLs). Graph writes only after a LinkedIn confirm. Star does not enqueue."
+          emptyLabel="url + seed"
+          channels={grouped.website}
+        >
+          <WebsiteGraphPanel
+            seedOptions={treeOptions.map((t) => ({ slug: t.slug, name: t.name }))}
+            running={running}
+            onStartRun={onStartResolve}
+            onError={onError}
+          />
+        </ChannelCard>
+        {marks.length > 0 && (
+          <ChannelCard
+            title="Look at later"
+            hint="Stars from Graph, Assess, or a website preview. Unrelated to digest 👍/👎. Does not enqueue LinkedIn."
+            emptyLabel={`${marks.length} marked`}
+            channels={[]}
+          >
+            <MarksList
+              marks={marks}
+              onUnmark={(id) => {
+                void deleteMark(id)
+                  .then(() =>
+                    setMarks((rows) => rows.filter((r) => r.id !== id))
+                  )
+                  .catch((err) =>
+                    onError(err instanceof Error ? err.message : String(err))
+                  );
+              }}
+            />
+          </ChannelCard>
+        )}
       </div>
 
       <h2 className="discover-pending-head discover-section-head">

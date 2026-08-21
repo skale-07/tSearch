@@ -9,7 +9,8 @@
 export type SeedSourceKind =
   | "olympiad_csv"
   | "award_roster"
-  | "manual_cohort";
+  | "manual_cohort"
+  | "website_page";
 
 export interface SeedCandidateRow {
   name: string;

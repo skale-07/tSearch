@@ -35,6 +35,10 @@ import {
 } from "./expandGraph.js";
 import { mergeCandidates, type RawCandidate } from "./mergeCandidates.js";
 import { readBranchExpandEnv, runBranchExpand } from "./runBranchExpand.js";
+import {
+  readWebsiteGraphJob,
+  runWebsiteGraphIngest,
+} from "./websiteGraph.js";
 
 function log(step: string, detail?: string): void {
   const ts = new Date().toLocaleTimeString();
@@ -169,6 +173,14 @@ async function main(): Promise<void> {
     log("start", "BRANCH_EXPAND mode — known LinkedIn URL, forced GitHub");
     log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
     await runBranchExpand(branchEnv);
+    return;
+  }
+
+  const websiteJob = readWebsiteGraphJob();
+  if (websiteJob) {
+    log("start", "WEBSITE_GRAPH mode — LinkedIn + GitHub profile, no collab expand");
+    log("start", `GITHUB_TOKEN=${GITHUB_TOKEN_SOURCE}`);
+    await runWebsiteGraphIngest(websiteJob);
     return;
   }
 

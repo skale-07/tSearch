@@ -83,7 +83,7 @@ export interface TreeNodeSummary {
 export interface TreeEdge {
   from: string;
   to: string;
-  via: "github-collaborator" | "github-follower";
+  via: "github-collaborator" | "github-follower" | "website-colocated";
   context_score: number;
   hop: 1 | 2;
 }
@@ -223,7 +223,10 @@ function toSummary(
     surface_score: surface.score,
     surface_signals: surface.signals,
     surface_score_max: SURFACE_SCORE_MAX,
-    can_expand: hop === 1 && !!linkedin_url,
+    can_expand:
+      hop === 1 &&
+      (p.relation === "collaborator" || p.relation === "follower") &&
+      !!linkedin_url,
     age_label: ageLabelForProfile(p, index),
   };
 }
@@ -259,7 +262,7 @@ export function loadProfile(
   opts?: {
     hop?: 0 | 1 | 2;
     parentSlug?: string;
-    parentRelation?: "collaborator" | "follower";
+    parentRelation?: "collaborator" | "follower" | "website";
   }
 ): ProfileRecord | null {
   const seed = slugify(seedSlug);
@@ -294,11 +297,11 @@ function isBotLogin(slug: string, name: string): boolean {
 function includeOnTree(p: ProfileRecord, hop: 0 | 1 | 2): boolean {
   if (hop === 0) return true;
   if (isBotLogin(p.slug, p.name)) return false;
-  // Prefer root score; fall back to github.context_score if root missing
+  // Operator-picked website neighbors skip the GitHub context floor.
+  if (p.relation === "website") return true;
   const score = Number(
     p.context_score ?? p.github?.context_score ?? 0
   );
-  // Hop-1 and hop-2 (incl. under Arihant): hide scores ≤ 3
   return score >= MIN_TREE_CONTEXT_SCORE;
 }
 
@@ -312,8 +315,9 @@ export function buildTree(seedSlug: string): TreeResponse | null {
   const edges: TreeEdge[] = [];
   const seenNode = new Set<string>([seed]);
 
-  for (const parentRel of ["collaborator", "follower"] as const) {
-    const folder = relationDir(parentRel)!;
+  for (const parentRel of ["collaborator", "follower", "website"] as const) {
+    const folder = relationDir(parentRel);
+    if (!folder) continue;
     const hop1Dir = path.join(PROFILES_DIR, seed, folder);
     for (const login of listNeighborDirs(hop1Dir)) {
       const p = loadProfile(seed, parentRel, login, { hop: 1 });
@@ -329,12 +333,14 @@ export function buildTree(seedSlug: string): TreeResponse | null {
         via:
           parentRel === "collaborator"
             ? "github-collaborator"
-            : "github-follower",
+            : parentRel === "website"
+              ? "website-colocated"
+              : "github-follower",
         context_score: p.context_score ?? 0,
         hop: 1,
       });
 
-      for (const childRel of ["collaborator", "follower"] as const) {
+      for (const childRel of ["collaborator", "follower", "website"] as const) {
         const childFolder = relationDir(childRel)!;
         const hop2Dir = path.join(hop1Dir, login, childFolder);
         for (const childLogin of listNeighborDirs(hop2Dir)) {
@@ -359,7 +365,9 @@ export function buildTree(seedSlug: string): TreeResponse | null {
             via:
               childRel === "collaborator"
                 ? "github-collaborator"
-                : "github-follower",
+                : childRel === "website"
+                  ? "website-colocated"
+                  : "github-follower",
             context_score: child.context_score ?? 0,
             hop: 2,
           });
@@ -389,7 +397,7 @@ export function buildTree(seedSlug: string): TreeResponse | null {
 
 export function seedHasHop1Neighbors(seedSlug: string): boolean {
   const root = path.join(PROFILES_DIR, seedSlug);
-  for (const rel of ["collaborators", "followers"] as const) {
+  for (const rel of ["collaborators", "followers", "website"] as const) {
     const dir = path.join(root, rel);
     if (!fs.existsSync(dir)) continue;
     const hasChild = fs
@@ -416,22 +424,36 @@ export function listAllSeedProfileSlugs(): string[] {
     .map((d) => d.name);
 }
 
-/** Seed roots that have a hop-1 graph (collaborator and/or follower nodes). */
+/** Seed roots that have a hop-1 graph (collab, follower, or website). */
 export function listProfileSeeds(): string[] {
   return listAllSeedProfileSlugs().filter((slug) => seedHasHop1Neighbors(slug));
 }
 
+function treeOptionForSlug(
+  slug: string,
+  hasTree: boolean,
+  index: ReturnType<typeof candidateAgeIndex>
+): TreeOption {
+  const p = loadProfile(slug, "seed");
+  return {
+    slug,
+    name: p?.name ?? slug,
+    age_label: p ? ageLabelForProfile(p, index) : null,
+    hasTree,
+  };
+}
+
 export function listTreeOptions(): TreeOption[] {
   const index = candidateAgeIndex();
-  return listProfileSeeds().map((slug) => {
-    const p = loadProfile(slug, "seed");
-    return {
-      slug,
-      name: p?.name ?? slug,
-      age_label: p ? ageLabelForProfile(p, index) : null,
-      hasTree: true,
-    };
-  });
+  return listProfileSeeds().map((slug) => treeOptionForSlug(slug, true, index));
+}
+
+/** All seed profiles — hang-target picker. Includes seeds with no hop-1 tree yet. */
+export function listHangSeedOptions(): TreeOption[] {
+  const index = candidateAgeIndex();
+  return listAllSeedProfileSlugs().map((slug) =>
+    treeOptionForSlug(slug, seedHasHop1Neighbors(slug), index)
+  );
 }
 
 export function listSeedOptions(): Array<{

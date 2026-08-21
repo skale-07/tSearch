@@ -10,6 +10,7 @@ export function pendingKind(seed: PendingSeedRow): SeedSourceKind {
   if (seed.source_kind) return seed.source_kind;
   if (seed.source_id.startsWith("olympiad:")) return "olympiad_csv";
   if (seed.source_id.startsWith("manual")) return "manual_cohort";
+  if (seed.source_id.startsWith("website:")) return "website_page";
   return "award_roster";
 }
 
@@ -71,11 +72,13 @@ export function groupChannels(channels: ChannelSnapshot[]): {
   olympiad: ChannelSnapshot[];
   scholarships: ChannelSnapshot[];
   manual: ChannelSnapshot[];
+  website: ChannelSnapshot[];
 } {
   return {
     olympiad: channels.filter((c) => c.kind === "olympiad_csv"),
     scholarships: channels.filter((c) => c.kind === "award_roster"),
     manual: channels.filter((c) => c.kind === "manual_cohort"),
+    website: channels.filter((c) => c.kind === "website_page"),
   };
 }
 
