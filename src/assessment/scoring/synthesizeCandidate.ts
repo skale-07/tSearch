@@ -22,27 +22,26 @@ import {
 import { averageScores } from "../judges/scoreUtils.js";
 import { ageScalar, toOverallScore10 } from "../../scoring/ageScalar.js";
 
-export const PRIORITY_V2_VERSION = "priority-v2";
+export const PRIORITY_V2_VERSION = "priority-v2.1";
 export const PRIORITY_V2_REQUIRES_CALIBRATION = true;
 
-/** priority-v2 base weights (normalized inputs 0..1). Marked requires_calibration. */
+/** priority-v2.1 base weights (normalized inputs 0..1). Marked requires_calibration. */
 export const PRIORITY_V2_WEIGHTS = {
-  technical: 0.3,
-  ownership: 0.15,
-  writing: 0.1,
-  cross_artifact: 0.15,
+  technical: 0.34,
+  ownership: 0.1,
+  writing: 0.18,
+  cross_artifact: 0.1,
   unusual: 0.08,
-  persistence: 0.07,
-  cory: 0.1,
-  evidence_completeness: 0.05,
+  persistence: 0.08,
+  cory: 0.08,
+  evidence_completeness: 0.04,
 } as const;
 
 /**
- * LinkedIn experience may fill `technical_strength` only when GitHub was not
- * judged. Capped at 0.5 so a self-reported internship cannot outrank a
- * "strong" repository assessment (0.8).
+ * Self-reported LinkedIn work is damped only when the experience judge itself
+ * marked evidence support low — not because internships are second-class.
  */
-export const EXPERIENCE_AS_TECHNICAL_CAP = 0.5;
+export const EXPERIENCE_LOW_EVIDENCE_DAMP = 0.85;
 
 export {
   aggregateCandidateOwnership,
@@ -118,6 +117,45 @@ function strengthTo01(
     default:
       return null;
   }
+}
+
+function experienceDim01(
+  experience: ExperienceJudgeResult | undefined,
+  id: string
+): number | null {
+  const d = experience?.dimensions.find((x) => x.dimension_id === id);
+  return typeof d?.score === "number" ? d.score / 5 : null;
+}
+
+/** LinkedIn experience as a 0..1 technical contribution. */
+export function experienceAsTechnical01(
+  experience?: ExperienceJudgeResult
+): number | null {
+  const raw = strengthTo01(experience?.overall_distinctiveness);
+  if (raw === null) return null;
+  const damp =
+    experience?.evidence_support === "low" ? EXPERIENCE_LOW_EVIDENCE_DAMP : 1;
+  return Math.round(raw * damp * 100) / 100;
+}
+
+function combineTechnical(
+  githubTechnical: number | null,
+  experienceTechnical: number | null
+): { score: number; fromExperience: boolean; blended: boolean } | null {
+  if (githubTechnical !== null && experienceTechnical !== null) {
+    return {
+      score: Math.round((0.7 * githubTechnical + 0.3 * experienceTechnical) * 100) / 100,
+      fromExperience: false,
+      blended: true,
+    };
+  }
+  if (githubTechnical !== null) {
+    return { score: githubTechnical, fromExperience: false, blended: false };
+  }
+  if (experienceTechnical !== null) {
+    return { score: experienceTechnical, fromExperience: true, blended: false };
+  }
+  return null;
 }
 
 function dimScoreV2(
@@ -326,13 +364,11 @@ function buildAxes(input: {
   ]);
   const githubTechnical =
     tech01 !== null ? tech01 : techFromDims !== null ? techFromDims : null;
-  const experience01 = strengthTo01(input.experience?.overall_distinctiveness);
-  const experienceTechnical =
-    githubTechnical === null && experience01 !== null
-      ? experience01 * EXPERIENCE_AS_TECHNICAL_CAP
-      : null;
-  const technicalScore = githubTechnical ?? experienceTechnical;
-  const technicalFromExperience = githubTechnical === null && experienceTechnical !== null;
+  const experienceTechnical = experienceAsTechnical01(input.experience);
+  const combined = combineTechnical(githubTechnical, experienceTechnical);
+  const technicalScore = combined?.score ?? null;
+  const technicalFromExperience = combined?.fromExperience === true;
+  const technicalBlended = combined?.blended === true;
 
   const ownershipScore = input.ownership
     ? ownershipSupportToScore(input.ownership.support_class) / 10
@@ -348,6 +384,15 @@ function buildAxes(input: {
     input.technical,
     "persistence_and_iteration"
   );
+  const unusualFromExp = experienceDim01(input.experience, "experience_rarity");
+  const persistenceFromExp = experienceDim01(
+    input.experience,
+    "demonstrated_agency_and_cost"
+  );
+  const unusual01 =
+    unusualRaw !== null ? unusualRaw / 5 : unusualFromExp;
+  const persistence01 =
+    persistenceRaw !== null ? persistenceRaw / 5 : persistenceFromExp;
   const cory01 = coryTo01(input.cory);
 
   const inquiryParts = [writing01, cross01].filter(
@@ -358,17 +403,21 @@ function buildAxes(input: {
       ? inquiryParts.reduce((a, b) => a + b, 0) / inquiryParts.length
       : null;
 
+  const techSummary = technicalBlended
+    ? `GitHub technical blended with LinkedIn-stated work (70/30).${input.experience?.summary ? ` ${input.experience.summary}` : ""}`
+    : technicalFromExperience
+      ? `Technical from LinkedIn-stated work (internships, research, other roles — scored for substance, not employer name).${input.experience?.summary ? ` ${input.experience.summary}` : ""}`
+      : input.technical?.summary;
+
   return {
     technical_strength:
       technicalScore !== null
         ? availableAxis(
             technicalScore,
             technicalFromExperience
-              ? "low"
+              ? input.experience?.evidence_support ?? "low"
               : input.technical?.evidence_support ?? "low",
-            technicalFromExperience
-              ? `LinkedIn experience (no GitHub) — capped at ${EXPERIENCE_AS_TECHNICAL_CAP} so internships cannot outrank repository evidence.${input.experience?.summary ? ` ${input.experience.summary}` : ""}`
-              : input.technical?.summary
+            techSummary
           )
         : unavailableAxis("Technical strength unavailable."),
     ownership_support:
@@ -404,12 +453,12 @@ function buildAxes(input: {
         ? availableAxis(inquiry, "moderate")
         : unavailableAxis("Observable inquiry unavailable."),
     unusual_problem_selection:
-      unusualRaw !== null
-        ? availableAxis(unusualRaw / 5, "moderate")
+      unusual01 !== null
+        ? availableAxis(unusual01, "moderate")
         : unavailableAxis("Unusual problem selection unavailable."),
     persistence_and_iteration:
-      persistenceRaw !== null
-        ? availableAxis(persistenceRaw / 5, "moderate")
+      persistence01 !== null
+        ? availableAxis(persistence01, "moderate")
         : unavailableAxis("Persistence unavailable."),
     cory_relevance:
       cory01 !== null
@@ -453,34 +502,33 @@ export function computePriorityV2(input: {
 
   const writingAvail = input.axes.writing_intellectual_depth?.available === true;
   const crossAvail = input.axes.cross_artifact_coherence?.available === true;
+  const ownAvail = input.axes.ownership_support?.available === true;
+  const unusualAvail = input.axes.unusual_problem_selection?.available === true;
+  const persistenceAvail =
+    input.axes.persistence_and_iteration?.available === true;
 
-  // Missing writing: move at most half of its weight into technical + persistence.
-  // Remaining half is unused (not fully redistributed).
-  if (!writingAvail) {
-    const movable = wWrite * 0.5;
-    wWrite = 0;
-    wTech += movable / 2;
-    wPer += movable / 2;
-  }
-
-  // Missing cross-artifact: move at most half into technical + ownership.
-  if (!crossAvail) {
-    const movable = wCross * 0.5;
-    wCross = 0;
-    wTech += movable / 2;
-    wOwn += movable / 2;
-  }
+  // Missing writing/cross stay unused. Do not donate that weight to technical
+  // or GitHub-only people outrank writers by default.
+  if (!writingAvail) wWrite = 0;
+  if (!crossAvail) wCross = 0;
+  if (!ownAvail) wOwn = 0;
+  if (!unusualAvail) wUnu = 0;
+  if (!persistenceAvail) wPer = 0;
 
   const tech = input.axes.technical_strength?.score ?? 0;
-  const own = input.axes.ownership_support?.score ?? 0;
+  const own = ownAvail ? (input.axes.ownership_support?.score ?? 0) : 0;
   const write = writingAvail
     ? (input.axes.writing_intellectual_depth?.score ?? 0)
     : 0;
   const cross = crossAvail
     ? (input.axes.cross_artifact_coherence?.score ?? 0)
     : 0;
-  const unusual = input.axes.unusual_problem_selection?.score ?? 0;
-  const persistence = input.axes.persistence_and_iteration?.score ?? 0;
+  const unusual = unusualAvail
+    ? (input.axes.unusual_problem_selection?.score ?? 0)
+    : 0;
+  const persistence = persistenceAvail
+    ? (input.axes.persistence_and_iteration?.score ?? 0)
+    : 0;
   const cory = input.axes.cory_relevance?.available
     ? (input.axes.cory_relevance.score ?? 0)
     : 0;

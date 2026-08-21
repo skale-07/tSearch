@@ -14,8 +14,15 @@ const TECH_ORG =
 export function isTechnicalExperience(role: LinkedInExperience): boolean {
   const title = role.title ?? "";
   const company = role.company ?? "";
+  const description = role.description ?? "";
+  const blob = `${title} ${company} ${description}`;
   if (TECH_TITLE.test(title)) return true;
-  if (/\bintern\b/i.test(title) && TECH_ORG.test(company)) return true;
+  if (TECH_TITLE.test(description) && /\b(intern|assistant|fellow|associate|engineer)\b/i.test(title)) {
+    return true;
+  }
+  if (/\bintern\b/i.test(title) && (TECH_ORG.test(company) || TECH_TITLE.test(blob))) {
+    return true;
+  }
   return TECH_TITLE.test(company);
 }
 

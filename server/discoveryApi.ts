@@ -68,6 +68,8 @@ function listGithubReadyPeople(): Array<{
           ? rec.linkedin
           : undefined,
       olympiad: rec.olympiad,
+      website: rec.website,
+      github: rec.github,
     });
     out.push({
       name: rec.name,
@@ -125,6 +127,8 @@ function decorateDiscovery(snap: DiscoverySnapshot): DiscoveryPayload {
       const stage = deriveStage({
         linkedin,
         olympiad: rec?.olympiad,
+        website: rec?.website,
+        github: rec?.github,
       });
       const pred = predictSeedAge(s);
       const age = stage.estimated_age ?? pred?.age ?? null;

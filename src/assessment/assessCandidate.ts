@@ -20,7 +20,12 @@ import {
   collectBlogArtifacts,
   collectBlogArtifactsFromFixture,
 } from "./blog/collectBlogArtifacts.js";
-import { firstWritingSurfaceUrl } from "./blog/writingHubs.js";
+import {
+  authoredWritingUrls,
+  githubUsernameFromLinkedInSurfaces,
+  primaryWritingSurfaceUrl,
+} from "./linkedinSurfaces.js";
+import { isAuthoredPublicationUrl } from "./blog/writingHubs.js";
 import { deterministicTechnicalJudgeV2, runTechnicalJudgeV2 } from "./judges/technicalJudgeV2.js";
 import { deterministicWritingJudge, runWritingJudge, type WritingArtifactInput } from "./judges/writingJudge.js";
 import { deterministicCrossArtifactJudge, runCrossArtifactJudge } from "./judges/crossArtifactJudge.js";
@@ -37,7 +42,7 @@ import {
   runAgeRelativeJudge,
   type AgeRelativeInputs,
 } from "./judges/ageRelativeJudge.js";
-import { deriveStage } from "./stage/deriveStage.js";
+import { deriveStage, formatAgeLabel } from "./stage/deriveStage.js";
 import { hasDetailedLinkedInExperience } from "./youthWildcard.js";
 import { upsideVector, computeObscurity } from "../scoring/computeObscurity.js";
 import { judgedSubstance } from "./scoring/judgedSubstance.js";
@@ -84,20 +89,13 @@ function normalizeHttpUrl(raw: string): string {
 }
 
 function websiteOrBlogUrl(selected: SelectedCandidate): string | undefined {
-  const li = selected.candidate.linkedin;
-  const hub = firstWritingSurfaceUrl([
-    ...(li?.contact_links ?? []),
-    ...(li?.featured_links ?? []),
-    li?.substack_url,
-    selected.candidate.website?.medium_url,
-    selected.candidate.website?.substack_url,
-  ]);
+  const hub = primaryWritingSurfaceUrl(selected.candidate);
   const raw =
     selected.source_snapshot.website_url ||
     selected.source_snapshot.blog_url ||
     selected.identity.website_url ||
     hub ||
-    li?.personal_website ||
+    selected.candidate.linkedin?.personal_website ||
     selected.candidate.website?.url ||
     selected.candidate.github?.blog;
   return raw?.trim() ? normalizeHttpUrl(raw) : undefined;
@@ -191,8 +189,11 @@ export async function assessCandidate(input: {
   mode: AssessCandidateMode;
 }): Promise<CandidateAssessmentRecord> {
   const { runId, selected, opts, ctx, prior, mode } = input;
-  const username = selected.identity.github_username;
+  const username =
+    selected.identity.github_username ??
+    githubUsernameFromLinkedInSurfaces(selected.candidate);
   const siteUrl = websiteOrBlogUrl(selected);
+  const writingSeeds = authoredWritingUrls(selected.candidate);
   const reusing = mode === "retry_errors" && prior;
   const record = reusing
     ? {
@@ -204,7 +205,12 @@ export async function assessCandidate(input: {
         judge_statuses: { ...prior.judge_statuses },
         errors: [...(prior.errors ?? [])],
       }
-    : initialRecord(runId, selected, !!username, !!siteUrl);
+    : initialRecord(
+        runId,
+        selected,
+        !!username,
+        !!siteUrl || writingSeeds.length > 0
+      );
   const checkpoint = () => writeCandidateAssessment(runId, record);
   const addError = (stage: AssessmentError["stage"], err: unknown, judge?: AssessmentError["judge"]) => {
     const parsed = splitJudgeError(err);
@@ -223,7 +229,7 @@ export async function assessCandidate(input: {
     record.errors = (record.errors ?? []).filter((error) => error.judge !== judge);
   };
 
-  if (!username && !siteUrl) {
+  if (!username && !siteUrl && writingSeeds.length === 0) {
     if (!hasDetailedLinkedInExperience(selected.candidate.linkedin)) {
     const cory = coryAbstention();
     record.judge_results = { ...record.judge_results, cory };
@@ -250,9 +256,14 @@ export async function assessCandidate(input: {
   if (!reusing) {
     record.artifacts = { references: [], github_repositories: {}, blog_articles: {}, evidence: [] };
     record.judge_results = {};
-    record.judge_statuses = initialJudgeStatuses({ hasGithub: !!username, hasWritingSurface: !!siteUrl });
+    record.judge_statuses = initialJudgeStatuses({
+      hasGithub: !!username,
+      hasWritingSurface: !!siteUrl || writingSeeds.length > 0,
+    });
     record.errors = [];
   }
+
+  let ageProse: string[] = [];
 
   const collectGithub = async () => {
     if (!username || reusing) return;
@@ -307,18 +318,24 @@ export async function assessCandidate(input: {
   };
 
   const collectBlog = async () => {
-    if (!siteUrl || reusing) return;
+    if ((!siteUrl && writingSeeds.length === 0) || reusing) return;
     try {
       const key =
         username ?? selected.candidate_id ?? selected.source_snapshot.key;
+      const crawlRoot = siteUrl ?? writingSeeds[0]!;
       const result = opts.blogFixtureByKey?.[key]
         ? collectBlogArtifactsFromFixture(opts.blogFixtureByKey[key]!, {
             candidate_id: selected.candidate_id,
+            seedArticleUrls: writingSeeds,
+            candidateName: selected.candidate.name,
           })
-        : await collectBlogArtifacts(siteUrl, {
+        : await collectBlogArtifacts(crawlRoot, {
             candidate_id: selected.candidate_id,
+            seedArticleUrls: writingSeeds,
+            candidateName: selected.candidate.name,
           });
       record.artifacts.evidence.push(...result.evidence);
+      if (result.home_excerpt) ageProse.push(result.home_excerpt);
       for (const article of result.selected) {
         record.artifacts.blog_articles![article.artifact_id] = article;
         record.artifacts.references.push({
@@ -328,7 +345,7 @@ export async function assessCandidate(input: {
           canonical_url: article.canonical_url,
           author_identity_confidence: 0.6,
           candidate_ownership_confidence: 0.55,
-          discovered_from: siteUrl,
+          discovered_from: crawlRoot,
           selected_reason: "blog_collector_selected",
           collected_at: new Date().toISOString(),
           content_hash: article.content_hash,
@@ -349,6 +366,7 @@ export async function assessCandidate(input: {
       title: e.title,
       company: e.company,
       dates: e.dates,
+      description: e.description,
     })),
     awards: (selected.candidate.linkedin?.awards ?? []).map((a) => ({
       title: a.title,
@@ -361,6 +379,7 @@ export async function assessCandidate(input: {
     })),
     olympiad_prizes: selected.candidate.olympiad?.prizes ?? [],
     linkedin_url: selected.source_snapshot.linkedin_url,
+    publication_urls: writingSeeds.filter(isAuthoredPublicationUrl),
   };
   let experienceEvidence = record.artifacts.evidence.filter(
     (e) => e.source_type === "profile_field"
@@ -384,7 +403,10 @@ export async function assessCandidate(input: {
     : undefined;
 
   const willRunTechnical = !!(repoDetails.length && shouldRun("technical"));
-  const willRunWriting = !!(siteUrl && shouldRun("writing"));
+  const willRunWriting = !!(
+    (siteUrl || writingSeeds.length > 0) &&
+    shouldRun("writing")
+  );
   if (willRunTechnical || willRunWriting) {
     // Mark both running, then one checkpoint — avoid concurrent writes while
     // technical/writing mutate the same in-memory record.
@@ -573,10 +595,13 @@ export async function assessCandidate(input: {
   }
 
   // Age-relative impressiveness runs before Cory routing so its booster is
-  // available there. Stage comes from stated dates only; unknown stays null.
+  // available there. Unknown stage stays null; public-text standing/floors apply.
   const stage = deriveStage({
     linkedin: selected.candidate.linkedin,
     olympiad: selected.candidate.olympiad,
+    website: selected.candidate.website,
+    github: selected.candidate.github,
+    extraTexts: ageProse,
   });
   const ageInputs: AgeRelativeInputs = {
     stage,
@@ -678,8 +703,11 @@ export async function assessCandidate(input: {
     age_relative_impressiveness: ageScore,
     stage_bucket: stage.bucket,
     estimated_age: stage.estimated_age,
+    age_label: formatAgeLabel(stage),
     obscurity: obscurityResult.substance_present ? obscurityResult.obscurity : null,
     connections: selected.candidate.linkedin?.connections ?? null,
+    connections_saturated:
+      selected.candidate.linkedin?.connections_saturated ?? false,
     substance,
     upside_score: upside,
     age_weighted_upside:

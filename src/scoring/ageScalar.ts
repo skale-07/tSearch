@@ -1,27 +1,41 @@
 /**
  * Chronological age scalar for ranking.
  *
- * Product rule (Grace/Cory): the same technical/base score must rank higher
- * for a younger person and lower for an older one. Applied as a multiplier on
- * discovery `final_score` and assessment `priority_score`.
+ * Sweet spot is 17–19: anyone in that band gets the same boost. Younger
+ * than 17 gets a bit more. 20 and up is a descaling function — not a
+ * gentle 22/age slope that left 21 and 23 nearly identical.
  *
- * Curve: unity at AGE_REF (22). `scalar = clamp(AGE_REF / age, MIN, MAX)`.
- *   16 → ~1.38 · 18 → ~1.22 · 22 → 1.00 · 28 → ~0.79 · 35 → ~0.63 · 44+ → 0.50
+ *   15 → ~1.59 · 16 → ~1.49 · 17–19 → 1.40 · 20 → ~0.86 · 21 → ~0.74
+ *   23 → ~0.56 · 28 → ~0.31 · 35+ → 0.25
  *
- * Unknown / garbage age → 1.0 (neutral). That lets age-unknown peers outrank
- * known older candidates — prefer improving `deriveStage` coverage over inventing ages.
+ * Unknown age → 1.0 (no sweet-spot boost, no old-age cut). Infer stage
+ * from public text instead of treating unknown as 19.
  */
 
-export const AGE_SCALAR_REF = 22;
-export const AGE_SCALAR_MIN = 0.5;
-export const AGE_SCALAR_MAX = 1.4;
+export const AGE_SWEET_MIN = 17;
+export const AGE_SWEET_MAX = 19;
+export const AGE_SWEET_BOOST = 1.4;
+export const AGE_SCALAR_REF = 19;
+export const AGE_SCALAR_EXPONENT = 3;
+export const AGE_SCALAR_MIN = 0.25;
+export const AGE_SCALAR_MAX = 1.6;
+
+function round3(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
 
 export function ageScalar(estimatedAge: number | null | undefined): number {
   if (estimatedAge == null || !Number.isFinite(estimatedAge)) return 1;
   if (estimatedAge < 14 || estimatedAge > 55) return 1;
-  const raw = AGE_SCALAR_REF / estimatedAge;
-  const clamped = Math.max(AGE_SCALAR_MIN, Math.min(AGE_SCALAR_MAX, raw));
-  return Math.round(clamped * 1000) / 1000;
+
+  if (estimatedAge <= AGE_SWEET_MAX) {
+    if (estimatedAge >= AGE_SWEET_MIN) return AGE_SWEET_BOOST;
+    const younger = AGE_SWEET_BOOST * (AGE_SWEET_MIN / estimatedAge);
+    return round3(Math.min(AGE_SCALAR_MAX, younger));
+  }
+
+  const descaled = (AGE_SCALAR_REF / estimatedAge) ** AGE_SCALAR_EXPONENT;
+  return round3(Math.max(AGE_SCALAR_MIN, descaled));
 }
 
 /**

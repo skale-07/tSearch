@@ -106,7 +106,7 @@ import {
   collectBlogArtifacts,
   collectBlogArtifactsFromFixture,
 } from "./blog/collectBlogArtifacts.js";
-import { firstWritingSurfaceUrl } from "./blog/writingHubs.js";
+import { primaryWritingSurfaceUrl } from "./linkedinSurfaces.js";
 import { extractDeterministicLinks } from "./relationships/extractDeterministicLinks.js";
 import { filterValidRelationships } from "./relationships/validateRelationships.js";
 import type { ArtifactRelationship } from "./relationships/types.js";
@@ -165,19 +165,13 @@ function normalizeHttpUrl(raw: string): string {
 }
 
 function websiteOrBlogUrl(selected: SelectedCandidate): string | undefined {
-  const li = selected.candidate.linkedin;
-  const hub = firstWritingSurfaceUrl([
-    ...(li?.contact_links ?? []),
-    li?.substack_url,
-    selected.candidate.website?.medium_url,
-    selected.candidate.website?.substack_url,
-  ]);
+  const hub = primaryWritingSurfaceUrl(selected.candidate);
   const raw =
     selected.source_snapshot.website_url ||
     selected.source_snapshot.blog_url ||
     selected.identity.website_url ||
     hub ||
-    li?.personal_website ||
+    selected.candidate.linkedin?.personal_website ||
     selected.candidate.website?.url ||
     selected.candidate.github?.blog ||
     undefined;
@@ -585,6 +579,8 @@ async function assessOne(
     const stage = deriveStage({
       linkedin: selected.candidate.linkedin,
       olympiad: selected.candidate.olympiad,
+      website: selected.candidate.website,
+      github: selected.candidate.github,
     });
 
     const synthesis = synthesizeCandidate({

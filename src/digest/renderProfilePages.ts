@@ -3,6 +3,7 @@ import path from "path";
 import type { Candidate } from "../types.js";
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { scoreBreakdownProfileHtml } from "./scoreBreakdown.js";
+import { digestFootprintLine } from "./footprintLine.js";
 import { identityFromCandidate } from "../assessment/candidateIdentity.js";
 import { slugify } from "../storage/jsonStore.js";
 
@@ -180,6 +181,8 @@ export function renderProfilePage(
     ? `<p class="bridge">Connected to ${c.network_bridges.seed_count} people in the seed set: ${esc(c.network_bridges.seeds.join(", "))}${c.network_bridges.collaborator_of.length ? ` — co-contributor with ${esc(c.network_bridges.collaborator_of.join(", "))}` : ""}.</p>`
     : "";
 
+  const footprint = digestFootprintLine(c);
+
   const writing =
     c.writing_summary?.available && c.writing_summary.rationale
       ? `<p>${esc(c.writing_summary.rationale.slice(0, 700))}</p>`
@@ -245,8 +248,10 @@ export function renderProfilePage(
   .big { font-family:Georgia, serif; font-size:40px; color:var(--accent); margin-right:8px; }
   .score-row { margin-bottom:8px; }
   table.break { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 12px; }
-  table.break td { padding:4px 0; color:var(--muted); }
-  table.break td:last-child { text-align:right; color:var(--ink); white-space:nowrap; }
+  table.break th, table.break td { padding:4px 0 4px 12px; color:var(--muted); text-align:right; white-space:nowrap; }
+  table.break th { font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:500; }
+  table.break th:first-child, table.break td:first-child { padding-left:0; text-align:left; white-space:normal; }
+  table.break td:last-child { color:var(--ink); }
   table.break tr.sum td { color:var(--ink); font-weight:600; border-top:1px solid var(--line); padding-top:8px; }
   details { margin:12px 0; }
   summary { cursor:pointer; color:var(--muted); }
@@ -261,6 +266,7 @@ export function renderProfilePage(
     ${avatar}
     <div>
       <h1>${esc(c.name)}</h1>
+      ${footprint ? `<p class="muted" style="margin:4px 0 0;font-size:13px;">${esc(footprint)}</p>` : ""}
       <p class="headline">${esc((source?.linkedin?.headline ?? c.headline).slice(0, 160))}</p>
       <div>${chips}</div>
     </div>

@@ -60,6 +60,8 @@ export function isYouthWildcardPoolMember(candidate: Candidate): boolean {
   const age = ageFromPublicIdentity({
     linkedin: candidate.linkedin,
     olympiad: candidate.olympiad,
+    website: candidate.website,
+    github: candidate.github,
   }).estimated_age;
   if (age == null || age < YOUTH_AGE_MIN || age > YOUTH_AGE_MAX) return false;
   if (!hasDetailedLinkedInExperience(candidate.linkedin)) return false;

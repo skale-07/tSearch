@@ -69,7 +69,7 @@ export function computeScore(
     linkedinExperiencePresent: hasDetailedLinkedInExperience(linkedin),
   });
 
-  const stage = deriveStage({ linkedin, olympiad });
+  const stage = deriveStage({ linkedin, olympiad, website, github });
   const scalar = ageScalar(stage.estimated_age);
 
   const preAge =

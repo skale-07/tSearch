@@ -44,9 +44,11 @@ export function digestScoreBreakdown(
       estimatedAge,
     });
     const c = priority.components;
-    const techLabel =
-      axes.technical_strength?.summary?.includes("LinkedIn experience")
-        ? "Technical (LinkedIn experience)"
+    const techSummary = axes.technical_strength?.summary ?? "";
+    const techLabel = techSummary.includes("blended")
+      ? "Technical (GitHub + LinkedIn work)"
+      : techSummary.includes("LinkedIn-stated")
+        ? "Technical (LinkedIn work)"
         : "Technical";
     const raw: Array<[string, number, number]> = [
       [techLabel, c.technical, c.w_technical],
@@ -110,6 +112,39 @@ function fmt01(n: number): string {
   return n.toFixed(2);
 }
 
+const TH =
+  "padding:2px 0 4px 10px;text-align:right;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#a49e90;white-space:nowrap;";
+const TD_NUM =
+  "padding:2px 0 2px 10px;text-align:right;color:#3b372e;white-space:nowrap;font-variant-numeric:tabular-nums;";
+const TD_LABEL = "padding:2px 8px 2px 0;color:#6b6558;";
+
+function weightedHeaderRow(style: "email" | "profile"): string {
+  if (style === "profile") {
+    return `<tr><th></th><th>Score</th><th>Weight</th><th></th></tr>`;
+  }
+  return `<tr>
+    <td style="${TH};padding-left:0;text-align:left;"></td>
+    <td style="${TH}">Score</td>
+    <td style="${TH}">Weight</td>
+    <td style="${TH}"></td>
+  </tr>`;
+}
+
+function weightedLineRow(
+  line: DigestWeightedLine,
+  style: "email" | "profile"
+): string {
+  if (style === "profile") {
+    return `<tr><td>${esc(line.label)}</td><td>${fmt01(line.score)}</td><td>× ${fmt01(line.weight)}</td><td>= ${fmt01(line.weighted)}</td></tr>`;
+  }
+  return `<tr>
+    <td style="${TD_LABEL}">${esc(line.label)}</td>
+    <td style="${TD_NUM}">${fmt01(line.score)}</td>
+    <td style="${TD_NUM}">× ${fmt01(line.weight)}</td>
+    <td style="${TD_NUM}">= ${fmt01(line.weighted)}</td>
+  </tr>`;
+}
+
 /** Compact email-safe table. Obscurity is labeled as not in the number. */
 export function scoreBreakdownHtml(b: DigestScoreBreakdown): string {
   const a = b.assessment;
@@ -123,15 +158,7 @@ export function scoreBreakdownHtml(b: DigestScoreBreakdown): string {
           : "";
 
   const assessRows = a
-    ? a.lines
-        .map(
-          (line) =>
-            `<tr>
-              <td style="padding:2px 8px 2px 0;color:#6b6558;">${esc(line.label)}</td>
-              <td style="padding:2px 0;text-align:right;color:#3b372e;white-space:nowrap;">${fmt01(line.score)} × ${fmt01(line.weight)} = ${fmt01(line.weighted)}</td>
-            </tr>`
-        )
-        .join("")
+    ? a.lines.map((line) => weightedLineRow(line, "email")).join("")
     : "";
 
   const discParts = b.discovery.parts
@@ -155,18 +182,25 @@ export function scoreBreakdownHtml(b: DigestScoreBreakdown): string {
 
   const assessBlock = a
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:11px;line-height:1.45;">
+        ${weightedHeaderRow("email")}
         ${assessRows}
         <tr>
-          <td style="padding:6px 8px 2px 0;color:#6b6558;border-top:1px solid #eee9dd;">Subtotal</td>
-          <td style="padding:6px 0 2px;text-align:right;border-top:1px solid #eee9dd;">${fmt01(a.base)}</td>
+          <td style="${TD_LABEL}border-top:1px solid #eee9dd;padding-top:6px;">Subtotal</td>
+          <td style="${TD_NUM}border-top:1px solid #eee9dd;padding-top:6px;"></td>
+          <td style="${TD_NUM}border-top:1px solid #eee9dd;padding-top:6px;"></td>
+          <td style="${TD_NUM}border-top:1px solid #eee9dd;padding-top:6px;">${fmt01(a.base)}</td>
         </tr>
         <tr>
-          <td style="padding:2px 8px 2px 0;color:#6b6558;">${esc(ageBit || "Age scalar")}</td>
-          <td style="padding:2px 0;text-align:right;">× ${fmt01(a.age_scalar)} → ${fmt01(a.priority_100)}/100</td>
+          <td style="${TD_LABEL}">${esc(ageBit || "Age scalar")}</td>
+          <td style="${TD_NUM}"></td>
+          <td style="${TD_NUM}"></td>
+          <td style="${TD_NUM}">× ${fmt01(a.age_scalar)} → ${fmt01(a.priority_100)}/100</td>
         </tr>
         <tr>
-          <td style="padding:2px 8px 0 0;color:#1a1408;font-weight:600;">Assessment</td>
-          <td style="padding:2px 0 0;text-align:right;font-weight:600;color:#1a1408;">${a.overall_10.toFixed(1)}/10</td>
+          <td style="${TD_LABEL}color:#1a1408;font-weight:600;">Assessment</td>
+          <td style="${TD_NUM}"></td>
+          <td style="${TD_NUM}"></td>
+          <td style="${TD_NUM}font-weight:600;color:#1a1408;">${a.overall_10.toFixed(1)}/10</td>
         </tr>
       </table>${caps}`
     : `<p style="margin:0;font-size:11px;color:#8a8578;">Assessment formula unavailable on this record.</p>`;
@@ -191,9 +225,11 @@ export function scoreBreakdownMarkdown(b: DigestScoreBreakdown): string {
       `**Assessment ${b.assessment.overall_10.toFixed(1)}/10** (${fmt01(b.assessment.priority_100)}/100 after age)`
     );
     lines.push("");
+    lines.push("| Axis | Score | Weight | Contribution |");
+    lines.push("| --- | ---: | ---: | ---: |");
     for (const line of b.assessment.lines) {
       lines.push(
-        `- ${line.label}: ${fmt01(line.score)} × ${fmt01(line.weight)} = ${fmt01(line.weighted)}`
+        `| ${line.label} | ${fmt01(line.score)} | ${fmt01(line.weight)} | ${fmt01(line.weighted)} |`
       );
     }
     const ageLabel =
@@ -235,12 +271,7 @@ export function scoreBreakdownMarkdown(b: DigestScoreBreakdown): string {
 export function scoreBreakdownProfileHtml(b: DigestScoreBreakdown): string {
   const a = b.assessment;
   const rows = a
-    ? a.lines
-        .map(
-          (line) =>
-            `<tr><td>${esc(line.label)}</td><td>${fmt01(line.score)} × ${fmt01(line.weight)} = ${fmt01(line.weighted)}</td></tr>`
-        )
-        .join("")
+    ? a.lines.map((line) => weightedLineRow(line, "profile")).join("")
     : "";
   const age =
     a && a.estimated_age != null
@@ -253,10 +284,12 @@ export function scoreBreakdownProfileHtml(b: DigestScoreBreakdown): string {
     .map((p) => `${esc(p.label)} ${fmt01(p.value)}`)
     .join(" + ");
   const assess = a
-    ? `<table class="break">${rows}
-        <tr class="sum"><td>Subtotal</td><td>${fmt01(a.base)}</td></tr>
-        <tr><td>Age ${esc(age)}</td><td>→ ${fmt01(a.priority_100)}/100</td></tr>
-        <tr class="sum"><td>Assessment</td><td>${a.overall_10.toFixed(1)}/10</td></tr>
+    ? `<table class="break">
+        ${weightedHeaderRow("profile")}
+        ${rows}
+        <tr class="sum"><td>Subtotal</td><td></td><td></td><td>${fmt01(a.base)}</td></tr>
+        <tr><td>Age ${esc(age)}</td><td></td><td></td><td>→ ${fmt01(a.priority_100)}/100</td></tr>
+        <tr class="sum"><td>Assessment</td><td></td><td></td><td>${a.overall_10.toFixed(1)}/10</td></tr>
       </table>`
     : `<p class="muted">Assessment formula unavailable on this record.</p>`;
   const discAge =

@@ -4,6 +4,7 @@ import type {
   CandidateIdSource,
   CandidateIdentityAssessment,
 } from "./types.js";
+import { githubUsernameFromLinkedInSurfaces } from "./linkedinSurfaces.js";
 
 function normName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
@@ -54,11 +55,9 @@ export interface IdentityInput {
 export function githubUsernameFromCandidate(c: Candidate): string | undefined {
   const fromProfile = c.github?.username?.trim();
   if (fromProfile) return fromProfile.toLowerCase();
-  const url =
-    c.linkedin?.github_url ??
-    c.website?.github_url ??
-    c.github?.profile_url ??
-    null;
+  const fromLinkedIn = githubUsernameFromLinkedInSurfaces(c);
+  if (fromLinkedIn) return fromLinkedIn;
+  const url = c.github?.profile_url ?? null;
   if (!url) return undefined;
   const m = url.match(/github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)/i);
   return m ? m[1].toLowerCase() : undefined;

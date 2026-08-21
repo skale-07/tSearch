@@ -5,12 +5,13 @@ import { deterministicCrossArtifactJudge } from "../../src/assessment/judges/cro
 import { deterministicCoryRelevance } from "../../src/assessment/judges/coryRelevanceJudge.js";
 import {
   computePriorityV2,
-  EXPERIENCE_AS_TECHNICAL_CAP,
+  EXPERIENCE_LOW_EVIDENCE_DAMP,
   PRIORITY_V2_VERSION,
   synthesizeCandidate,
   ownershipSupportToScore,
 } from "../../src/assessment/scoring/synthesizeCandidate.js";
 import { synthesizeFromTechnical } from "../../src/assessment/scoring/archetypes.js";
+import { ageScalar } from "../../src/scoring/ageScalar.js";
 import type {
   EvidenceItem,
   GithubRepositoryArtifactDetail,
@@ -300,12 +301,12 @@ describe("priority-v2 synthesis", () => {
       discoveryScore: 1,
       name: "Legacy",
     });
-    expect(syn.weight_version).toBe("priority-v2");
+    expect(syn.weight_version).toBe("priority-v2.1");
     expect(syn.archetype_assignment).toBeDefined();
     expect(syn.axes).toBeDefined();
   });
 
-  it("uses LinkedIn experience as capped technical when GitHub was not judged", () => {
+  it("folds LinkedIn-stated work into technical (SWE intern, research, etc.)", () => {
     const experience = {
       schema_version: "experience-judge-v1" as const,
       judge_type: "experience" as const,
@@ -336,9 +337,9 @@ describe("priority-v2 synthesis", () => {
     });
     expect(withExp.axes?.technical_strength?.available).toBe(true);
     expect(withExp.axes?.technical_strength?.score).toBeCloseTo(
-      0.8 * EXPERIENCE_AS_TECHNICAL_CAP
+      0.8 * EXPERIENCE_LOW_EVIDENCE_DAMP
     );
-    expect(withExp.axes?.technical_strength?.summary).toMatch(/LinkedIn experience/);
+    expect(withExp.axes?.technical_strength?.summary).toMatch(/LinkedIn-stated work/);
     expect(withExp.priority_score).toBeGreaterThan(empty.priority_score);
 
     const github = deterministicTechnicalJudgeV2({
@@ -352,10 +353,16 @@ describe("priority-v2 synthesis", () => {
       experience,
       evidenceCount: 6,
     });
-    expect(withBoth.axes?.technical_strength?.score).toBeGreaterThan(
-      withExp.axes!.technical_strength!.score!
+    const githubOnly = synthesizeCandidate({
+      name: "Both",
+      technical: github,
+      ownership: repo().ownership,
+      evidenceCount: 6,
+    });
+    expect(withBoth.axes?.technical_strength?.summary).toMatch(/blended/);
+    expect(withBoth.axes?.technical_strength?.score).not.toBe(
+      githubOnly.axes?.technical_strength?.score
     );
-    expect(withBoth.axes?.technical_strength?.summary).not.toMatch(/LinkedIn experience/);
   });
 
   it("applies the age scalar to LinkedIn-only experience so 17 outranks 28", () => {
@@ -389,6 +396,9 @@ describe("priority-v2 synthesis", () => {
       estimatedAge: 28,
     });
     expect(young.priority_score).toBeGreaterThan(older.priority_score);
-    expect(young.priority_score / older.priority_score).toBeCloseTo(28 / 17, 2);
+    expect(young.priority_score / older.priority_score).toBeCloseTo(
+      ageScalar(17) / ageScalar(28),
+      2
+    );
   });
 });

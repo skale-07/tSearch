@@ -148,6 +148,8 @@ function ageLabelForProfile(
   const direct = ageFromPublicIdentity({
     linkedin: p.linkedin,
     olympiad: p.olympiad,
+    website: p.website,
+    github: p.github,
   });
   if (direct.age_label) return direct.age_label;
 
@@ -158,6 +160,8 @@ function ageLabelForProfile(
     const fromPerson = ageFromPublicIdentity({
       linkedin,
       olympiad: rec.olympiad ?? p.olympiad,
+      website: rec.website ?? p.website,
+      github: rec.github ?? p.github,
     });
     if (fromPerson.age_label) return fromPerson.age_label;
   }

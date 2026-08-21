@@ -69,7 +69,24 @@ describe("linkedinTechnicalSignal", () => {
     expect(linkedinTechnicalSignal(undefined)).toBe(0);
   });
 
-  it("treats research intern as technical and cashier as not", () => {
+  it("treats software internships and research roles as technical, not cafe jobs", () => {
+    expect(
+      isTechnicalExperience({
+        title: "Software Engineering Intern",
+        company: "A mid-size company",
+        dates: "2025",
+        location: null,
+      })
+    ).toBe(true);
+    expect(
+      isTechnicalExperience({
+        title: "Summer Intern",
+        company: "Acme",
+        dates: "2025",
+        location: null,
+        description: "Implemented a software prototype in Python.",
+      })
+    ).toBe(true);
     expect(
       isTechnicalExperience({
         title: "Research Intern",

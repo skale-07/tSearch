@@ -86,6 +86,22 @@ https://github.com/acme/widget for code.</p>
     expect(revs.some((r) => r.kind === "date_modified")).toBe(true);
     expect(revs.some((r) => r.kind === "update_note")).toBe(true);
   });
+
+  it("collects every listed author, not only the first", () => {
+    const html = `<html><head>
+<script type="application/ld+json">
+{"@type":"Article","author":[
+  {"@type":"Person","name":"Alice Smith"},
+  {"@type":"Person","name":"Jane Doe"}
+]}
+</script>
+<meta name="citation_author" content="Smith, Alice"/>
+<meta name="citation_author" content="Doe, Jane"/>
+</head><body><article><p>Paper body ${"result ".repeat(40)}</p></article></body></html>`;
+    const draft = extractArticleFromHtml(html, "https://arxiv.org/abs/2401.1");
+    expect(draft.author_text).toMatch(/Jane Doe/i);
+    expect(draft.author_text).toMatch(/Alice Smith/i);
+  });
 });
 
 function stubArticle(
@@ -357,5 +373,72 @@ References https://github.com/acme/demo</p></article></body></html>`,
     expect(
       result.evidence.some((e) => e.source_type === "article_reference")
     ).toBe(true);
+  });
+
+  it("keeps homepage prose for age even when blog posts are selected", () => {
+    const result = collectBlogArtifactsFromFixture({
+      website_url: "https://example.com/",
+      candidate_id: "cand_home",
+      pages: [
+        {
+          url: "https://example.com/",
+          html: `<html><body><p>I graduated from State University with a B.S. in June 2024.</p>
+<a href="/blog/long">post</a></body></html>`,
+        },
+        {
+          url: "https://example.com/blog/long",
+          html: `<html><body><article><h1>A long systems post</h1>
+<p>${"runtime kernels and schedulers. ".repeat(40)}</p></article></body></html>`,
+        },
+      ],
+    });
+    expect(result.home_excerpt).toMatch(/graduated from State University/i);
+    expect(result.selected.some((a) => /graduated from/i.test(a.title))).toBe(
+      false
+    );
+  });
+
+  it("drops pages this person did not author", () => {
+    const result = collectBlogArtifactsFromFixture(
+      {
+        website_url: "https://janedoe.me/",
+        candidate_id: "cand_jane",
+        pages: [
+          {
+            url: "https://janedoe.me/",
+            html: `<html><body>
+<p>I write here.</p>
+<a href="/mine">mine</a>
+<a href="/guest">guest</a>
+<a href="https://medium.com/@otherperson/not-mine-abc123def">clipping</a>
+</body></html>`,
+          },
+          {
+            url: "https://janedoe.me/mine",
+            html: `<html><head><meta name="author" content="Jane Doe"/></head>
+<body><article><h1>My runtime notes</h1>
+<p>${"scheduler kernels. ".repeat(40)}</p></article></body></html>`,
+          },
+          {
+            url: "https://janedoe.me/guest",
+            html: `<html><head><meta name="author" content="Alice Smith"/></head>
+<body><article><h1>A visiting essay</h1>
+<p>${"guest argument here. ".repeat(40)}</p></article></body></html>`,
+          },
+          {
+            url: "https://medium.com/@otherperson/not-mine-abc123def",
+            html: `<html><head><meta name="author" content="Other Person"/></head>
+<body><article><h1>Not mine</h1>
+<p>${"someone else's post. ".repeat(40)}</p></article></body></html>`,
+          },
+        ],
+      },
+      { candidateName: "Jane Doe" }
+    );
+
+    const urls = result.articles.map((a) => a.canonical_url);
+    expect(urls.some((u) => u.includes("/mine"))).toBe(true);
+    expect(urls.some((u) => u.includes("/guest"))).toBe(false);
+    expect(urls.some((u) => u.includes("otherperson"))).toBe(false);
   });
 });

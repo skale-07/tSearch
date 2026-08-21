@@ -68,6 +68,35 @@ function classifyLink(url: string): SocialKind {
   return "other";
 }
 
+/** Visible text for alumni/grad language. Scripts and styles are dropped. */
+export function htmlToExcerpt(html: string, max = 4000): string {
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "";
+  const meta =
+    html.match(
+      /<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i
+    )?.[1] ??
+    html.match(
+      /<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i
+    )?.[1] ??
+    "";
+  const stripped = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+  const combined = [title, meta, stripped]
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(" ");
+  return combined.slice(0, max);
+}
+
 function extractHrefs(html: string): string[] {
   const out: string[] = [];
   for (const m of html.matchAll(/\bhref\s*=\s*["']([^"']+)["']/gi)) {
@@ -112,7 +141,7 @@ export async function scrapeWebsite(
     websiteUrl,
     WEBSITE_CACHE_TTL_MS
   );
-  if (cached?.data) return cached.data;
+  if (cached?.data?.text_excerpt) return cached.data;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -178,6 +207,7 @@ export async function scrapeWebsite(
       youtube_url: firstOf("youtube", social),
       other_links: other,
       all_links: [...new Set(classified.map((l) => l.url))].slice(0, 40),
+      text_excerpt: htmlToExcerpt(html),
     };
 
     writeCache("website-profile", websiteUrl, profile);

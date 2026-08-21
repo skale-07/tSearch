@@ -4,6 +4,8 @@ import {
   extractWritingPlatformArticleLinks,
   feedUrlsForWritingHub,
   firstWritingSurfaceUrl,
+  isAuthoredPublicationUrl,
+  isNewsCoverageUrl,
   isWritingHubProfileUrl,
   isWritingPlatformArticleUrl,
   isWritingPlatformHost,
@@ -72,6 +74,26 @@ describe("writingHubs", () => {
       )
     ).toBe(true);
     expect(isWritingPlatformHost("https://github.com/alice/repo")).toBe(false);
+    expect(
+      isAuthoredPublicationUrl("https://arxiv.org/abs/2401.00001")
+    ).toBe(true);
+    expect(
+      isAuthoredPublicationUrl(
+        "https://www.nature.com/articles/s41586-024-00000-0"
+      )
+    ).toBe(true);
+    expect(isAuthoredPublicationUrl("https://www.nytimes.com/2024/01/01/science/kid.html")).toBe(
+      false
+    );
+    expect(isNewsCoverageUrl("https://techcrunch.com/2024/01/01/startup")).toBe(
+      true
+    );
+    expect(
+      firstWritingSurfaceUrl([
+        "https://www.forbes.com/sites/someone",
+        "https://arxiv.org/abs/2401.00001",
+      ])
+    ).toBe("https://arxiv.org/abs/2401.00001");
   });
 
   it("extracts hubs and stories from personal-site HTML", () => {

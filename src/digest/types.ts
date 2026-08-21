@@ -79,8 +79,10 @@ export interface DigestCandidate {
     age_relative_impressiveness: number | null;
     stage_bucket: string;
     estimated_age: number | null;
+    age_label?: string | null;
     obscurity: number | null;
     connections?: number | null;
+    connections_saturated?: boolean;
     substance?: number | null;
     upside_score: number | null;
     age_weighted_upside?: number | null;

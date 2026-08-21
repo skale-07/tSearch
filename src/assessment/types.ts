@@ -305,10 +305,14 @@ export interface CandidateSynthesis {
     age_relative_impressiveness: number | null;
     stage_bucket: StageBucket;
     estimated_age: number | null;
+    /** Recruiter-facing age, e.g. "21", "~24", "≥22". */
+    age_label?: string | null;
     /** 0..1 from the discovery-side footprint read. */
     obscurity: number | null;
     /** Stated LinkedIn connection count when captured. */
     connections?: number | null;
+    /** True when LinkedIn showed 500+ rather than an exact count. */
+    connections_saturated?: boolean;
     /** 0..1 LLM-judged technical soundness, damped by ownership. */
     substance?: number | null;
     /** obscurity × judged substance — undiscovered *and* technically sound. */

@@ -1,5 +1,6 @@
 import type { DigestDocument } from "./types.js";
 import { scoreBreakdownMarkdown } from "./scoreBreakdown.js";
+import { digestFootprintLine } from "./footprintLine.js";
 
 export function renderMarkdown(digest: DigestDocument): string {
   const lines: string[] = [];
@@ -39,6 +40,11 @@ export function renderMarkdown(digest: DigestDocument): string {
     lines.push(`---`);
     lines.push("");
     lines.push(`## ${c.rank}. ${c.name}`);
+    const footprint = digestFootprintLine(c);
+    if (footprint) {
+      lines.push("");
+      lines.push(`*${footprint}*`);
+    }
     lines.push("");
     const linkBits = [
       c.links.github ? `[GitHub](${c.links.github})` : null,

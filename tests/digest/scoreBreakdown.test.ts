@@ -138,17 +138,20 @@ const run: AssessmentRun = {
 describe("digestScoreBreakdown", () => {
   it("shows age as a multiplier and obscurity as a dial outside the score", () => {
     const b = digestScoreBreakdown(record());
-    expect(b.assessment?.age_scalar).toBeGreaterThan(1);
+    expect(b.assessment?.age_scalar).toBeLessThan(1);
     expect(b.assessment?.estimated_age).toBe(21);
     expect(b.discovery.parts.some((p) => p.label === "Olympiad")).toBe(true);
     expect(b.dials.obscurity).toBe(0.72);
     const html = scoreBreakdownHtml(b);
     expect(html).toMatch(/How the score was computed/i);
     expect(html).toMatch(/Age/i);
+    expect(html).toMatch(/>Score</);
+    expect(html).toMatch(/>Weight</);
     expect(html).toMatch(/Obscurity/);
     expect(html).toMatch(/not/i);
     expect(html).not.toMatch(/cory/i);
     const md = scoreBreakdownMarkdown(b);
+    expect(md).toMatch(/\| Axis \| Score \| Weight \| Contribution \|/);
     expect(md).toMatch(/Discovery/);
     expect(md).toMatch(/Obscurity/);
   });

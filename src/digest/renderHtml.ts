@@ -1,6 +1,7 @@
 import type { DigestCandidate, DigestDocument } from "./types.js";
 import { profileFileName } from "./renderProfilePages.js";
 import { scoreBreakdownHtml } from "./scoreBreakdown.js";
+import { digestFootprintLine } from "./footprintLine.js";
 
 /**
  * The digest email. Design goals: card-per-person, minimal prose (depth lives
@@ -65,25 +66,15 @@ function chipHtml(label: string, strong = false): string {
   return `<span style="display:inline-block;font-size:11px;padding:2px 9px;border:1px solid ${border};border-radius:999px;color:${color};background:${bg};margin:0 5px 5px 0;">${label}</span>`;
 }
 
-/** "17 · impressive-for-age 9 · barely visible online" — omitted when unknown. */
+/** Age / impressive-for-age under the brief. Connections live under the name. */
 function surfacingLine(c: DigestCandidate): string {
   const s = c.surfacing;
   if (!s) return "";
   const parts: string[] = [];
-  if (s.estimated_age !== null) parts.push(`~${s.estimated_age}`);
+  if (s.age_label) parts.push(s.age_label);
+  else if (s.estimated_age !== null) parts.push(`~${s.estimated_age}`);
   if (s.age_relative_impressiveness !== null) {
     parts.push(`impressive-for-age ${s.age_relative_impressiveness}/10`);
-  }
-  if (s.obscurity !== null && s.obscurity >= 0.6) {
-    // The connection count is the most concrete way to say "nobody's found
-    // them yet" — prefer it over the qualitative phrasing when we have it.
-    parts.push(
-      typeof s.connections === "number"
-        ? `${s.connections} LinkedIn connections`
-        : s.obscurity >= 0.8
-          ? "barely visible online"
-          : "low public profile"
-    );
   }
   if (!parts.length) return "";
   return `<p style="margin:0 0 10px;font-size:12px;color:#8a8578;">${esc(parts.join(" · "))}</p>`;
@@ -126,6 +117,11 @@ function card(
   const profileHref = `${profileBaseUrl}/${profileFileName(c)}`;
   const github = safeHref(c.links.github);
 
+  const footprint = digestFootprintLine(c);
+  const footprintHtml = footprint
+    ? `<div style="font-size:12px;color:#8a8578;margin:0 0 6px;">${esc(footprint)}</div>`
+    : "";
+
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #eae6dc;border-radius:12px;margin:0 0 14px;">
     <tr>
@@ -136,7 +132,8 @@ function card(
               <div style="width:44px;height:44px;border-radius:50%;background:${color};color:#1a1408;font-weight:700;font-size:17px;text-align:center;line-height:44px;font-family:Georgia,serif;">${esc(initials(c.name))}</div>
             </td>
             <td valign="top" style="padding-left:6px;">
-              <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;margin:0 0 7px;">${esc(c.name)}</div>
+              <div style="font-family:Georgia,serif;font-size:19px;color:#1a1408;margin:0 0 2px;">${esc(c.name)}</div>
+              ${footprintHtml}
               <div>${chips}</div>
             </td>
             <td valign="top" align="right" style="white-space:nowrap;">

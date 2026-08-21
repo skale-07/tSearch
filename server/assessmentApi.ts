@@ -19,6 +19,10 @@ import {
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
 import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
 import {
+  authoredWritingUrls,
+  primaryWritingSurfaceUrl,
+} from "../src/assessment/linkedinSurfaces.js";
+import {
   assessmentRunDir,
   createAssessmentRun,
   hashFile,
@@ -65,11 +69,14 @@ export function candidateEligibility(
   writing_path_available: boolean;
 } {
   const github_username = githubUsernameFromCandidate(c);
+  const writingPrimary = primaryWritingSurfaceUrl(c);
   const website_url =
-    c.linkedin?.personal_website ?? c.website?.url ?? undefined;
-  const blog_url = c.github?.blog ?? c.substack?.url ?? undefined;
+    c.linkedin?.personal_website ?? c.website?.url ?? writingPrimary ?? undefined;
+  const blog_url =
+    c.github?.blog ?? c.substack?.url ?? writingPrimary ?? undefined;
   const github_path_available = Boolean(github_username);
-  const writing_path_available = Boolean(blog_url || website_url);
+  const writing_path_available =
+    Boolean(blog_url || website_url) || authoredWritingUrls(c).length > 0;
   const youth =
     youthWildcardIds?.has(identityFromCandidate(c).candidate_id) ?? false;
   if (github_path_available || writing_path_available || youth) {

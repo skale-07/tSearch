@@ -6,14 +6,20 @@ import type { AssessmentAxes } from "../../src/assessment/types.js";
 import type { OlympiadProfile } from "../../src/types.js";
 
 describe("ageScalar", () => {
-  it("is unity at 22 and boosts younger / damps older", () => {
-    expect(ageScalar(22)).toBe(1);
-    expect(ageScalar(16)).toBeGreaterThan(1.3);
-    expect(ageScalar(16)).toBeLessThanOrEqual(1.4);
-    expect(ageScalar(18)).toBeGreaterThan(1.2);
-    expect(ageScalar(28)).toBeLessThan(1);
-    expect(ageScalar(28)).toBeGreaterThan(0.7);
-    expect(ageScalar(50)).toBe(0.5);
+  it("boosts the entire 17–19 band, then descales", () => {
+    expect(ageScalar(17)).toBe(1.4);
+    expect(ageScalar(18)).toBe(1.4);
+    expect(ageScalar(19)).toBe(1.4);
+    expect(ageScalar(16)).toBeGreaterThan(1.4);
+    expect(ageScalar(16)).toBeLessThanOrEqual(1.6);
+    expect(ageScalar(20)).toBeLessThan(1);
+    expect(ageScalar(20)).toBeGreaterThan(0.8);
+    expect(ageScalar(21)).toBeLessThan(0.8);
+    expect(ageScalar(23)).toBeLessThan(0.6);
+    expect(ageScalar(28)).toBeLessThan(0.35);
+    expect(ageScalar(21)).toBeLessThan(ageScalar(19));
+    expect(ageScalar(23)).toBeLessThan(ageScalar(21));
+    expect(ageScalar(50)).toBe(0.25);
   });
 
   it("maps 0–100 onto recruiter-facing 1–10", () => {

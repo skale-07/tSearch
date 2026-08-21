@@ -16,6 +16,7 @@ import { extractCitations } from "./extractCitations.js";
 import { detectRevisions } from "./detectRevisions.js";
 import { buildTopicClusters } from "./buildTopicClusters.js";
 import { selectArticles } from "./selectArticles.js";
+import { htmlToExcerpt } from "../../website/scrapeWebsite.js";
 import {
   BLOG_BUDGETS,
   type BlogArticle,
@@ -29,13 +30,17 @@ import {
   extractWritingPlatformArticleLinks,
   feedUrlsForWritingHub,
   isWritingPlatformArticleUrl,
+  isAuthoredPublicationUrl,
 } from "./writingHubs.js";
+import { articleAuthoredByCandidate } from "./articleAuthoredBy.js";
 
 export interface CollectBlogResult {
   corpus: BlogCorpus;
   articles: BlogArticle[];
   selected: BlogArticle[];
   evidence: EvidenceItem[];
+  /** Homepage visible text — about/edu lines live here, not in selected posts. */
+  home_excerpt: string;
 }
 
 export interface CollectBlogOptions extends BlogClientOptions {
@@ -44,6 +49,10 @@ export interface CollectBlogOptions extends BlogClientOptions {
   maxSitemapUrls?: number;
   maxArticlePages?: number;
   maxSelected?: number;
+  /** Extra article/paper URLs (LinkedIn Featured, Contact). */
+  seedArticleUrls?: string[];
+  /** Display name — used to keep only articles this person authored. */
+  candidateName?: string;
 }
 
 function makeCorpusId(candidateId: string, domain: string): string {
@@ -226,6 +235,33 @@ function emitEvidence(
   }
 }
 
+function homeExcerptFromFixture(fixture: BlogFixture): string {
+  const pages = fixture.pages ?? [];
+  const homeCanon =
+    canonicalizeUrl(fixture.website_url) ?? fixture.website_url;
+  const keys = new Set(
+    [
+      homeCanon,
+      homeCanon.replace(/\/$/, ""),
+      `${homeCanon.replace(/\/$/, "")}/`,
+      fixture.website_url,
+    ].map((k) => canonicalizeUrl(k) ?? k)
+  );
+  for (const page of pages) {
+    const key = canonicalizeUrl(page.url) ?? page.url;
+    if (keys.has(key)) return htmlToExcerpt(page.html);
+  }
+  for (const page of pages) {
+    try {
+      const path = new URL(page.url).pathname;
+      if (path === "/" || path === "") return htmlToExcerpt(page.html);
+    } catch {
+      // skip
+    }
+  }
+  return pages[0] ? htmlToExcerpt(pages[0].html) : "";
+}
+
 function coverageFrom(articles: BlogArticle[]): BlogCorpus["coverage"] {
   const dates = articles
     .flatMap((a) => [a.published_at, a.modified_at])
@@ -295,7 +331,8 @@ export function collectBlogArtifactsFromFixture(
     const c = canonicalizeUrl(raw, base) ?? raw;
     if (seen.has(c)) return;
     const onSite = sameRegistrableHost(c, siteOrigin);
-    const offsiteWriting = isWritingPlatformArticleUrl(c);
+    const offsiteWriting =
+      isWritingPlatformArticleUrl(c) || isAuthoredPublicationUrl(c);
     if (!onSite && !offsiteWriting) return;
     if (onSite && isDisallowed(c, robots)) return;
     if (onSite && !looksLikeArticleUrl(c)) return;
@@ -306,6 +343,7 @@ export function collectBlogArtifactsFromFixture(
   for (const e of feedEntries) pushUrl(e.link);
   for (const u of sitemapEntries) pushUrl(u.loc);
   for (const u of fixture.article_urls ?? []) pushUrl(u, fixture.website_url);
+  for (const u of opts?.seedArticleUrls ?? []) pushUrl(u);
   for (const p of fixture.pages ?? []) pushUrl(p.url);
 
   // Homepage (and any fetched hub pages) may embed Medium/Substack story links.
@@ -377,65 +415,74 @@ export function collectBlogArtifactsFromFixture(
 
   // Portfolio/SPA sites often put the only prose on `/`. If nothing substantive
   // was discovered, treat the homepage as a writing candidate.
-  {
-    const homeCanon =
-      canonicalizeUrl(fixture.website_url) ?? fixture.website_url;
-    let homeHtml: string | undefined;
-    for (const key of [
-      homeCanon,
-      homeCanon.replace(/\/$/, ""),
-      `${homeCanon.replace(/\/$/, "")}/`,
-      fixture.website_url,
-    ]) {
-      homeHtml = pageByUrl.get(key);
-      if (homeHtml) break;
-    }
-    if (!homeHtml) {
-      for (const [u, html] of pageByUrl) {
-        try {
-          const path = new URL(u).pathname;
-          if (path === "/" || path === "") {
-            homeHtml = html;
-            break;
-          }
-        } catch {
-          // skip
+  const homeCanon =
+    canonicalizeUrl(fixture.website_url) ?? fixture.website_url;
+  let homeHtml: string | undefined;
+  for (const key of [
+    homeCanon,
+    homeCanon.replace(/\/$/, ""),
+    `${homeCanon.replace(/\/$/, "")}/`,
+    fixture.website_url,
+  ]) {
+    homeHtml = pageByUrl.get(key);
+    if (homeHtml) break;
+  }
+  if (!homeHtml) {
+    for (const [u, html] of pageByUrl) {
+      try {
+        const path = new URL(u).pathname;
+        if (path === "/" || path === "") {
+          homeHtml = html;
+          break;
         }
-      }
-    }
-    const hasSubstance = articles.some((a) => articlePlainLength(a) >= 400);
-    if (!hasSubstance && homeHtml) {
-      const homeArticle = buildArticleFromPage(homeCanon, homeHtml);
-      if (
-        articlePlainLength(homeArticle) >= 400 &&
-        !articles.some((a) => a.canonical_url === homeArticle.canonical_url)
-      ) {
-        articles.push(homeArticle);
-        discovery_sources.push("homepage_prose");
+      } catch {
+        // skip
       }
     }
   }
+  const hasSubstance = articles.some((a) => articlePlainLength(a) >= 400);
+  if (!hasSubstance && homeHtml) {
+    const homeArticle = buildArticleFromPage(homeCanon, homeHtml);
+    if (
+      articlePlainLength(homeArticle) >= 400 &&
+      !articles.some((a) => a.canonical_url === homeArticle.canonical_url)
+    ) {
+      articles.push(homeArticle);
+      discovery_sources.push("homepage_prose");
+    }
+  }
 
-  const topic_clusters = buildTopicClusters(articles);
-  const selected = selectArticles(articles, topic_clusters, {
+  const hubProfileUrls = homeHtml
+    ? extractWritingHubProfiles(homeHtml, homeCanon)
+    : [];
+  const authoredArticles = articles.filter((a) =>
+    articleAuthoredByCandidate(a, {
+      candidateName: opts?.candidateName,
+      personalSiteUrl: fixture.website_url,
+      hubProfileUrls,
+    })
+  );
+
+  const topic_clusters = buildTopicClusters(authoredArticles);
+  const selected = selectArticles(authoredArticles, topic_clusters, {
     maxSelected,
   });
   const selectedIds = new Set(selected.map((a) => a.article_id));
 
   const store = new EvidenceStore();
-  emitEvidence(store, articles, selectedIds);
+  emitEvidence(store, authoredArticles, selectedIds);
 
   const corpus: BlogCorpus = {
     corpus_id: makeCorpusId(fixture.candidate_id, canonical_domain),
     candidate_id: fixture.candidate_id,
     canonical_domain,
     discovery_sources,
-    article_ids: articles.map((a) => a.article_id),
+    article_ids: authoredArticles.map((a) => a.article_id),
     selected_article_ids: selected.map((a) => a.article_id),
     topic_clusters,
     series: [],
     coverage: {
-      ...coverageFrom(articles),
+      ...coverageFrom(authoredArticles),
       discovered_article_count: candidateUrls.length,
     },
     collection_warnings: warnings,
@@ -443,9 +490,10 @@ export function collectBlogArtifactsFromFixture(
 
   return {
     corpus,
-    articles,
+    articles: authoredArticles,
     selected,
     evidence: store.all(),
+    home_excerpt: homeExcerptFromFixture(fixture),
   };
 }
 
@@ -544,7 +592,8 @@ export async function collectBlogArtifacts(
     const c = canonicalizeUrl(raw, base) ?? raw;
     if (seen.has(c)) return;
     const onSite = sameRegistrableHost(c, home.finalUrl);
-    const offsiteWriting = isWritingPlatformArticleUrl(c);
+    const offsiteWriting =
+      isWritingPlatformArticleUrl(c) || isAuthoredPublicationUrl(c);
     if (!onSite && !offsiteWriting) return;
     if (onSite && isDisallowed(c, robots)) return;
     if (onSite && !looksLikeArticleUrl(c)) return;
@@ -557,6 +606,9 @@ export async function collectBlogArtifacts(
     ...sitemapEntries.map((x) => x.loc),
   ]) {
     pushLiveUrl(e);
+  }
+  for (const seed of opts?.seedArticleUrls ?? []) {
+    pushLiveUrl(seed);
   }
 
   // Personal site is a hub: follow Medium / Substack / etc. profile links and

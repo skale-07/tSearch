@@ -43,10 +43,7 @@ export function extractArticleFromHtml(
     firstHeading(html) ??
     "Untitled";
 
-  const author_text =
-    metaContent(html, "author") ??
-    jsonLdString(html, "author") ??
-    undefined;
+  const author_text = extractAuthorText(html);
 
   const language =
     html.match(/<html[^>]+lang=["']([^"']+)["']/i)?.[1] ?? undefined;
@@ -237,6 +234,87 @@ function firstTagText(html: string, tag: string): string | undefined {
 function firstHeading(html: string): string | undefined {
   const m = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
   return m?.[1] ? stripTags(m[1]) : undefined;
+}
+
+function metaContents(html: string, prop: string): string[] {
+  const out: string[] = [];
+  const re = new RegExp(
+    `<meta\\b[^>]*(?:property|name)=["']${prop}["'][^>]*>`,
+    "gi"
+  );
+  const reFlip = new RegExp(
+    `<meta\\b[^>]*content=["']([^"']+)["'][^>]*(?:property|name)=["']${prop}["'][^>]*>`,
+    "gi"
+  );
+  for (const tag of html.match(re) ?? []) {
+    const c = tag.match(/content=["']([^"']+)["']/i)?.[1];
+    if (c?.trim()) out.push(c.trim());
+  }
+  for (const m of html.matchAll(reFlip)) {
+    if (m[1]?.trim()) out.push(m[1].trim());
+  }
+  return [...new Set(out)];
+}
+
+function relAuthorTexts(html: string): string[] {
+  const out: string[] = [];
+  const re =
+    /<a\b[^>]*rel=["'][^"']*\bauthor\b[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const m of html.matchAll(re)) {
+    const t = stripTags(m[1] ?? "").trim();
+    if (t) out.push(t);
+  }
+  return [...new Set(out)];
+}
+
+function jsonLdAuthorNames(data: unknown): string[] {
+  if (!data) return [];
+  if (typeof data === "string") return data.trim() ? [data.trim()] : [];
+  if (Array.isArray(data)) return data.flatMap(jsonLdAuthorNames);
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.name === "string" && obj.name.trim()) return [obj.name.trim()];
+    if (obj.author !== undefined) return jsonLdAuthorNames(obj.author);
+  }
+  return [];
+}
+
+function jsonLdAuthors(html: string): string[] {
+  const blocks = html.match(
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  );
+  if (!blocks) return [];
+  const names: string[] = [];
+  for (const block of blocks) {
+    const body = block.replace(/^[\s\S]*?>/, "").replace(/<\/script>$/i, "");
+    try {
+      const data = JSON.parse(body) as unknown;
+      const v = findJsonLdValue(data, "author");
+      names.push(...jsonLdAuthorNames(v));
+    } catch {
+      // ignore malformed json-ld
+    }
+  }
+  return [...new Set(names)];
+}
+
+function extractAuthorText(html: string): string | undefined {
+  const names = [
+    ...metaContents(html, "author"),
+    ...metaContents(html, "citation_author"),
+    ...metaContents(html, "article:author"),
+    ...jsonLdAuthors(html),
+    ...relAuthorTexts(html),
+  ];
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const n of names) {
+    const k = n.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(n);
+  }
+  return unique.length ? unique.join("; ") : undefined;
 }
 
 function metaContent(html: string, prop: string): string | undefined {

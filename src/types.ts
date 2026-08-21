@@ -82,6 +82,12 @@ export interface WebsiteProfile {
   other_links: string[];
   /** Deduped href inventory (capped). */
   all_links: string[];
+  /**
+   * Visible page text (scripts/styles stripped, capped). Used to read
+   * alumni/grad language that the link inventory cannot see. Absent on
+   * scrapes from before this field existed.
+   */
+  text_excerpt?: string;
 }
 
 export interface LinkedInProfile {

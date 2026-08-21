@@ -68,6 +68,7 @@ import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
 import { ageFromPublicIdentity } from "../src/assessment/stage/deriveStage.js";
 import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
+import { primaryWritingSurfaceUrl } from "../src/assessment/linkedinSurfaces.js";
 import { refreshConvergenceStore } from "../src/pipeline/convergence.js";
 import {
   FEEDBACK_VERDICTS,
@@ -270,12 +271,19 @@ app.get("/api/candidates", (_req, res) => {
       .map((c: Candidate) => {
         const identity = identityFromCandidate(c);
         const github_username = githubUsernameFromCandidate(c);
+        const writingPrimary = primaryWritingSurfaceUrl(c);
         const website_url =
-          c.linkedin?.personal_website ?? c.website?.url ?? undefined;
-        const blog_url = c.github?.blog ?? c.substack?.url ?? undefined;
+          c.linkedin?.personal_website ??
+          c.website?.url ??
+          writingPrimary ??
+          undefined;
+        const blog_url =
+          c.github?.blog ?? c.substack?.url ?? writingPrimary ?? undefined;
         const age = ageFromPublicIdentity({
           linkedin: c.linkedin,
           olympiad: c.olympiad,
+          website: c.website,
+          github: c.github,
         });
         return {
           candidate_id: identity.candidate_id,

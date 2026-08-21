@@ -5,7 +5,7 @@ import {
   upsideVector,
 } from "../../src/scoring/computeObscurity.js";
 import { judgedSubstance } from "../../src/assessment/scoring/judgedSubstance.js";
-import { EXPERIENCE_AS_TECHNICAL_CAP } from "../../src/assessment/scoring/synthesizeCandidate.js";
+import { experienceAsTechnical01 } from "../../src/assessment/scoring/synthesizeCandidate.js";
 import { parseConnectionCount } from "../../src/linkedin/linkedinExtract.js";
 import { computeScore } from "../../src/scoring/computeScore.js";
 import { deriveStage } from "../../src/assessment/stage/deriveStage.js";
@@ -333,14 +333,14 @@ describe("judgedSubstance", () => {
       overall_distinctiveness: "strong",
     } as never;
     expect(judgedSubstance({ experience })).toBeCloseTo(
-      0.8 * EXPERIENCE_AS_TECHNICAL_CAP * 0.5
+      experienceAsTechnical01(experience)! * 0.5
     );
     expect(
       judgedSubstance({
         technical: tech("strong", []),
         experience,
       })
-    ).toBeCloseTo(0.8 * EXPERIENCE_AS_TECHNICAL_CAP * 0.5);
+    ).toBeCloseTo(experienceAsTechnical01(experience)! * 0.5);
     expect(
       judgedSubstance({
         technical: tech("insufficient_public_evidence"),

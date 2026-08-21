@@ -30,11 +30,13 @@ export interface ExperienceProfileInput {
     title: string;
     company: string | null;
     dates: string | null;
+    description?: string | null;
   }>;
   awards: Array<{ title: string; issuer: string | null; date: string | null }>;
   education: Array<{ school: string; years: string | null }>;
   olympiad_prizes: string[];
   linkedin_url?: string;
+  publication_urls?: string[];
 }
 
 export function hasExperienceContent(p: ExperienceProfileInput): boolean {
@@ -42,7 +44,8 @@ export function hasExperienceContent(p: ExperienceProfileInput): boolean {
     p.headline?.trim() ||
     p.experience.length ||
     p.awards.length ||
-    p.olympiad_prizes.length
+    p.olympiad_prizes.length ||
+    p.publication_urls?.length
   );
 }
 
@@ -98,8 +101,15 @@ export function buildExperienceEvidence(
     add(profile.headline.trim(), "Self-stated headline", "weak", "headline");
   }
   profile.experience.slice(0, 12).forEach((e, i) => {
-    const line = [e.title, e.company, e.dates].filter(Boolean).join(" — ");
+    const line = [e.title, e.company, e.dates, e.description]
+      .filter(Boolean)
+      .join(" — ");
     if (line.trim()) add(line, "Self-stated position", "weak", `exp:${i}`);
+  });
+  profile.publication_urls?.slice(0, 8).forEach((url, i) => {
+    if (url.trim()) {
+      add(url.trim(), "Featured or listed publication URL", "moderate", `pub:${i}`);
+    }
   });
   // A stated award matching the registry stops being unverifiable self-report:
   // the issuer publishes a named winner list, so a reviewer can check it.

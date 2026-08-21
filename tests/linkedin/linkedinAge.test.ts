@@ -138,10 +138,13 @@ describe("formatAgeLabel", () => {
     ).toBe("21");
   });
 
-  it("marks inferred ages as estimates", () => {
+  it("marks inferred ages as estimates and completed-bachelor's as a floor", () => {
     expect(
       formatAgeLabel({ estimated_age: 36, basis: "linkedin_hs_year" })
     ).toBe("~36");
+    expect(
+      formatAgeLabel({ estimated_age: 22, basis: "text_age_floor" })
+    ).toBe("≥22");
     expect(
       formatAgeLabel({ estimated_age: null, basis: "none" })
     ).toBeNull();

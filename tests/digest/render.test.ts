@@ -247,6 +247,30 @@ describe("digest rendering", () => {
       )
     ).toBe("demonstrates strong technical execution…");
   });
+
+  it("puts LinkedIn connections under the name on the card", () => {
+    const digest = buildDigest({
+      run,
+      assessments: [assessment("cand_t", "Timo", 80)],
+      discoveredCandidateCount: 1,
+      minPriority: 0,
+    });
+    digest.candidates[0]!.surfacing = {
+      age_relative_impressiveness: 8,
+      stage_bucket: "college",
+      estimated_age: 19,
+      obscurity: 0.75,
+      connections: 64,
+      upside_score: 0.4,
+    };
+    const html = renderHtml(digest);
+    expect(html).toMatch(
+      /Timo[\s\S]{0,400}64 LinkedIn connections · low public profile/
+    );
+    expect(renderMarkdown(digest)).toContain(
+      "*64 LinkedIn connections · low public profile*"
+    );
+  });
 });
 
 describe("digest feedback refinement (Phase 4)", () => {

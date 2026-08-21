@@ -406,7 +406,112 @@ export function feedUrlsForWritingHub(hubUrl: string): string[] {
   return [];
 }
 
-/** First writing-hub profile or story URL in a list (LinkedIn Contact / Featured). */
+/**
+ * Preprints, publisher pages, and indexing records — work the person (claims
+ * to have) published. Not a journal ranking: Nature and an arXiv preprint
+ * both count as a publication surface; the writing judge scores the text.
+ * Press coverage lives on news hosts and is rejected here.
+ */
+const PUBLICATION_HOSTS = new Set([
+  "arxiv.org",
+  "export.arxiv.org",
+  "biorxiv.org",
+  "medrxiv.org",
+  "pubmed.ncbi.nlm.nih.gov",
+  "ncbi.nlm.nih.gov",
+  "pmc.ncbi.nlm.nih.gov",
+  "doi.org",
+  "dx.doi.org",
+  "openreview.net",
+  "aclanthology.org",
+  "ieeexplore.ieee.org",
+  "dl.acm.org",
+  "proceedings.mlr.press",
+  "proceedings.neurips.cc",
+  "openaccess.thecvf.com",
+  "ssrn.com",
+  "papers.ssrn.com",
+  "plos.org",
+  "journals.plos.org",
+  "nature.com",
+  "science.org",
+]);
+
+const PUBLICATION_HOST_SUFFIXES = [
+  ".ieee.org",
+  ".acm.org",
+  ".springer.com",
+  ".springeropen.com",
+  ".nature.com",
+  ".sciencemag.org",
+  ".science.org",
+  ".cell.com",
+  ".wiley.com",
+  ".sciencedirect.com",
+  ".tandfonline.com",
+  ".sagepub.com",
+  ".biomedcentral.com",
+  ".frontiersin.org",
+  ".mdpi.com",
+  ".oup.com",
+];
+
+const NEWS_HOSTS = new Set([
+  "nytimes.com",
+  "washingtonpost.com",
+  "wsj.com",
+  "bbc.com",
+  "bbc.co.uk",
+  "cnn.com",
+  "forbes.com",
+  "techcrunch.com",
+  "theverge.com",
+  "wired.com",
+  "bloomberg.com",
+  "reuters.com",
+  "apnews.com",
+  "businesswire.com",
+  "prnewswire.com",
+  "yahoo.com",
+]);
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+export function isNewsCoverageUrl(url: string): boolean {
+  const host = hostOf(url);
+  if (!host) return false;
+  if (NEWS_HOSTS.has(host)) return true;
+  return [...NEWS_HOSTS].some((h) => host.endsWith(`.${h}`));
+}
+
+export function isAuthoredPublicationUrl(url: string): boolean {
+  if (isNewsCoverageUrl(url)) return false;
+  const host = hostOf(url);
+  if (!host) return false;
+  if (PUBLICATION_HOSTS.has(host)) return true;
+  if (PUBLICATION_HOST_SUFFIXES.some((s) => host.endsWith(s))) {
+    try {
+      const path = new URL(url).pathname;
+      // Publisher homepages are not papers.
+      if (path === "/" || path === "") return false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (host === "scholar.google.com" || host === "scholar.google.co.uk") {
+    return /\/citations/i.test(url) || /\/scholar\?/i.test(url);
+  }
+  return false;
+}
+
+/** First writing-hub, story, or publication URL in a list (LinkedIn Contact / Featured). */
 export function firstWritingSurfaceUrl(
   urls: Array<string | null | undefined>
 ): string | null {
@@ -414,7 +519,13 @@ export function firstWritingSurfaceUrl(
     if (!raw?.trim()) continue;
     const u = canonicalizeUrl(raw);
     if (!u) continue;
-    if (isWritingHubProfileUrl(u) || isWritingPlatformArticleUrl(u)) return u;
+    if (
+      isWritingHubProfileUrl(u) ||
+      isWritingPlatformArticleUrl(u) ||
+      isAuthoredPublicationUrl(u)
+    ) {
+      return u;
+    }
   }
   return null;
 }
@@ -435,7 +546,7 @@ export function isAllowedWritingUrl(
     ) {
       return true;
     }
-    if (isWritingPlatformArticleUrl(url) || isWritingHubProfileUrl(url)) {
+    if (isWritingPlatformArticleUrl(url) || isWritingHubProfileUrl(url) || isAuthoredPublicationUrl(url)) {
       return true;
     }
     return isWritingPlatformHost(host);

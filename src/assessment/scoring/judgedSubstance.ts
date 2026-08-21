@@ -4,18 +4,16 @@ import type {
   OwnershipAssessmentV2,
   TechnicalJudgeResultV2,
 } from "../types.js";
-import { EXPERIENCE_AS_TECHNICAL_CAP } from "./synthesizeCandidate.js";
+import { experienceAsTechnical01 } from "./synthesizeCandidate.js";
 
 /**
  * Substance input to the upside vector (obscurity × work).
  *
- * Prefers the GitHub technical judge over repo counts. When GitHub was never
- * judged, LinkedIn experience distinctiveness fills in at
- * EXPERIENCE_AS_TECHNICAL_CAP so GitHub-less youth can still surface as
- * undiscovered *and* substantive. Damped by ownership support.
+ * GitHub technical verdict when artifacts were judged; otherwise LinkedIn-stated
+ * work (internships, research, other roles) via the experience judge. Damped by
+ * ownership support when that read exists.
  *
- * Returns null — not zero — when nothing was judged, so unjudged candidates
- * fall out of the vector instead of ranking at the bottom of it.
+ * Returns null — not zero — when nothing was judged.
  */
 
 function bandTo01(band: OverallStrengthBand | undefined): number | null {
@@ -42,8 +40,6 @@ function ownershipFactor(ownership?: OwnershipAssessmentV2): number {
     case "low_ownership_support":
       return 0.6;
     default:
-      // No ownership read at all: heavily damped but not zeroed, since a
-      // strong artifact with unclear attribution is still worth a look.
       return 0.5;
   }
 }
@@ -59,14 +55,7 @@ export function judgedSubstance(input: {
     if (base === null) return null;
     return Math.round(base * ownershipFactor(input.ownership) * 100) / 100;
   }
-  const fromExperience = bandTo01(input.experience?.overall_distinctiveness);
+  const fromExperience = experienceAsTechnical01(input.experience);
   if (fromExperience === null) return null;
-  return (
-    Math.round(
-      fromExperience *
-        EXPERIENCE_AS_TECHNICAL_CAP *
-        ownershipFactor(input.ownership) *
-        100
-    ) / 100
-  );
+  return Math.round(fromExperience * ownershipFactor(input.ownership) * 100) / 100;
 }

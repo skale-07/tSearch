@@ -116,7 +116,7 @@ export const PROMPT_VERSIONS = {
   synthesis: "synthesis-v1",
 } as const;
 
-export const PRIORITY_WEIGHT_VERSION = "priority-v2";
+export const PRIORITY_WEIGHT_VERSION = "priority-v2.1";
 
 export const PRIORITY_WEIGHTS = {
   strongest_domain: 0.3,

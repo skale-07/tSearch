@@ -72,6 +72,6 @@ describe("computeAssessmentPriority", () => {
       evidence_completeness: 0.5,
       aggregate_confidence: 0.5,
     });
-    expect(r.weight_version).toBe("priority-v2");
+    expect(r.weight_version).toBe("priority-v2.1");
   });
 });
