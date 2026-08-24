@@ -32,6 +32,7 @@ import {
   prepareAssessmentRun,
   reconcileAbandonedAssessmentRuns,
   loadAssessmentRun,
+  wildcardIdsFromAssessmentRuns,
 } from "./assessmentApi.js";
 import path from "path";
 import { assessmentRunDir } from "../src/assessment/storage/assessmentRunStore.js";
@@ -68,7 +69,13 @@ import {
 import type { Candidate } from "../src/types.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
 import { ageFromPublicIdentity } from "../src/assessment/stage/deriveStage.js";
-import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
+import {
+  ingestYouthWildcardAlumni,
+  pickYouthWildcardIds,
+  resolveYouthWildcardFreeze,
+  setYouthWildcardPinned,
+  youthWildcardRowFlags,
+} from "../src/assessment/youthWildcard.js";
 import { primaryWritingSurfaceUrl } from "../src/assessment/linkedinSurfaces.js";
 import { refreshConvergenceStore } from "../src/pipeline/convergence.js";
 import {
@@ -270,7 +277,7 @@ app.post("/api/runs/branch", (req, res) => {
   res.status(202).json({ runId: result.runId });
 });
 
-app.get("/api/candidates", (_req, res) => {
+app.get("/api/candidates", (req, res) => {
   if (!fs.existsSync(OUTPUT_PATH)) {
     res.status(404).json({
       error: `Candidates file not found at ${OUTPUT_PATH}. Run discovery first.`,
@@ -280,7 +287,12 @@ app.get("/api/candidates", (_req, res) => {
   }
   try {
     const loaded = loadCandidatesFromPath(OUTPUT_PATH);
-    const youthWildcard = pickYouthWildcardIds(loaded);
+    const sessionId =
+      typeof req.query.session_id === "string"
+        ? req.query.session_id
+        : undefined;
+    resolveYouthWildcardFreeze(loaded, { sessionId });
+    const freeze = ingestYouthWildcardAlumni(wildcardIdsFromAssessmentRuns());
     const candidates = [...loaded]
       .sort((a, b) => (b.final_score ?? 0) - (a.final_score ?? 0))
       .map((c: Candidate) => {
@@ -300,6 +312,7 @@ app.get("/api/candidates", (_req, res) => {
           website: c.website,
           github: c.github,
         });
+        const flags = youthWildcardRowFlags(identity.candidate_id, freeze);
         return {
           candidate_id: identity.candidate_id,
           name: c.name,
@@ -312,10 +325,41 @@ app.get("/api/candidates", (_req, res) => {
           blog_url,
           has_github: Boolean(github_username),
           has_writing_surface: Boolean(blog_url || website_url),
-          youth_wildcard: youthWildcard.has(identity.candidate_id),
+          ...flags,
         };
       });
     res.json({ candidates, path: OUTPUT_PATH });
+  } catch (err) {
+    res.status(500).json({
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
+app.post("/api/assessment/youth-wildcard/pin", (req, res) => {
+  if (!fs.existsSync(OUTPUT_PATH)) {
+    res.status(404).json({
+      error: `Candidates file not found at ${OUTPUT_PATH}. Run discovery first.`,
+    });
+    return;
+  }
+  const candidate_id =
+    typeof req.body?.candidate_id === "string"
+      ? req.body.candidate_id.trim()
+      : "";
+  if (!candidate_id) {
+    res.status(400).json({ error: "candidate_id required" });
+    return;
+  }
+  const pinned = Boolean(req.body?.pinned);
+  try {
+    const loaded = loadCandidatesFromPath(OUTPUT_PATH);
+    const result = setYouthWildcardPinned(loaded, candidate_id, pinned);
+    if ("error" in result) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    res.json(result);
   } catch (err) {
     res.status(500).json({
       error: err instanceof Error ? err.message : String(err),
@@ -710,7 +754,9 @@ app.get("/api/assessed/:candidateId/profile.html", (req, res) => {
     discoveredCandidateCount: 1,
     minPriority: 0,
     convergence: loadConvergenceMap(),
-    youthWildcardIds: pickYouthWildcardIds(sources),
+    youthWildcardIds: new Set(
+      run.youth_wildcard_ids ?? pickYouthWildcardIds(sources)
+    ),
   });
   const dc = digest.candidates[0];
   if (!dc) {
@@ -914,6 +960,10 @@ app.put("/api/marks/:id", (req, res) => {
       candidate_id:
         typeof req.body?.candidate_id === "string"
           ? req.body.candidate_id
+          : undefined,
+      person_slug:
+        typeof req.body?.person_slug === "string"
+          ? req.body.person_slug
           : undefined,
     });
     res.json({ mark });

@@ -970,7 +970,9 @@ export async function renderDigestForRun(
     discoveredCandidateCount: discovered ?? assessments.length,
     feedback: loadFeedbackMap(),
     convergence: loadConvergenceMap(),
-    youthWildcardIds: pickYouthWildcardIds(sources),
+    youthWildcardIds: new Set(
+      run.youth_wildcard_ids ?? pickYouthWildcardIds(sources)
+    ),
   });
   const md = renderMarkdown(digest);
   // Learn-more pages live next to the digest; DIGEST_PROFILE_BASE_URL points

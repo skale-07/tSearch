@@ -9,7 +9,7 @@ import {
   type PagePerson,
 } from "./extractPagePeople.js";
 
-const SCREEN_VERSION = "page-people-v1";
+const SCREEN_VERSION = "page-people-v2";
 
 const nameScreenSchema = z.object({
   keep: z.array(z.string()),
@@ -45,7 +45,7 @@ function hasProfileUrl(p: PagePerson): boolean {
   return Boolean(p.linkedin_url || p.github_url);
 }
 
-/** Offline: keep profile-URL hits and roster (medium) names; drop leftover title-case. */
+/** Offline: keep anchors and roster/medal rows; drop leftover title-case. */
 export function heuristicNameScreen(people: PagePerson[]): PagePerson[] {
   return people.filter((p) => hasProfileUrl(p) || p.confidence !== "low");
 }

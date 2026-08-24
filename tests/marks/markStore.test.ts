@@ -50,6 +50,25 @@ describe("markStore", () => {
     expect(store.loadMark("cand_jane")?.name).toBe("Jane Doe");
   });
 
+  it("round-trips person_slug and preserves it on upsert", () => {
+    const rec = store.upsertMark({
+      id: "cand_slug",
+      name: "Ada Lovelace",
+      source: "graph",
+      seed_slug: "seed-ada",
+      person_slug: "ada-lovelace",
+    });
+    expect(rec.person_slug).toBe("ada-lovelace");
+    expect(store.loadMark("cand_slug")?.person_slug).toBe("ada-lovelace");
+    const again = store.upsertMark({
+      id: "cand_slug",
+      name: "Ada Lovelace",
+      source: "graph",
+      seed_slug: "seed-ada",
+    });
+    expect(again.person_slug).toBe("ada-lovelace");
+  });
+
   it("pageHitMarkId is stable for the same url+name", () => {
     const a = store.pageHitMarkId("https://x.example/team", "José García");
     const b = store.pageHitMarkId("https://x.example/team", "Jose Garcia");

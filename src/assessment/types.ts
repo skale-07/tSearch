@@ -525,6 +525,8 @@ export interface AssessmentRun {
   candidate_ids: string[];
   errors: AssessmentRunError[];
   digest_id?: string;
+  /** Wildcard freeze at queue time — digest must not re-draw after a later rotation. */
+  youth_wildcard_ids?: string[];
 }
 
 export const TECHNICAL_DIMENSIONS = [

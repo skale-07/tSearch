@@ -15,6 +15,7 @@ import {
 import { surfaceScoreToCss } from "./surfaceColor";
 import { AssessmentResultView } from "./AssessmentResultView";
 import { WebsiteGraphPanel } from "./WebsiteGraphPanel";
+import { previewablePageUrls } from "./previewablePageUrls";
 
 interface Props {
   profile: ProfileRecord | null;
@@ -181,6 +182,11 @@ export function ProfilePanel({
     profile?.links?.blog ||
     profile?.github?.blog ||
     undefined;
+  const pageUrlOptions = previewablePageUrls({
+    website: websiteUrl,
+    blog: blogUrl,
+  });
+  const graphPageUrl = pageUrlOptions[0]?.url || websiteUrl || blogUrl;
   const hasWriting = !!(
     node?.has_writing_surface ||
     websiteUrl ||
@@ -243,6 +249,7 @@ export function ProfilePanel({
                         source: "graph",
                         seed_slug: seedSlug ?? profile.seed,
                         candidate_id: candidateId ?? undefined,
+                        person_slug: profile.slug,
                       });
                   void op
                     .then(() => setMarked(!marked))
@@ -433,7 +440,7 @@ export function ProfilePanel({
             </section>
           )}
 
-          {websiteUrl && seedSlug && onWebsiteRun && (
+          {graphPageUrl && seedSlug && onWebsiteRun && (
             <section>
               <h3>People on this site</h3>
               <p className="muted">
@@ -459,7 +466,8 @@ export function ProfilePanel({
                         : node.id
                       : undefined
                   }
-                  defaultUrl={websiteUrl}
+                  defaultUrl={graphPageUrl}
+                  urlOptions={pageUrlOptions}
                   defaultOrgHint={profile.linkedin?.college || undefined}
                   running={expanding || pipelineRunning}
                   compact

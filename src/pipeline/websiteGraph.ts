@@ -47,10 +47,11 @@ import { llmUseMock } from "../assessment/config.js";
 import {
   extractOrgHintFromPage,
   extractPagePeople,
+  isSoftNotFoundPage,
   type PagePerson,
 } from "../website/extractPagePeople.js";
 import { screenPagePeople } from "../website/screenPagePeople.js";
-import { fetchWebsiteHtml } from "../website/fetchWebsiteHtml.js";
+import { fetchWebsiteHtml, websiteFetchFailureMessage } from "../website/fetchWebsiteHtml.js";
 
 export const WEBSITE_GRAPH_INGEST_LIMIT = 15;
 export const WEBSITE_GRAPH_PREVIEW_LIMIT = 40;
@@ -366,8 +367,16 @@ export async function previewWebsiteGraph(input: {
   }
 
   const fetched = await fetchWebsiteHtml(url);
-  if (!fetched) {
-    return { error: `Could not fetch ${url}`, status: 502 };
+  if (!fetched.ok) {
+    const status =
+      fetched.httpStatus === 404 || fetched.httpStatus === 410 ? 404 : 502;
+    return { error: websiteFetchFailureMessage(url, fetched), status };
+  }
+  if (isSoftNotFoundPage(fetched.html)) {
+    return {
+      error: `That URL looks like a not-found page (${fetched.finalUrl}). Nothing to extract.`,
+      status: 404,
+    };
   }
   const extracted = extractPagePeople({
     html: fetched.html,

@@ -11,6 +11,7 @@ import {
   type DigestListItem,
   type WebsiteGraphHostInfo,
 } from "./api";
+import { previewablePageUrls } from "./previewablePageUrls";
 import { WebsiteGraphPanel } from "./WebsiteGraphPanel";
 
 interface Props {
@@ -76,12 +77,17 @@ export function DigestsPanel({
 
   const websiteCandidates = useMemo(
     () =>
-      (digestDoc?.candidates ?? []).filter((c) => Boolean(c.links.website)),
+      (digestDoc?.candidates ?? []).filter(
+        (c) => previewablePageUrls(c.links).length > 0
+      ),
     [digestDoc]
   );
   const picked: DigestCandidateCard | undefined = websiteCandidates.find(
     (c) => c.candidate_id === pickedId
   );
+  const pickedUrlOptions = picked
+    ? previewablePageUrls(picked.links, [host?.websiteUrl])
+    : [];
 
   const reload = () => {
     setLoading(true);
@@ -145,7 +151,9 @@ export function DigestsPanel({
       .then((doc) => {
         if (cancelled) return;
         setDigestDoc(doc);
-        const first = doc.candidates.find((c) => c.links.website);
+        const first = doc.candidates.find(
+          (c) => previewablePageUrls(c.links).length > 0
+        );
         setPickedId(first?.candidate_id ?? "");
       })
       .catch((err) => {
@@ -344,7 +352,7 @@ export function DigestsPanel({
               </p>
               {websiteCandidates.length === 0 && (
                 <p className="muted">
-                  No digest candidates have a website URL.
+                  No digest candidates have a website or blog URL.
                 </p>
               )}
               {websiteCandidates.length > 0 && (
@@ -373,7 +381,10 @@ export function DigestsPanel({
                       ? host.host_slug
                       : undefined
                   }
-                  defaultUrl={picked.links.website || host.websiteUrl || ""}
+                  defaultUrl={
+                    pickedUrlOptions[0]?.url || host.websiteUrl || ""
+                  }
+                  urlOptions={pickedUrlOptions}
                   defaultOrgHint={host.org_hint ?? undefined}
                   running={running}
                   compact

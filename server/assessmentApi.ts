@@ -4,6 +4,7 @@ import {
   ASSESSMENT_ARTICLE_LIMIT,
   ASSESSMENT_PUBLICATION_LIMIT,
   ASSESSMENT_REPOSITORY_LIMIT,
+  getDigestsDir,
   LLM_MODEL,
   PRIORITY_WEIGHT_VERSION,
   PROMPT_VERSIONS,
@@ -17,7 +18,12 @@ import {
   normalizeRunStatus,
 } from "../src/assessment/assessmentState.js";
 import { loadCandidatesFromPath } from "../src/assessment/selectCandidates.js";
-import { pickYouthWildcardIds } from "../src/assessment/youthWildcard.js";
+import {
+  markYouthWildcardAssessed,
+  ingestYouthWildcardAlumni,
+  resolveYouthWildcardFreeze,
+  youthWildcardRowFlags,
+} from "../src/assessment/youthWildcard.js";
 import {
   authoredWritingUrls,
   primaryWritingSurfaceUrl,
@@ -28,6 +34,7 @@ import {
   hashFile,
   listCandidateAssessments,
   listNonterminalRuns,
+  listAssessmentRunIds,
   loadAssessmentRun,
   loadCandidateAssessment,
   writeSourceCandidates,
@@ -136,7 +143,8 @@ export function prepareAssessmentRun(
 
   ensureAssessmentCacheDirs();
   const all = loadCandidatesFromPath(inputPath);
-  const youthWildcardIds = pickYouthWildcardIds(all);
+  const freeze = resolveYouthWildcardFreeze(all);
+  const youthWildcardIds = new Set(freeze.ids);
   const byId = new Map(
     all.map((c) => [identityFromCandidate(c).candidate_id, c] as const)
   );
@@ -166,6 +174,11 @@ export function prepareAssessmentRun(
     }
     eligibleCandidates.push(c);
     eligibleIds.push(id);
+  }
+
+  const wildcardInRun = eligibleIds.filter((id) => youthWildcardIds.has(id));
+  if (wildcardInRun.length) {
+    markYouthWildcardAssessed(wildcardInRun);
   }
 
   if (!eligibleIds.length) {
@@ -200,6 +213,7 @@ export function prepareAssessmentRun(
     },
     candidate_ids: eligibleIds,
     status: "queued",
+    youth_wildcard_ids: freeze.ids,
   });
 
   // Freeze only the eligible requested candidates (immutable set)
@@ -446,6 +460,44 @@ export function assertCandidateInRun(
 
 export { isTerminalRunStatus, loadAssessmentRun };
 
+export function wildcardIdsFromAssessmentRuns(): string[] {
+  const out = new Set<string>();
+  for (const runId of listAssessmentRunIds()) {
+    const run = loadAssessmentRun(runId);
+    for (const id of run?.youth_wildcard_ids ?? []) {
+      if (typeof id === "string" && id.trim()) out.add(id);
+    }
+    addWildcardIdsFromDigestFile(
+      path.join(assessmentRunDir(runId), "digest.json"),
+      out
+    );
+  }
+  const digestsDir = getDigestsDir();
+  if (fs.existsSync(digestsDir)) {
+    for (const name of fs.readdirSync(digestsDir)) {
+      if (!name.endsWith(".json")) continue;
+      addWildcardIdsFromDigestFile(path.join(digestsDir, name), out);
+    }
+  }
+  return [...out];
+}
+
+function addWildcardIdsFromDigestFile(file: string, out: Set<string>): void {
+  if (!fs.existsSync(file)) return;
+  try {
+    const doc = JSON.parse(fs.readFileSync(file, "utf-8")) as {
+      candidates?: Array<{ candidate_id?: string; youth_wildcard?: boolean }>;
+    };
+    for (const c of doc.candidates ?? []) {
+      if (c?.youth_wildcard && typeof c.candidate_id === "string" && c.candidate_id) {
+        out.add(c.candidate_id);
+      }
+    }
+  } catch {
+    // Unreadable digest; skip. History is best-effort.
+  }
+}
+
 export interface AssessedCandidateRow {
   candidate_id: string;
   name: string;
@@ -465,6 +517,8 @@ export interface AssessedCandidateRow {
   substance?: number | null;
   upside_score?: number | null;
   age_weighted_upside?: number | null;
+  youth_wildcard?: boolean;
+  youth_wildcard_alumni?: boolean;
 }
 
 /** Ranking modes the UI can ask for; "quality" is the historical default. */
@@ -537,6 +591,7 @@ export function sortAssessedRows(
 export function listAssessedCandidates(): AssessedCandidateRow[] {
   const root = path.resolve(process.cwd(), "output", "assessment-runs");
   if (!fs.existsSync(root)) return [];
+  const freeze = ingestYouthWildcardAlumni(wildcardIdsFromAssessmentRuns());
   const seen = new Set<string>();
   const rows: AssessedCandidateRow[] = [];
   const runs = fs
@@ -550,6 +605,7 @@ export function listAssessedCandidates(): AssessedCandidateRow[] {
       seen.add(record.candidate_id);
       const surfacing = record.synthesis.surfacing;
       const label = record.synthesis.label_assignment;
+      const flags = youthWildcardRowFlags(record.candidate_id, freeze);
       rows.push({
         candidate_id: record.candidate_id,
         name: record.source_candidate.name,
@@ -558,6 +614,10 @@ export function listAssessedCandidates(): AssessedCandidateRow[] {
         status: record.status,
         run_id: runId,
         updated_at: record.updated_at,
+        ...(flags.youth_wildcard ? { youth_wildcard: true } : {}),
+        ...(flags.youth_wildcard_alumni
+          ? { youth_wildcard_alumni: true }
+          : {}),
         ...(label ? { label: { display: label.display, tier: label.tier } } : {}),
         ...(surfacing
           ? {

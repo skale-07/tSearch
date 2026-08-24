@@ -97,7 +97,7 @@ export const MAX_FOLLOWER_PROFILES = Number(
 export const MIN_CONTEXT_SCORE_TO_EXPAND = Number(
   process.env.MIN_CONTEXT_SCORE_TO_EXPAND ?? 2
 );
-/** Minimum context_score for a node to appear on the UI tree (hop ≥ 1). */
+/** Minimum context_score for a follower to appear on the UI tree (hop ≥ 1). Collaborators and website neighbors skip this floor. */
 export const MIN_TREE_CONTEXT_SCORE = Number(
   process.env.MIN_TREE_CONTEXT_SCORE ?? 4
 );

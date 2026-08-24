@@ -47,6 +47,8 @@ interface Props {
   running: boolean;
   onStartResolve: (runId: string) => Promise<void>;
   onError: (message: string) => void;
+  onOpenGraph?: (mark: MarkRecord) => void;
+  onAssessCandidate?: (candidateId: string) => void;
 }
 
 function ChannelCard({
@@ -109,7 +111,14 @@ function ChannelCard({
   );
 }
 
-export function DiscoverPage({ open, running, onStartResolve, onError }: Props) {
+export function DiscoverPage({
+  open,
+  running,
+  onStartResolve,
+  onError,
+  onOpenGraph,
+  onAssessCandidate,
+}: Props) {
   const [data, setData] = useState<DiscoverySnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -811,6 +820,8 @@ export function DiscoverPage({ open, running, onStartResolve, onError }: Props) 
           >
             <MarksList
               marks={marks}
+              onOpenGraph={onOpenGraph}
+              onAssess={onAssessCandidate}
               onUnmark={(id) => {
                 void deleteMark(id)
                   .then(() =>

@@ -141,6 +141,12 @@ export function ReportsPanel({ open, embedded = false, onClose }: Props) {
                             : "low profile"}
                       </span>
                     )}
+                    {r.youth_wildcard && (
+                      <span className="chip chip-strong">Youth wildcard</span>
+                    )}
+                    {r.youth_wildcard_alumni && (
+                      <span className="chip chip-off">Former youth wildcard</span>
+                    )}
                     {r.status !== "completed" && (
                       <span className="chip">{r.status.replace(/_/g, " ")}</span>
                     )}

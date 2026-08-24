@@ -33,7 +33,7 @@ describe("screenPagePeople", () => {
     expect(kept.map((p) => p.name)).toEqual(["Ada Lovelace"]);
   });
 
-  it("offline heuristic drops leftover title-case, keeps roster rows", () => {
+  it("offline heuristic drops leftover title-case", () => {
     const people = [
       person("Ada Lovelace"),
       person("United States", { confidence: "low", checked_default: false }),
@@ -41,6 +41,51 @@ describe("screenPagePeople", () => {
     expect(heuristicNameScreen(people).map((p) => p.name)).toEqual([
       "Ada Lovelace",
     ]);
+  });
+
+  it("LLM keep [] drops unanchored leftovers", async () => {
+    const client = createLlmJudgeClient({
+      mock: true,
+      mockResponder: () => ({ keep: [] }),
+    });
+    const people = [
+      person("Ada Lovelace", {
+        linkedin_url: "https://www.linkedin.com/in/ada/",
+        confidence: "high",
+      }),
+      person("Visual Studio Code", { confidence: "low", checked_default: false }),
+    ];
+    const kept = await screenPagePeople(people, {
+      pageUrl: "https://isef.net/project/x",
+      mock: false,
+      llmClient: client,
+    });
+    expect(kept.map((p) => p.name)).toEqual(["Ada Lovelace"]);
+  });
+
+  it("LLM throw keeps URL-anchored names only", async () => {
+    const client = createLlmJudgeClient({
+      mock: true,
+      mockResponder: () => {
+        throw new Error("provider down");
+      },
+    });
+    const people = [
+      person("Ada Lovelace", {
+        linkedin_url: "https://www.linkedin.com/in/ada/",
+        confidence: "high",
+      }),
+      person("Visual Studio Code", {
+        confidence: "low",
+        checked_default: false,
+      }),
+    ];
+    const kept = await screenPagePeople(people, {
+      pageUrl: "https://www.wral.com/news/local/story/",
+      mock: false,
+      llmClient: client,
+    });
+    expect(kept.map((p) => p.name)).toEqual(["Ada Lovelace"]);
   });
 
   it("LLM keep-list drops org titles that look like names", async () => {

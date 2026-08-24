@@ -475,6 +475,10 @@ export interface AssessmentCandidateRow {
   has_writing_surface: boolean;
   /** Frozen 17–19 draw from LinkedIn experience + featured links. */
   youth_wildcard?: boolean;
+  youth_wildcard_pinned?: boolean;
+  youth_wildcard_pending?: boolean;
+  /** Was in a previous freeze; no free assess ticket. */
+  youth_wildcard_alumni?: boolean;
 }
 
 export type AssessmentRunStatus =
@@ -532,11 +536,14 @@ export interface AssessmentRunCandidate {
   revision: number;
 }
 
-export async function fetchCandidates(): Promise<{
+export async function fetchCandidates(sessionId?: string): Promise<{
   candidates: AssessmentCandidateRow[];
   path: string;
 }> {
-  const res = await fetch("/api/candidates");
+  const q = sessionId
+    ? `?session_id=${encodeURIComponent(sessionId)}`
+    : "";
+  const res = await fetch(`/api/candidates${q}`);
   const data = await readApiJson<{
     candidates?: AssessmentCandidateRow[];
     path?: string;
@@ -547,6 +554,19 @@ export async function fetchCandidates(): Promise<{
     candidates: data.candidates ?? [],
     path: data.path ?? "",
   };
+}
+
+export async function pinYouthWildcard(body: {
+  candidate_id: string;
+  pinned: boolean;
+}): Promise<void> {
+  const res = await fetch("/api/assessment/youth-wildcard/pin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await readApiJson<{ error?: string }>(res);
+  if (!res.ok) throw new Error(data.error || res.statusText);
 }
 
 export async function startAssessmentRun(body: {
@@ -822,6 +842,7 @@ export interface MarkRecord {
   seed_slug?: string;
   page_url?: string;
   candidate_id?: string;
+  person_slug?: string;
 }
 
 export async function fetchMarks(): Promise<MarkRecord[]> {
@@ -839,6 +860,7 @@ export async function putMark(body: {
   seed_slug?: string;
   page_url?: string;
   candidate_id?: string;
+  person_slug?: string;
 }): Promise<MarkRecord> {
   const res = await fetch(`/api/marks/${encodeURIComponent(body.id)}`, {
     method: "PUT",
@@ -981,6 +1003,8 @@ export interface AssessedRow {
   substance?: number | null;
   upside_score?: number | null;
   age_weighted_upside?: number | null;
+  youth_wildcard?: boolean;
+  youth_wildcard_alumni?: boolean;
 }
 
 export type AssessedSort =
@@ -1051,6 +1075,7 @@ export interface DigestCandidateCard {
     github?: string;
     website?: string;
     blog?: string;
+    publications?: string;
   };
 }
 

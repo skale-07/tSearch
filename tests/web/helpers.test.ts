@@ -19,6 +19,27 @@ describe("eligibility", () => {
     expect(no.reasons.join(" ")).toMatch(/GitHub path/i);
     const youth = assessmentEligibility({ youth_wildcard: true });
     expect(youth.eligible).toBe(true);
+    const former = assessmentEligibility({
+      youth_wildcard: false,
+    });
+    expect(former.eligible).toBe(false);
+  });
+});
+
+describe("youthWildcardList", () => {
+  it("puts current freeze, alumni, and everyone else in separate buckets", async () => {
+    const { partitionYouthWildcardRows } = await import(
+      "../../web/src/youthWildcardList.js"
+    );
+    const { current, past, rest } = partitionYouthWildcardRows([
+      { id: "a", youth_wildcard: true },
+      { id: "b", youth_wildcard_alumni: true },
+      { id: "c" },
+      { id: "d", youth_wildcard: true, youth_wildcard_alumni: true },
+    ]);
+    expect(current.map((r) => r.id)).toEqual(["a", "d"]);
+    expect(past.map((r) => r.id)).toEqual(["b"]);
+    expect(rest.map((r) => r.id)).toEqual(["c"]);
   });
 });
 

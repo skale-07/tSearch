@@ -27,6 +27,8 @@ export interface MarkRecord {
   seed_slug?: string;
   page_url?: string;
   candidate_id?: string;
+  /** Graph node slug — mark id is often candidate_id, which is not a tree id. */
+  person_slug?: string;
 }
 
 function markPath(id: string): string {
@@ -76,6 +78,7 @@ export function upsertMark(input: {
   seed_slug?: string;
   page_url?: string;
   candidate_id?: string;
+  person_slug?: string;
 }): MarkRecord {
   const id = input.id.trim();
   const name = input.name.trim();
@@ -109,6 +112,11 @@ export function upsertMark(input: {
       : existing?.candidate_id
         ? { candidate_id: existing.candidate_id }
         : {}),
+    ...(input.person_slug?.trim()
+      ? { person_slug: input.person_slug.trim() }
+      : existing?.person_slug
+        ? { person_slug: existing.person_slug }
+        : {}),
   };
   writeJsonAtomic(markPath(id), record);
   return record;
@@ -140,6 +148,7 @@ export function rewriteMarkId(
     seed_slug: existing.seed_slug,
     page_url: existing.page_url,
     candidate_id: extra?.candidate_id ?? toId,
+    person_slug: existing.person_slug,
   });
   if (fromId !== toId) deleteMark(fromId);
   return next;

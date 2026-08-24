@@ -11,6 +11,7 @@ import {
   retryAssessmentCandidate,
   retryFailedAssessment,
   startAssessmentRun,
+  pinYouthWildcard,
   type AssessmentCandidateRow,
   type AssessmentRun,
   type AssessmentRunCandidate,
@@ -27,6 +28,7 @@ import {
   stageLabel,
 } from "./assessmentStatus";
 import { AssessmentResultView } from "./AssessmentResultView";
+import { partitionYouthWildcardRows } from "./youthWildcardList";
 
 type SortKey = "name" | "final_score" | "context" | "age";
 type SurfaceFilter = "all" | "both" | "github" | "writing" | "youth" | "marked";
@@ -43,6 +45,35 @@ function estimatedAge(c: AssessmentCandidateRow): number | null {
     : null;
 }
 
+function compareAssessRows(
+  a: AssessmentCandidateRow,
+  b: AssessmentCandidateRow,
+  sortKey: SortKey,
+  sortDesc: boolean
+): number {
+  if (sortKey === "name") {
+    const cmp = a.name.localeCompare(b.name);
+    return sortDesc ? -cmp : cmp;
+  }
+  if (sortKey === "age") {
+    const av = estimatedAge(a);
+    const bv = estimatedAge(b);
+    if (av == null && bv == null) return a.name.localeCompare(b.name);
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    const cmp = av - bv;
+    return sortDesc ? -cmp : cmp;
+  }
+  if (sortKey === "context") {
+    const cmp =
+      surfaceRank(a) - surfaceRank(b) ||
+      (a.final_score ?? 0) - (b.final_score ?? 0);
+    return sortDesc ? -cmp : cmp;
+  }
+  const cmp = (a.final_score ?? 0) - (b.final_score ?? 0);
+  return sortDesc ? -cmp : cmp;
+}
+
 function matchesSurfaceFilter(
   c: AssessmentCandidateRow,
   f: SurfaceFilter,
@@ -51,7 +82,8 @@ function matchesSurfaceFilter(
   if (f === "all") return true;
   if (f === "both") return c.has_github && c.has_writing_surface;
   if (f === "github") return c.has_github && !c.has_writing_surface;
-  if (f === "youth") return Boolean(c.youth_wildcard);
+  if (f === "youth")
+    return Boolean(c.youth_wildcard || c.youth_wildcard_alumni);
   if (f === "marked") return markedIds.has(c.candidate_id);
   return c.has_writing_surface && !c.has_github;
 }
@@ -74,6 +106,20 @@ interface Props {
 const LLM_CALLS_PER_CANDIDATE = 5;
 const COST_PER_CANDIDATE_LOW = 0.02;
 const COST_PER_CANDIDATE_HIGH = 0.25;
+const ASSESS_SESSION_KEY = "tsearch-assess-session";
+
+function assessSessionId(): string {
+  try {
+    let id = sessionStorage.getItem(ASSESS_SESSION_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem(ASSESS_SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return "no-session";
+  }
+}
 
 export function AssessPanel({
   open,
@@ -110,7 +156,7 @@ export function AssessPanel({
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await fetchCandidates();
+      const data = await fetchCandidates(assessSessionId());
       setCandidates(data.candidates);
       // Existing reports are context, not a blocker — never fail load on them.
       fetchAssessed()
@@ -182,46 +228,39 @@ export function AssessPanel({
     return () => controller.abort();
   }, [onError, refreshRunCandidates, run?.run_id, run?.status]);
 
-  const filtered = useMemo(() => {
+  const textMatched = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    let rows = candidates.filter((c) =>
-      matchesSurfaceFilter(c, surfaceFilter, markedIds)
+    if (!q) return candidates;
+    return candidates.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.github_username?.toLowerCase().includes(q) ||
+        c.candidate_id.toLowerCase().includes(q)
     );
-    if (q) {
-      rows = rows.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.github_username?.toLowerCase().includes(q) ||
-          c.candidate_id.toLowerCase().includes(q)
-      );
-    }
-    return [...rows].sort((a, b) => {
-      const wa = a.youth_wildcard ? 1 : 0;
-      const wb = b.youth_wildcard ? 1 : 0;
-      if (wa !== wb) return wb - wa;
-      if (sortKey === "name") {
-        const cmp = a.name.localeCompare(b.name);
-        return sortDesc ? -cmp : cmp;
-      }
-      if (sortKey === "age") {
-        const av = estimatedAge(a);
-        const bv = estimatedAge(b);
-        if (av == null && bv == null) return a.name.localeCompare(b.name);
-        if (av == null) return 1;
-        if (bv == null) return -1;
-        const cmp = av - bv;
-        return sortDesc ? -cmp : cmp;
-      }
-      if (sortKey === "context") {
-        const cmp =
-          surfaceRank(a) - surfaceRank(b) ||
-          (a.final_score ?? 0) - (b.final_score ?? 0);
-        return sortDesc ? -cmp : cmp;
-      }
-      const cmp = (a.final_score ?? 0) - (b.final_score ?? 0);
-      return sortDesc ? -cmp : cmp;
-    });
-  }, [candidates, filter, sortKey, sortDesc, surfaceFilter, markedIds]);
+  }, [candidates, filter]);
+
+  const { youthCurrent, youthPast, mainRows } = useMemo(() => {
+    const { current, past, rest } = partitionYouthWildcardRows(textMatched);
+    const bySort = (rows: AssessmentCandidateRow[]) =>
+      [...rows].sort((a, b) => compareAssessRows(a, b, sortKey, sortDesc));
+    return {
+      youthCurrent: bySort(current),
+      youthPast: bySort(past),
+      mainRows:
+        surfaceFilter === "youth"
+          ? []
+          : bySort(
+              rest.filter((c) =>
+                matchesSurfaceFilter(c, surfaceFilter, markedIds)
+              )
+            ),
+    };
+  }, [textMatched, sortKey, sortDesc, surfaceFilter, markedIds]);
+
+  const visibleRows = useMemo(
+    () => [...youthCurrent, ...youthPast, ...mainRows],
+    [youthCurrent, youthPast, mainRows]
+  );
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -236,10 +275,14 @@ export function AssessPanel({
     () => candidates.filter((c) => c.youth_wildcard).length,
     [candidates]
   );
+  const wildcardAlumniCount = useMemo(
+    () => candidates.filter((c) => c.youth_wildcard_alumni).length,
+    [candidates]
+  );
 
   const eligibleFiltered = useMemo(
-    () => filtered.filter((candidate) => assessmentEligibility(candidate).eligible),
-    [filtered]
+    () => visibleRows.filter((candidate) => assessmentEligibility(candidate).eligible),
+    [visibleRows]
   );
 
   const toggleAllVisible = () => {
@@ -326,6 +369,118 @@ export function AssessPanel({
     }
   };
 
+  const renderAssessRow = (c: AssessmentCandidateRow) => (
+    <li key={c.candidate_id} className="assess-list-item">
+      <label className={`assess-row ${assessmentEligibility(c).eligible ? "" : "assess-ineligible"}`}>
+        <input
+          type="checkbox"
+          checked={selected.has(c.candidate_id)}
+          onChange={() => toggle(c.candidate_id)}
+          disabled={running || !assessmentEligibility(c).eligible}
+        />
+        <span className="assess-row-main">
+          <span className="assess-name">
+            {withAge(c.name, c.age_label)}
+          </span>
+          <span className="assess-meta">
+            <span className="assess-score">
+              {c.final_score.toFixed(1)}
+            </span>
+            <span className={`chip ${assessmentEligibility(c).githubPathAvailable ? "chip-on" : "chip-off"}`}>GitHub path available</span>
+            <span className={`chip ${assessmentEligibility(c).writingEligible ? "chip-on" : "chip-off"}`}>Writing</span>
+            {c.youth_wildcard && (
+              <span
+                className={`chip ${c.youth_wildcard_pinned ? "chip-off" : "chip-strong"}`}
+                title="17–19 with detailed LinkedIn experience and featured links"
+              >
+                {c.youth_wildcard_pinned
+                  ? "Youth wildcard · kept"
+                  : c.youth_wildcard_pending
+                    ? "Youth wildcard · rotates next session"
+                    : "Youth wildcard"}
+              </span>
+            )}
+            {c.youth_wildcard_alumni && (
+              <span
+                className="chip chip-off"
+                title="Was in a previous youth-wildcard freeze. No free assess ticket."
+              >
+                Former
+              </span>
+            )}
+            {markedIds.has(c.candidate_id) && (
+              <span className="chip" title="Look at later — not digest feedback">
+                Marked
+              </span>
+            )}
+            {assessedAt.has(c.candidate_id) && (
+              <span className="chip chip-strong" title="A finished report exists — selecting will re-run the judge">📄 report available</span>
+            )}
+            {!assessmentEligibility(c).eligible && <span className="chip">Insufficient context</span>}
+          </span>
+        </span>
+      </label>
+      {c.youth_wildcard && (
+        <button
+          type="button"
+          className={`chip ${c.youth_wildcard_pinned ? "chip-off" : ""}`}
+          title={
+            c.youth_wildcard_pinned
+              ? "Release — they can rotate after you assess them"
+              : "Keep this person in the wildcard freeze"
+          }
+          disabled={running}
+          onClick={() => {
+            void pinYouthWildcard({
+              candidate_id: c.candidate_id,
+              pinned: !c.youth_wildcard_pinned,
+            })
+              .then(() => load())
+              .catch((err) =>
+                onError(
+                  err instanceof Error ? err.message : String(err)
+                )
+              );
+          }}
+        >
+          {c.youth_wildcard_pinned ? "Kept" : "Keep"}
+        </button>
+      )}
+      <button
+        type="button"
+        className={`mark-star ${markedIds.has(c.candidate_id) ? "on" : ""}`}
+        title="Mark to look at later — does not enqueue LinkedIn"
+        onClick={(e) => {
+          e.preventDefault();
+          const id = c.candidate_id;
+          const on = markedIds.has(id);
+          const op = on
+            ? deleteMark(id)
+            : putMark({
+                id,
+                name: c.name,
+                source: "assess",
+                candidate_id: id,
+              });
+          void op
+            .then(() => {
+              setMarkedIds((prev) => {
+                const next = new Set(prev);
+                if (on) next.delete(id);
+                else next.add(id);
+                return next;
+              });
+            })
+            .catch((err) =>
+              onError(err instanceof Error ? err.message : String(err))
+            );
+        }}
+      >
+        ★
+      </button>
+    </li>
+  );
+
   if (!open) return null;
 
   const shellClass = embedded ? "score-pane" : "panel assess-panel open";
@@ -376,14 +531,6 @@ export function AssessPanel({
       </div>
 
       {loadError && <p className="error">{loadError}</p>}
-
-      {wildcardCount > 0 && (
-        <p className="muted">
-          Youth wildcard: {wildcardCount} people aged 17–19 drawn this freeze
-          from LinkedIn experience with detail plus featured/interesting links.
-          Eligible even without GitHub. Same freeze, same draw.
-        </p>
-      )}
 
       {!loadError && !loading && candidates.length === 0 && (
         <p className="muted">No candidates yet — run discovery first.</p>
@@ -536,7 +683,7 @@ export function AssessPanel({
               <option value="both">GitHub + blog</option>
               <option value="github">GitHub only</option>
               <option value="writing">Blog/site only</option>
-              <option value="youth">Youth wildcard</option>
+              <option value="youth">Youth wildcard only</option>
               <option value="marked">Marked (look at later)</option>
             </select>
             <button type="button" className="chip" onClick={toggleAllVisible}>
@@ -544,78 +691,53 @@ export function AssessPanel({
             </button>
           </div>
 
-          <ul className="assess-list">
-            {filtered.map((c) => (
-              <li key={c.candidate_id} className="assess-list-item">
-                <label className={`assess-row ${assessmentEligibility(c).eligible ? "" : "assess-ineligible"}`}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(c.candidate_id)}
-                    onChange={() => toggle(c.candidate_id)}
-                    disabled={running || !assessmentEligibility(c).eligible}
-                  />
-                  <span className="assess-row-main">
-                    <span className="assess-name">
-                      {withAge(c.name, c.age_label)}
-                    </span>
-                    <span className="assess-meta">
-                      <span className="assess-score">
-                        {c.final_score.toFixed(1)}
-                      </span>
-                      <span className={`chip ${assessmentEligibility(c).githubPathAvailable ? "chip-on" : "chip-off"}`}>GitHub path available</span>
-                      <span className={`chip ${assessmentEligibility(c).writingEligible ? "chip-on" : "chip-off"}`}>Writing</span>
-                      {c.youth_wildcard && (
-                        <span className="chip chip-strong" title="17–19 with detailed LinkedIn experience and featured links">
-                          Youth wildcard
-                        </span>
-                      )}
-                      {markedIds.has(c.candidate_id) && (
-                        <span className="chip" title="Look at later — not digest feedback">
-                          Marked
-                        </span>
-                      )}
-                      {assessedAt.has(c.candidate_id) && (
-                        <span className="chip chip-strong" title="A finished report exists — selecting will re-run the judge">📄 report available</span>
-                      )}
-                      {!assessmentEligibility(c).eligible && <span className="chip">Insufficient context</span>}
-                    </span>
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  className={`mark-star ${markedIds.has(c.candidate_id) ? "on" : ""}`}
-                  title="Mark to look at later — does not enqueue LinkedIn"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const id = c.candidate_id;
-                    const on = markedIds.has(id);
-                    const op = on
-                      ? deleteMark(id)
-                      : putMark({
-                          id,
-                          name: c.name,
-                          source: "assess",
-                          candidate_id: id,
-                        });
-                    void op
-                      .then(() => {
-                        setMarkedIds((prev) => {
-                          const next = new Set(prev);
-                          if (on) next.delete(id);
-                          else next.add(id);
-                          return next;
-                        });
-                      })
-                      .catch((err) =>
-                        onError(err instanceof Error ? err.message : String(err))
-                      );
-                  }}
-                >
-                  ★
-                </button>
-              </li>
-            ))}
-          </ul>
+          {(wildcardCount > 0 || wildcardAlumniCount > 0) && (
+            <section className="youth-wildcard-panel" aria-label="Youth wildcards">
+              <h3>Youth wildcards</h3>
+              <p className="muted">
+                Isolated from the ranked list below. Assess any current one
+                (one or all five); they queue to rotate next session, not now.
+                Keep locks a person so they stay. Past wildcards have no free
+                assess ticket unless they return to the freeze.
+              </p>
+              <p className="youth-wildcard-subhead">
+                Current freeze · {youthCurrent.length}
+                {wildcardCount !== youthCurrent.length
+                  ? ` of ${wildcardCount}`
+                  : ""}
+              </p>
+              {youthCurrent.length > 0 ? (
+                <ul className="assess-list">{youthCurrent.map(renderAssessRow)}</ul>
+              ) : (
+                <p className="muted">No current wildcards match this filter.</p>
+              )}
+              <p className="youth-wildcard-subhead">
+                Past · {youthPast.length}
+                {wildcardAlumniCount > 0 &&
+                wildcardAlumniCount !== youthPast.length
+                  ? ` of ${wildcardAlumniCount}`
+                  : ""}
+              </p>
+              {youthPast.length > 0 ? (
+                <ul className="assess-list">{youthPast.map(renderAssessRow)}</ul>
+              ) : (
+                <p className="muted">
+                  None yet — assessed current wildcards without Keep appear here
+                  next session.
+                </p>
+              )}
+            </section>
+          )}
+
+          {surfaceFilter !== "youth" && (
+            <>
+              <p className="youth-wildcard-subhead">All other candidates</p>
+              <ul className="assess-list">{mainRows.map(renderAssessRow)}</ul>
+              {mainRows.length === 0 && (
+                <p className="muted">No other candidates match this filter.</p>
+              )}
+            </>
+          )}
         </>
       )}
 

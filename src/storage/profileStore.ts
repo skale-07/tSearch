@@ -158,6 +158,9 @@ export function upsertProfile(input: {
   github?: GitHubProfile;
   website?: WebsiteProfile;
   olympiad?: OlympiadProfile;
+  /** Used when the ranked candidate cut dropped this neighbor but the edge has a score. */
+  context_score?: number;
+  context_signals?: string[];
 }): ProfileRecord {
   const slug = slugify(input.slug ?? input.name);
   const seed = slugify(input.seed);
@@ -183,9 +186,15 @@ export function upsertProfile(input: {
   }
 
   const context_score =
-    input.github?.context_score ?? existing?.context_score ?? 0;
+    input.github?.context_score ??
+    input.context_score ??
+    existing?.context_score ??
+    0;
   const context_signals =
-    input.github?.context_signals ?? existing?.context_signals ?? [];
+    input.github?.context_signals ??
+    input.context_signals ??
+    existing?.context_signals ??
+    [];
 
   const record: ProfileRecord = {
     slug,
@@ -225,9 +234,9 @@ export function upsertProfile(input: {
   return record;
 }
 
-function candidateByGithub(ranked: Candidate[]): Map<string, Candidate> {
+function candidateByGithub(candidates: Candidate[]): Map<string, Candidate> {
   const map = new Map<string, Candidate>();
-  for (const c of ranked) {
+  for (const c of candidates) {
     const login = c.github?.username?.toLowerCase();
     if (login) map.set(login, c);
     map.set(c.key, c);
@@ -235,15 +244,24 @@ function candidateByGithub(ranked: Candidate[]): Map<string, Candidate> {
   return map;
 }
 
+function neighborLookup(
+  byGh: Map<string, Candidate>,
+  toGithub: string
+): Candidate | undefined {
+  const neighborLogin = slugify(toGithub);
+  return byGh.get(toGithub.toLowerCase()) ?? byGh.get(neighborLogin);
+}
+
 /**
  * Writes only the seed tree into disk — not every candidate in the pool.
- * Layout mirrors the graph a visualizer will walk.
+ * Pass the full merge, not the MAX_CANDIDATES slice: hop-1 neighbors are
+ * usually below the global leaderboard cut and must still hydrate.
  */
 export function writeSeedTreeProfiles(
-  ranked: Candidate[],
+  candidates: Candidate[],
   tree: SeedTreeDocument
 ): number {
-  const byGh = candidateByGithub(ranked);
+  const byGh = candidateByGithub(candidates);
   let n = 0;
 
   for (const seed of tree.seeds) {
@@ -278,8 +296,7 @@ export function writeSeedTreeProfiles(
           ? "website"
           : "follower";
     const neighborLogin = slugify(edge.to_github);
-    const cand =
-      byGh.get(edge.to_github.toLowerCase()) ?? byGh.get(neighborLogin);
+    const cand = neighborLookup(byGh, edge.to_github);
 
     if (hop === 2 && edge.via_node) {
       const parentLogin = slugify(edge.via_node);
@@ -302,6 +319,8 @@ export function writeSeedTreeProfiles(
         github: cand?.github,
         website: cand?.website,
         olympiad: cand?.olympiad,
+        context_score: edge.context_score,
+        context_signals: edge.context_signals,
       });
     } else {
       const seedLogin = slugify(edge.from_github);
@@ -319,6 +338,8 @@ export function writeSeedTreeProfiles(
         github: cand?.github,
         website: cand?.website,
         olympiad: cand?.olympiad,
+        context_score: edge.context_score,
+        context_signals: edge.context_signals,
       });
     }
     n++;

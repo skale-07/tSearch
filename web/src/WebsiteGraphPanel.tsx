@@ -8,6 +8,10 @@ import {
   type MarkRecord,
   type PagePersonRow,
 } from "./api";
+import {
+  matchingPreviewableUrl,
+  type PageUrlOption,
+} from "./previewablePageUrls";
 
 /** Keep in sync with `WEBSITE_GRAPH_INGEST_LIMIT` in src/pipeline/websiteGraph.ts */
 const INGEST_LIMIT = 15;
@@ -22,6 +26,7 @@ interface Props {
   hostSlug?: string;
   seedOptions?: SeedOpt[];
   defaultUrl?: string;
+  urlOptions?: PageUrlOption[];
   defaultOrgHint?: string;
   running: boolean;
   compact?: boolean;
@@ -34,6 +39,7 @@ export function WebsiteGraphPanel({
   hostSlug,
   seedOptions,
   defaultUrl,
+  urlOptions,
   defaultOrgHint,
   running,
   compact,
@@ -50,17 +56,23 @@ export function WebsiteGraphPanel({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [lowCount, setLowCount] = useState(0);
   const [previewed, setPreviewed] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [marks, setMarks] = useState<MarkRecord[]>([]);
   const [manualName, setManualName] = useState("");
   const [manualLinkedIn, setManualLinkedIn] = useState("");
   const [manualGithub, setManualGithub] = useState("");
+  const [customPage, setCustomPage] = useState(false);
 
   useEffect(() => {
     if (seedSlug) setPickedSlug(seedSlug);
   }, [seedSlug]);
 
   useEffect(() => {
-    if (defaultUrl) setUrl(defaultUrl);
+    if (defaultUrl) {
+      setUrl(defaultUrl);
+      setCustomPage(false);
+      setPreviewError(null);
+    }
   }, [defaultUrl]);
 
   useEffect(() => {
@@ -77,6 +89,19 @@ export function WebsiteGraphPanel({
   const slug = seedSlug || pickedSlug;
   const busy = running || previewing || ingesting;
   const noHangTargets = !seedSlug && (seedOptions?.length ?? 0) === 0;
+  const pageChoices = urlOptions ?? [];
+  const matchedChoiceUrl = matchingPreviewableUrl(url, pageChoices);
+  const showPageSelect = pageChoices.length > 1;
+  const showUrlInput = !showPageSelect || customPage || !matchedChoiceUrl;
+
+  const clearPreview = () => {
+    setPreviewed(false);
+    setPeople([]);
+    setSelected(new Set());
+    setPageUrl(null);
+    setLowCount(0);
+    setPreviewError(null);
+  };
 
   const onPreview = async () => {
     if (!slug) {
@@ -84,6 +109,7 @@ export function WebsiteGraphPanel({
       return;
     }
     setPreviewing(true);
+    setPreviewError(null);
     try {
       const result = await previewWebsiteGraph({
         seed_slug: slug,
@@ -95,6 +121,7 @@ export function WebsiteGraphPanel({
       setPeople(result.people);
       setLowCount(result.low_confidence_count);
       setPreviewed(true);
+      setPreviewError(null);
       if (result.org_hint) {
         const extracted = result.org_hint;
         setOrgHint((prev) => {
@@ -114,7 +141,10 @@ export function WebsiteGraphPanel({
         )
       );
     } catch (err) {
-      onError(err instanceof Error ? err.message : String(err));
+      setPeople([]);
+      setSelected(new Set());
+      setPreviewed(false);
+      setPreviewError(err instanceof Error ? err.message : String(err));
     } finally {
       setPreviewing(false);
     }
@@ -174,12 +204,26 @@ export function WebsiteGraphPanel({
     if (!slug) return;
     const resolvedUrl = (pageUrl || url).trim();
     if (!resolvedUrl) {
-      onError("Page URL required.");
+      onError("Page URL required (hang-under source). Name + org is enough — no LinkedIn/GitHub URL.");
       return;
     }
-    const chosen = people.filter((p) => selected.has(p.name));
+    const chosen = [...people.filter((p) => selected.has(p.name))];
+    const pending = manualName.trim();
+    if (
+      pending &&
+      !chosen.some((p) => p.name.toLowerCase() === pending.toLowerCase())
+    ) {
+      chosen.push({
+        name: pending,
+        linkedin_url: manualLinkedIn.trim() || undefined,
+        github_url: manualGithub.trim() || undefined,
+        confidence: "medium",
+        evidence: "manual row",
+        checked_default: true,
+      });
+    }
     if (!chosen.length) {
-      onError("Check at least one person to send through LinkedIn.");
+      onError("Add a name (preview checklist or the manual row) to resolve.");
       return;
     }
     const needOrg = chosen.some((p) => !p.linkedin_url);
@@ -283,13 +327,44 @@ export function WebsiteGraphPanel({
       )}
       <label className="website-graph-field">
         Page URL
-        <input
-          type="url"
-          value={url}
-          placeholder="https://lab.example/people"
-          onChange={(e) => setUrl(e.target.value)}
-          disabled={busy}
-        />
+        {showPageSelect && (
+          <select
+            value={
+              customPage || !matchedChoiceUrl ? "__other__" : matchedChoiceUrl
+            }
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next === "__other__") {
+                setCustomPage(true);
+                clearPreview();
+                return;
+              }
+              setCustomPage(false);
+              setUrl(next);
+              clearPreview();
+            }}
+            disabled={busy}
+          >
+            {pageChoices.map((o) => (
+              <option key={o.url} value={o.url}>
+                {o.label}
+              </option>
+            ))}
+            <option value="__other__">Other…</option>
+          </select>
+        )}
+        {showUrlInput && (
+          <input
+            type="url"
+            value={url}
+            placeholder="https://lab.example/people"
+            onChange={(e) => {
+              setCustomPage(true);
+              setUrl(e.target.value);
+            }}
+            disabled={busy}
+          />
+        )}
       </label>
       <label className="website-graph-field">
         Org / award token
@@ -313,8 +388,16 @@ export function WebsiteGraphPanel({
       >
         {previewing ? "Fetching…" : "Preview people"}
       </button>
-      {previewed && people.length === 0 && (
-        <p className="muted">No names extracted from that page.</p>
+      {previewError && (
+        <p className="error" role="alert">
+          {previewError}
+        </p>
+      )}
+      {previewed && people.length === 0 && !previewError && (
+        <p className="muted">
+          No names extracted from that page. Try another URL or add someone in
+          the manual row.
+        </p>
       )}
       {people.length > 0 && (
         <>
@@ -360,7 +443,10 @@ export function WebsiteGraphPanel({
         </>
       )}
       <div className="website-graph-manual">
-        <p className="muted">Manual row — name plus optional profile URLs</p>
+        <p className="muted">
+          Manual row — name + org token is enough. LinkedIn/GitHub URLs are
+          optional.
+        </p>
         <label className="website-graph-field">
           Name
           <input
@@ -369,6 +455,16 @@ export function WebsiteGraphPanel({
             onChange={(e) => setManualName(e.target.value)}
             disabled={busy}
             placeholder="Ada Lovelace"
+          />
+        </label>
+        <label className="website-graph-field">
+          Org / award token
+          <input
+            type="text"
+            value={orgHint}
+            onChange={(e) => setOrgHint(e.target.value)}
+            disabled={busy}
+            placeholder="USAAAO, AAPT, Davidson Fellows"
           />
         </label>
         <label className="website-graph-field">
@@ -404,7 +500,11 @@ export function WebsiteGraphPanel({
         type="button"
         className="run-btn"
         onClick={() => void onIngest()}
-        disabled={busy || selected.size === 0 || !(pageUrl || url.trim())}
+        disabled={
+          busy ||
+          !(pageUrl || url.trim()) ||
+          (selected.size === 0 && !manualName.trim())
+        }
       >
         {ingesting
           ? "Starting…"

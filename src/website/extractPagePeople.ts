@@ -54,8 +54,6 @@ const STOP_NAMES = new Set(
   ].map((s) => s.toLowerCase())
 );
 
-const TEAM_HINT = /\b(team|people|members|lab|group|roster|directory)\b/i;
-
 export function normalizeNameKey(name: string): string {
   return name
     .normalize("NFD")
@@ -81,6 +79,42 @@ function stripTags(html: string): string {
   return decodeEntities(html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "));
 }
 
+/** Strip medal/result prefixes so "Gold Medal Ada Lovelace" nominates Ada. */
+export function peelResultPrefix(raw: string): string {
+  return decodeEntities(raw)
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(?:written by|by)\s+/i, "")
+    .replace(
+      /^(?:gold|silver|bronze)\s+medal\s+/i,
+      ""
+    )
+    .replace(/^(?:honorable mention|participation)\s+/i, "")
+    .trim();
+}
+
+const ROSTER_PATH_TOKENS = new Set([
+  "team",
+  "people",
+  "roster",
+  "history",
+  "results",
+  "members",
+  "winners",
+]);
+
+/** Leftover title-case sweep only on roster/results URLs, not news/project pages. */
+export function isRosterResultsUrl(pageUrl: string): boolean {
+  try {
+    const path = new URL(pageUrl).pathname.toLowerCase();
+    return path
+      .split(/[/_\-.]+/)
+      .some((token) => ROSTER_PATH_TOKENS.has(token));
+  } catch {
+    return false;
+  }
+}
+
 /** All-caps acronym — org token, not a given/family name. */
 function isAcronymToken(word: string): boolean {
   return /^[A-Z]{2,}$/.test(word);
@@ -88,7 +122,7 @@ function isAcronymToken(word: string): boolean {
 
 /** 2–4 capitalized tokens, not an org/nav phrase. */
 export function isPersonShapedName(raw: string): boolean {
-  const name = decodeEntities(raw).replace(/\s+/g, " ").trim();
+  const name = peelResultPrefix(raw);
   if (name.length < 4 || name.length > 60) return false;
   if (STOP_NAMES.has(name.toLowerCase())) return false;
   if (/[0-9/@:]/.test(name)) return false;
@@ -100,6 +134,31 @@ export function isPersonShapedName(raw: string): boolean {
     (w) =>
       /^[A-Z][a-zA-Z'’-]*$/.test(w) && w.length >= 2 && /[a-z]/.test(w)
   );
+}
+
+export function isSoftNotFoundPage(html: string): boolean {
+  const title = stripTags(
+    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ""
+  );
+  const h1 = stripTags(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? "");
+  return /page not found|not found|404/i.test(`${title} ${h1}`.slice(0, 200));
+}
+
+/** Prefer article body; drop nav/header so "The Team" in chrome doesn't gate extract. */
+export function extractMainHtml(html: string): string {
+  const article = html.match(/<article\b[^>]*>[\s\S]*?<\/article>/i)?.[0];
+  if (article && article.length > 400) return article;
+  const entry = html.match(
+    /class="[^"]*entry-content[^"]*"[\s\S]{200,80000}<\/div>/i
+  )?.[0];
+  if (entry) return entry;
+  const main = html.match(/<main\b[^>]*>[\s\S]*?<\/main>/i)?.[0];
+  if (main && main.length > 400) return main;
+  return html
+    .replace(/<nav\b[\s\S]*?<\/nav>/gi, " ")
+    .replace(/<header\b[\s\S]*?<\/header>/gi, " ")
+    .replace(/<footer\b[\s\S]*?<\/footer>/gi, " ")
+    .replace(/<aside\b[\s\S]*?<\/aside>/gi, " ");
 }
 
 const TITLE_ACRONYM_SKIP = new Set([
@@ -213,17 +272,6 @@ function githubProfileUrl(href: string, baseUrl: string): string | null {
   }
 }
 
-function sameOriginPath(href: string, pageUrl: string): string | null {
-  try {
-    const page = new URL(pageUrl);
-    const u = new URL(href, pageUrl);
-    if (u.origin !== page.origin) return null;
-    return u.pathname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
 interface Hit {
   name: string;
   linkedin_url?: string;
@@ -265,16 +313,28 @@ function collectListItems(html: string): string[] {
   return items;
 }
 
-function inTeamishContext(html: string, snippet: string): boolean {
-  const idx = html.toLowerCase().indexOf(snippet.slice(0, 40).toLowerCase());
-  if (idx < 0) return TEAM_HINT.test(html.slice(0, 2000));
-  const window = html.slice(Math.max(0, idx - 800), idx + 200);
-  return TEAM_HINT.test(window);
+function collectParagraphs(html: string): string[] {
+  const items: string[] = [];
+  for (const m of html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const text = stripTags(m[1] ?? "");
+    if (text) items.push(text);
+  }
+  return items;
+}
+
+function nominateText(text: string, take: (hit: Hit) => void, confidence: PagePersonConfidence, evidence: string): void {
+  const peeled = peelResultPrefix(text.split(/[|•·\n]/)[0]?.trim() ?? "");
+  if (!isPersonShapedName(peeled)) return;
+  take({
+    name: peeled,
+    confidence,
+    evidence,
+  });
 }
 
 /**
- * Conservative nominator. LinkedIn/GitHub anchors first, team-list names
- * second, title-case leftovers last (unchecked by default).
+ * Conservative nominator. LinkedIn/GitHub anchors first, article/list names
+ * second, leftover title-case last and only on roster/results URLs.
  */
 export function extractPagePeople(input: {
   html: string;
@@ -283,6 +343,7 @@ export function extractPagePeople(input: {
   limit?: number;
 }): PagePerson[] {
   const { html, pageUrl } = input;
+  const main = extractMainHtml(html);
   const limit = input.limit ?? PREVIEW_CAP;
   const seedKey = input.seedName ? normalizeNameKey(input.seedName) : "";
   const byKey = new Map<string, Hit>();
@@ -295,12 +356,13 @@ export function extractPagePeople(input: {
     byKey.set(key, prev ? prefer(prev, hit) : hit);
   };
 
-  for (const a of collectAnchors(html)) {
+  for (const a of collectAnchors(main)) {
     const li = linkedInInUrl(a.href, pageUrl);
     const gh = githubProfileUrl(a.href, pageUrl);
     if (li) {
       const slug = li.match(/\/in\/([^/]+)/)?.[1] ?? "";
-      const name = isPersonShapedName(a.text) ? a.text : titleFromSlug(slug);
+      const label = peelResultPrefix(a.text);
+      const name = isPersonShapedName(label) ? label : titleFromSlug(slug);
       if (name) {
         take({
           name,
@@ -313,7 +375,7 @@ export function extractPagePeople(input: {
       continue;
     }
     if (gh && !GENERIC_LINK.test(a.href)) {
-      const name = isPersonShapedName(a.text) ? a.text : null;
+      const name = isPersonShapedName(a.text) ? peelResultPrefix(a.text) : null;
       if (name) {
         take({
           name,
@@ -323,44 +385,34 @@ export function extractPagePeople(input: {
         });
       }
     }
-    const path = sameOriginPath(a.href, pageUrl);
-    if (
-      path &&
-      TEAM_HINT.test(path) === false &&
-      isPersonShapedName(a.text) &&
-      inTeamishContext(html, a.text)
-    ) {
-      take({
-        name: a.text,
-        confidence: "medium",
-        evidence: `team-page link ${a.text}`,
-      });
+  }
+
+  for (const text of collectListItems(main)) {
+    nominateText(text, take, "medium", "article list item");
+  }
+  const medalNameRe =
+    /(?:Gold|Silver|Bronze)\s+Medal\s+([A-Z][a-zA-Z'’-]+(?:\s+[A-Z][a-zA-Z'’-]+){1,3})/g;
+  for (const text of collectParagraphs(main)) {
+    const first = peelResultPrefix(
+      text.split(/[|•·\n]/)[0]?.trim().split(/[.(]/)[0]?.trim() ?? ""
+    );
+    if (first.length > 0 && first.length < 60 && isPersonShapedName(first)) {
+      nominateText(first, take, "medium", "article paragraph");
+    }
+    for (const m of text.matchAll(medalNameRe)) {
+      nominateText(m[1] ?? "", take, "medium", "results-line name");
     }
   }
 
-  for (const text of collectListItems(html)) {
-    const firstLine = text.split(/[|•·\n]/)[0]?.trim() ?? "";
-    if (!isPersonShapedName(firstLine)) continue;
-    if (!inTeamishContext(html, firstLine) && !TEAM_HINT.test(pageUrl)) continue;
-    take({
-      name: firstLine,
-      confidence: "medium",
-      evidence: "team/people list item",
-    });
-  }
-
-  const excerpt = htmlToExcerpt(html, 6000);
-  const hasStructured = [...byKey.values()].some(
-    (h) => h.confidence === "high" || h.confidence === "medium"
-  );
-  if (!hasStructured) {
+  if (isRosterResultsUrl(pageUrl)) {
+    const excerpt = htmlToExcerpt(main, 20_000);
     const nameRe =
       /\b([A-Z][a-zA-Z'’-]+(?:\s+[A-Z][a-zA-Z'’-]+){1,3})\b/g;
     for (const m of excerpt.matchAll(nameRe)) {
-      const name = m[1] ?? "";
-      if (!isPersonShapedName(name)) continue;
+      const peeled = peelResultPrefix(m[1] ?? "");
+      if (!isPersonShapedName(peeled)) continue;
       take({
-        name,
+        name: peeled,
         confidence: "low",
         evidence: "title-case name in page text",
       });

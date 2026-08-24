@@ -117,6 +117,9 @@ export function createAssessmentRun(
     config: partial.config,
     candidate_ids: partial.candidate_ids ?? [],
     errors: [],
+    ...(partial.youth_wildcard_ids
+      ? { youth_wildcard_ids: partial.youth_wildcard_ids }
+      : {}),
   };
   writeJsonAtomic(path.join(dir, "run.json"), run);
   return run;

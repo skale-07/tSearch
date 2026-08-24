@@ -19,6 +19,7 @@ import {
   type TreeResponse,
 } from "./api";
 import { DiscoverPage } from "./DiscoverPage";
+import { markCandidateId, markGraphSlug } from "./markLookDeeper";
 import { MarksList } from "./MarksList";
 import { PipelineBatchModal } from "./PipelineBatchModal";
 import { ProfilePanel } from "./ProfilePanel";
@@ -156,15 +157,17 @@ export default function App() {
     };
   }, []);
 
-  const loadTree = useCallback(async (slug: string) => {
+  const loadTree = useCallback(async (slug: string): Promise<TreeResponse | null> => {
     setError(null);
     try {
       const t = await fetchTree(slug);
       setTree(t);
       setSeedSlug(slug);
+      return t;
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setTree(null);
+      return null;
     }
   }, []);
 
@@ -283,8 +286,11 @@ export default function App() {
     }
   };
 
-  const onSelectNode = async (node: TreeNodeSummary) => {
-    if (!seedSlug) return;
+  const openNodeProfile = async (
+    node: TreeNodeSummary,
+    currentTree: TreeResponse,
+    seed: string
+  ) => {
     setSelectedNodeId(node.id);
     setPanelNode(node);
     setPanelLoading(true);
@@ -295,8 +301,8 @@ export default function App() {
       const parentSlug = node.parentId ?? parsedParent;
 
       let parentRelation: "collaborator" | "follower" | "website" | undefined;
-      if (node.hop === 2 && parentSlug && tree) {
-        const parentNode = tree.nodes.find((n) => n.id === parentSlug);
+      if (node.hop === 2 && parentSlug) {
+        const parentNode = currentTree.nodes.find((n) => n.id === parentSlug);
         if (
           parentNode?.relation === "collaborator" ||
           parentNode?.relation === "follower" ||
@@ -304,7 +310,7 @@ export default function App() {
         ) {
           parentRelation = parentNode.relation;
         } else {
-          const hop1Edge = tree.edges.find(
+          const hop1Edge = currentTree.edges.find(
             (e) => e.hop === 1 && e.to === parentSlug
           );
           if (hop1Edge?.via === "github-collaborator") {
@@ -318,7 +324,7 @@ export default function App() {
       }
 
       const profile = await fetchProfile(
-        seedSlug,
+        seed,
         relation,
         relation === "seed" ? undefined : slug,
         node.hop === 2 && parentSlug && parentRelation
@@ -332,6 +338,37 @@ export default function App() {
     } finally {
       setPanelLoading(false);
     }
+  };
+
+  const onSelectNode = async (node: TreeNodeSummary) => {
+    if (!seedSlug || !tree) return;
+    await openNodeProfile(node, tree, seedSlug);
+  };
+
+  const onOpenMarkedGraph = async (mark: MarkRecord) => {
+    const goAssess = () => {
+      const cid = markCandidateId(mark);
+      if (cid) openScore("assess", [cid]);
+    };
+    if (!mark.seed_slug) {
+      goAssess();
+      return;
+    }
+    openWorkspace("graph");
+    const t = await loadTree(mark.seed_slug);
+    if (!t) {
+      goAssess();
+      return;
+    }
+    const slug = markGraphSlug(mark);
+    const node = slug
+      ? t.nodes.find((n) => parseNodeId(n.id).slug === slug)
+      : undefined;
+    if (node) {
+      await openNodeProfile(node, t, t.seedSlug);
+      return;
+    }
+    goAssess();
   };
 
   const onExpandBranch = async () => {
@@ -513,6 +550,10 @@ export default function App() {
             open
             running={status === "running"}
             onStartResolve={onWatchJob}
+            onOpenGraph={(m) => void onOpenMarkedGraph(m)}
+            onAssessCandidate={(candidateId) => {
+              openScore("assess", [candidateId]);
+            }}
             onError={(message) => {
               setStatus("failed");
               setError(message);
@@ -550,6 +591,10 @@ export default function App() {
                 <div className="graph-marks">
                   <MarksList
                     marks={marks}
+                    onOpenGraph={(m) => void onOpenMarkedGraph(m)}
+                    onAssess={(candidateId) => {
+                      openScore("assess", [candidateId]);
+                    }}
                     onUnmark={(id) => {
                       void deleteMark(id)
                         .then(() =>
@@ -560,9 +605,6 @@ export default function App() {
                             err instanceof Error ? err.message : String(err)
                           )
                         );
-                    }}
-                    onOpen={(m) => {
-                      if (m.seed_slug) void loadTree(m.seed_slug);
                     }}
                   />
                 </div>

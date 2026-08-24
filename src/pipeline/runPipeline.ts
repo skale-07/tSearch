@@ -305,7 +305,7 @@ async function main(): Promise<void> {
 
   log("done", `wrote ${ranked.length} candidates → ${OUTPUT_PATH}`);
 
-  const profilesWritten = writeSeedTreeProfiles(ranked, {
+  const profilesWritten = writeSeedTreeProfiles(merged, {
     seeds: identities.map((i) => ({
       name: i.query_name,
       github: i.github_url,
@@ -315,7 +315,7 @@ async function main(): Promise<void> {
   });
   log(
     "profiles",
-    `upserted ${profilesWritten} → ${PROFILES_DIR}/<seed>/{profile.json,collaborators|followers/<login>/}`
+    `upserted ${profilesWritten} from ${merged.length} merged (not top-${ranked.length}) → ${PROFILES_DIR}/<seed>/{profile.json,collaborators|followers/<login>/}`
   );
 
   const people = persistPeople(ranked, seeds, failed, neighbors, olympiadIndex);

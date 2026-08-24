@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import {
   COOKIES_PATH,
-  MIN_TREE_CONTEXT_SCORE,
   OUTPUT_PATH,
   PROFILES_DIR,
   SEEDS_PATH,
@@ -13,6 +12,7 @@ import {
   profileFilePath,
   relationDir,
 } from "../src/storage/profileStore.js";
+import { includeOnTree } from "../src/storage/includeOnTree.js";
 import { slugify } from "../src/storage/jsonStore.js";
 import { loadConvergenceMap } from "../src/pipeline/convergence.js";
 import {
@@ -275,34 +275,6 @@ export function loadProfile(
     parentRelation: opts?.parentRelation,
   });
   return readJson<ProfileRecord>(file);
-}
-
-/** Logins that pollute hop graphs but aren't GitHub Apps/bots. */
-const TREE_EXCLUDED_LOGINS = new Set([
-  "idouble", // "Alp ₿📈🚀🌕" — crypto-spam persona, appears under many seeds
-  "standardgalactic", // "Cogito Ergo Sum" — spam/agent persona across trees
-]);
-
-function isBotLogin(slug: string, name: string): boolean {
-  const login = slug.toLowerCase();
-  if (TREE_EXCLUDED_LOGINS.has(login)) return true;
-  const s = `${slug} ${name}`.toLowerCase();
-  return (
-    /\[bot\]/.test(s) ||
-    /(^|[\s_-])bot($|[\s_-])/.test(s) ||
-    /dependabot|renovate|github-actions|actions-user|opencode-agent/.test(s)
-  );
-}
-
-function includeOnTree(p: ProfileRecord, hop: 0 | 1 | 2): boolean {
-  if (hop === 0) return true;
-  if (isBotLogin(p.slug, p.name)) return false;
-  // Operator-picked website neighbors skip the GitHub context floor.
-  if (p.relation === "website") return true;
-  const score = Number(
-    p.context_score ?? p.github?.context_score ?? 0
-  );
-  return score >= MIN_TREE_CONTEXT_SCORE;
 }
 
 export function buildTree(seedSlug: string): TreeResponse | null {

@@ -9,15 +9,40 @@ export interface WebsiteHtml {
   finalUrl: string;
 }
 
+export type WebsiteHtmlFetch =
+  | { ok: true; html: string; finalUrl: string }
+  | { ok: false; httpStatus?: number; finalUrl: string };
+
+/** Operator-facing copy when a team page cannot be loaded. */
+export function websiteFetchFailureMessage(
+  requestedUrl: string,
+  fail: Extract<WebsiteHtmlFetch, { ok: false }>
+): string {
+  const shown = fail.finalUrl || requestedUrl;
+  if (fail.httpStatus === 404 || fail.httpStatus === 410) {
+    return `That page is gone (HTTP ${fail.httpStatus}): ${shown}. Paste another URL.`;
+  }
+  if (fail.httpStatus) {
+    return `Could not load that page (HTTP ${fail.httpStatus}): ${shown}`;
+  }
+  return `Could not fetch ${requestedUrl}`;
+}
+
 /**
  * Cached HTML for people extraction. Separate from website-profile so a
  * social-link scrape does not stand in for a team-page parse.
  */
 export async function fetchWebsiteHtml(
   websiteUrl: string
-): Promise<WebsiteHtml | null> {
+): Promise<WebsiteHtmlFetch> {
   const cached = readCache<WebsiteHtml>("website-people", websiteUrl, TTL_MS);
-  if (cached?.data?.html) return cached.data;
+  if (cached?.data?.html) {
+    return {
+      ok: true,
+      html: cached.data.html,
+      finalUrl: cached.data.finalUrl || websiteUrl,
+    };
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -33,16 +58,20 @@ export async function fetchWebsiteHtml(
     });
     if (!res.ok) {
       console.log(`[website-people] ${websiteUrl} → HTTP ${res.status}`);
-      return null;
+      return {
+        ok: false,
+        httpStatus: res.status,
+        finalUrl: res.url || websiteUrl,
+      };
     }
     const html = await res.text();
     const data: WebsiteHtml = { html, finalUrl: res.url || websiteUrl };
     writeCache("website-people", websiteUrl, data);
-    return data;
+    return { ok: true, ...data };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.log(`[website-people] ${websiteUrl} failed: ${msg}`);
-    return null;
+    return { ok: false, finalUrl: websiteUrl };
   } finally {
     clearTimeout(timer);
   }
