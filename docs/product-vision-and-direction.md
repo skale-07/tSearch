@@ -11,9 +11,38 @@ don't get missed.
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-08-07 |
+| Last reviewed | 2026-10-27 |
 | Reviewed by | Scheduled agent review (automated) |
 | Repos covered | `skale-07/jobright-application-agent` (private), `skale-07/tSearch` (**public**) |
+
+---
+
+## 0. Delta since 2026-08-07 (read this first)
+
+**jobright-application-agent moved a lot (62 commits, last 2026-10-26); §1 below is partly stale.**
+Evidence from `docs/roadmap/*`, the house-rules flag list and `src/` (35 modules):
+
+- **Product pivot to "Dispatch"** (decision 2026-09-23, `launch-checklist-2026-09-14.md`): the engine ships in a
+  *desktop app* (Windows first) running on the user's own machine/Chrome; AWS hosts only a control plane (metering
+  LLM proxy, dashboard, update bucket); Supabase for auth/user DB; Azure and remote browsers dropped
+  (`REMOTE_BROWSER_ENABLED` / Browserbase spike stayed `UNVERIFIED`). Hosted multi-tenant, signup/onboarding and
+  free-quota enforcement are now in scope — the "single local operator" vision in §1.1 no longer describes it.
+- **Capability surface expanded well past "Greenhouse only"**: Workday, Lever, native/JobRight autofill, essay
+  generation (operator directive 2026-08-15), screener LLM prediction, outreach worker, Gmail/Outlook verification,
+  `AUTOMATION_ENABLED` unattended auto-cycles, CDP autolaunch, a site-map crawler (`SITEMAP_CRAWL_ENABLED`) and
+  the Phase-6 browser-use agent flags. Live apply loops have been run (a READY_TO_SUBMIT livelock was found live 2026-09-23).
+  §1.2's "essays and demographics cannot be auto-filled" is **superseded** by the CLAUDE.md carve-outs (opt-in,
+  validated, recorded on the plan entry; demographics only from the candidate's own encrypted profile).
+- **Workstream C′ status unclear**: `known-limitations.md` still says live feed discovery returns zero cards, yet
+  later commits (human pacing/bot-block cooldown, picker, sitemap) imply live runs. Needs the operator to close or
+  re-state it. Also note Playwright now defaults `storageState` to include IndexedDB, so the §5 "indexedDB: true"
+  hypothesis is likely moot.
+- **tSearch**: 5 commits since last review (youth wildcards, corroborated GitHub, 1-10 score, Supabase
+  marking/windowing, top-80 cut fix; last 2026-08-24). It now has `CLAUDE.md` house rules, `.mcp.json` oracle
+  and `docs/system-brief.md`; the "no safety-flag layer" finding is **partly closed** (rules exist; still no
+  fail-closed env-flag or forbidden-API check). PII was **untracked** in `f5ad384` (profiles/, backup/ now gitignored) but
+  is **still in git history** (`git log --all -- profiles backup` returns commits).
+- Open issues / PRs: **zero** in both repos (re-verified 2026-10-27; jobright PR search was not permitted by the API scope).
 
 ---
 
@@ -156,12 +185,15 @@ Severity reflects blast radius and reversibility, not effort to fix.
 
 | Severity | Repo | Risk | Why it matters |
 | --- | --- | --- | --- |
-| **Critical** | tSearch | `profiles/` (39 files) and `backup/` (131 files, ~2.1MB) contain scraped **real people's** LinkedIn data — full name, LinkedIn URL, profile photo URL, education, headline, country — and are **tracked in git and pushed to `origin/main`**, which is a **public** GitHub repo. `.gitignore` has no `profiles`/`backup` entry. Verified directly: 202 files, e.g. `profiles/madanva/profile.json` contains a real name + LinkedIn URL + photo URL + education history. | Third-party PII collected via scraping (no consent from the individuals) is publicly exposed on GitHub, indexable and clonable by anyone. This is a live exposure right now, not a hypothetical — it should be treated with real urgency: gitignore + `git filter-repo`/BFG history purge (removal alone doesn't clear git history), audit whether other tracked paths (`data/people/`, `cache/`) have the same problem, and decide whether the repo should go private until it's clean. |
-| **High** | jobright | Live JobRight feed discovery returns 0 cards against a real session while the fixture path works — every application in the DB today is fixture-derived, so the product has **never completed a live closed loop**. | This blocks the entire product, not one feature; it's the current top engineering priority per the repo's own docs (workstream C′). |
+| **Critical → High (partially mitigated)** | tSearch | Scraped real-people LinkedIn data (`profiles/`, `backup/`; 202 files) was committed and pushed to the **public** repo. 2026-10: files are untracked and gitignored (`f5ad384`), but **history still contains them** — anyone can `git checkout` an old commit or clone and read them. | Removal alone does not clear history. Still needed: `git filter-repo`/BFG purge + force-push, rotate/consider repo private until done, check forks/caches, and confirm `data/people/`, `cache/` were never tracked. Operator decision needed; not done by this routine. |
+| **High (re-verify)** | jobright | Live JobRight feed discovery returned 0 cards (docs not updated since; later commits suggest live runs happened — operator to confirm C′ closed) against a real session while the fixture path works — every application in the DB today is fixture-derived, so the product has **never completed a live closed loop**. | This blocks the entire product, not one feature; it's the current top engineering priority per the repo's own docs (workstream C′). |
 | **High** | tSearch | `assessment-rubric-architecture-audit.md` flags the ownership-share metric's denominator as the candidate's own commit count, which structurally biases toward false `primary_creator` attribution on any repo where the candidate is already a heavy committer. | This is a scoring-correctness bug in the exact mechanism recruiters are meant to trust; it's silent (no error, just a wrong number feeding `priority_score`). |
-| **Medium** | tSearch | No fail-closed safety-flag layer (no `CLAUDE.md`/house-rules, no forbidden-API check) despite live third-party scraping and real outbound email via Resend. jobright's own `docs/tsearch-reuse-map.md` explicitly names "no committed profile artifacts" as one of the hardening improvements made *over* tSearch — a gap tSearch has evidently not closed on itself. | As the assessment/digest surface grows (feedback loops, more automation), the absence of an explicit gating convention increases the chance a future change accidentally auto-sends or auto-escalates something that should have needed a human. |
+| **Medium (narrowed)** | tSearch | `CLAUDE.md` house rules now exist, but no env-flag convention or forbidden-API/PII-path CI check (e.g. a check that fails if `profiles/` is tracked) despite live third-party scraping and real outbound email via Resend. jobright's own `docs/tsearch-reuse-map.md` explicitly names "no committed profile artifacts" as one of the hardening improvements made *over* tSearch — a gap tSearch has evidently not closed on itself. | As the assessment/digest surface grows (feedback loops, more automation), the absence of an explicit gating convention increases the chance a future change accidentally auto-sends or auto-escalates something that should have needed a human. |
 | **Medium** | tSearch | `tsearch-playwright-system-audit.md` (HIGH-severity items): no mid-run re-authentication detection on the LinkedIn session (a silently expired session can produce garbage extractions with no error), zero LinkedIn tests, no retry/trace/screenshot capture on scrape failures, and country is captured but never used to reject homonym mismatches. | Directly threatens data quality (wrong-person matches silently entering the candidate graph) and makes live failures hard to diagnose after the fact — same class of problem jobright already solved for its own live paths via traces/screenshots/read-back verification. |
 | **Medium** | jobright | CAPTCHA false-positive fix and live Greenhouse fill are both code-complete and `FIXTURE_CONFIRMED` but not yet retested against a live board (workstream G). | Not urgent, but "fixed" language shouldn't be read as "proven" until the live retest closes the checkbox — consistent with the project's own validation-ladder discipline. |
+| **High** | jobright | Doc/vision drift: `known-limitations.md`, `current-state-and-phase56.md` and `architecture.md` still describe a Greenhouse-only, no-essay, single-operator tool while the code runs Workday/Lever, essays, unattended automation and a hosted/desktop product. | The validation ladder is the repo's main defense; stale limitation lists make it impossible to tell which capabilities have live evidence. Reconcile with a per-capability ladder table. |
+| **Medium** | jobright | Scope growth vs. the "deterministic, operator-controlled" bet: ~35 flags, unattended `AUTOMATION_ENABLED`, `ARTIFACT_AUTOPUSH_ENABLED` (dozens of `art:` commits of run artifacts) and multi-tenant data. | Autopushed artifacts in git risk leaking candidate/screenshot/PII data and bloating history; hosted users' sensitive profiles (EEO) raise the stakes of any gating regression. Audit autopush contents and keep submit gating tests heavy-gate mandatory. |
+| **Medium** | tSearch | Scoring changed repeatedly (weights, youth wildcards, 1-10 score) without updated calibration; `requires_calibration` flags on priority-v2/Cory remain. | Recruiter-facing rank could drift silently; keep `final_score`/`priority_score` separation. |
 | **Low** | tSearch | Digest-loop design (feedback capture → ranking refinement) is speced but unbuilt; open product questions (global vs. per-seed top-N, Substack-only filtering) are unresolved in the docs. | Not a defect, just unfinished direction — worth tracking so it doesn't silently drop off the roadmap. |
 | **Low** | jobright | `docs/tsearch-reuse-map.md` still describes a Phase 10 LinkedIn-enrichment port that was later dropped by decision (§3). | Doc drift; a future reader could plan work against a stale decision. |
 
@@ -171,7 +203,7 @@ Severity reflects blast radius and reversibility, not effort to fix.
 
 **jobright-application-agent**
 
-- **`storageState({ indexedDB: true })`** (Playwright ≥1.51) — directly targets
+- **`storageState` IndexedDB** (Playwright ≥1.51; a later change made inclusion the default, opt-out via `indexedDB: false`) — check the pinned Playwright version still matches; if C′ is still open, verify IndexedDB is actually captured — directly targets
   the live-discovery blocker in §1.3/§4: Google OAuth session state for
   JobRight plausibly lives in IndexedDB, which default `storageState()`
   silently drops. Worth trying before deeper SPA-hydration-timing debugging.
@@ -214,6 +246,7 @@ Severity reflects blast radius and reversibility, not effort to fix.
 
 ## Changelog
 
+- **2026-10-27** — Scheduled refresh. Added §0 delta; PII narrowed from tracked to history-only; added doc-drift, scope-growth and calibration risks. Both repos still have zero open issues. Search note: Stagehand v3 claims were not re-verified this run.
 - **2026-08-07** — Initial creation. Full read of both repos' docs trees,
   git history, and current GitHub issue/PR state (both repos: zero open
   issues, zero open PRs at time of review). Verified the critical PII/public-repo
