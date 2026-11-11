@@ -13,7 +13,7 @@ don't get missed.
 | --- | --- |
 | Last reviewed | 2026-11-11 |
 | Reviewed by | Scheduled agent review (automated) |
-| Repos covered | `skale-07/jobright-application-agent` (private), `skale-07/tSearch` (**public**) |
+| Repos covered | `skale-07/jobright-application-agent` (private; renamed on GitHub to `skale-07/dispatch`, old name redirects — noticed 2026-11-11), `skale-07/tSearch` (**public**) |
 
 ---
 
@@ -286,4 +286,8 @@ Severity reflects blast radius and reversibility, not effort to fix.
   raw GPT-4.1 ρ=0.60), a candidate approach for the `requires_calibration`
   judges; Playwright 1.64 (Oct 2026) is reported to include behavior-changing
   (non-additive) updates — check release notes before any Playwright bump in
-  either repo.
+  either repo. One new fact surfaced at push time: the jobright repo has been
+  renamed on GitHub to `skale-07/dispatch` (old name still redirects) —
+  consistent with the hosted-"Dispatch" naming in §1.1; local remotes, docs,
+  and CI references should migrate to the new name at some point, but the
+  redirect means nothing is broken today.
