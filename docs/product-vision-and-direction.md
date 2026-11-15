@@ -11,7 +11,7 @@ don't get missed.
 
 | Field | Value |
 | --- | --- |
-| Last reviewed | 2026-11-13 |
+| Last reviewed | 2026-11-15 |
 | Reviewed by | Scheduled agent review (automated) |
 | Repos covered | `skale-07/jobright-application-agent` (private; renamed on GitHub to `skale-07/dispatch`, old name redirects — noticed 2026-11-11), `skale-07/tSearch` (**public**) |
 
@@ -248,6 +248,10 @@ Severity reflects blast radius and reversibility, not effort to fix.
   Autorubric/SAJA (prompting/ensemble-side), it is a trained post-hoc
   corrector; a concrete, code-available option for the `requires_calibration`
   priority-v2 and Cory judges once any human-labeled calibration set exists.
+  Practitioner sizing reference for building that set (MLflow judge-calibration
+  guide, noted 2026-11-15): 50–200 human-labeled examples per rubric, hold-out
+  set kept separate from the tuning set, re-calibrate whenever the judge model,
+  prompt, or task changes. https://mlflow.org/articles/llm-judge-calibration/
 - **GitHub-graph-first identity resolution** (pattern: `theArjun/github-social-graph`,
   GitHub GraphQL API over followers/stargazers/forks + NetworkX for
   community detection) — a ToS-compliant complement that could shift weight
@@ -322,3 +326,16 @@ Severity reflects blast radius and reversibility, not effort to fix.
   bump in either repo (jobright is Node 20); Stagehand v3 storage-state
   persistence reported broken (stagehand#1250); added Microsoft LLM-RUBRIC
   (learned judge-calibration network) to §5 for tSearch.
+- **2026-11-15** — No-change check. Zero open issues/PRs in both repos; tSearch
+  `main` still a52881b (2026-08-24), jobright `master` still 51008787
+  (2026-10-26). PII finding re-verified directly: 349 `profiles/`/`backup/`
+  objects still reachable in public history, 0 tracked at tip — High, purge
+  still pending. Mirror copies verified identical except the pointer line (the
+  2026-11-13 re-sync held). External scan (light): Playwright 1.65's Node-20
+  drop and ~10 breaking changes remain confirmed only by third-party coverage
+  (official release-notes pages still not reviewed in full) — the pin-below-1.65
+  caution for jobright stands unchanged; judge-calibration scan surfaced nothing
+  new beyond §5 (Autorubric/LLM-RUBRIC still the concrete options) — added the
+  MLflow practitioner sizing guidance (50–200 labeled examples per rubric) to
+  the LLM-RUBRIC note as a reference for any future calibration set. No new
+  risks; risk table unchanged.
